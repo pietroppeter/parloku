@@ -22,11 +22,11 @@ const pageStyle* = """
 <style>
 /* ---------- the default skin: Munari (also the fallback for every variable) ---------- */
 :root,[data-skin=munari]{
-  --bg:#fbfaf6; --card:#ffffff; --ink:#2b2b2b; --muted:#8a867c; --line:#e7e3d8; --soft:#f3f1ea;
+  --bg:#fbfaf6; --card:#ffffff; --ink:#2b2b2b; --muted:#6b665c; --line:#e7e3d8; --soft:#f3f1ea;
   --accent:#a7c7e7; --accent-ink:#2b2b2b; --hl:#fff1b8; --bad:#ffd3d3; --bad-line:#e06666;
   --g0:#f4a6a6; --g1:#f9e29c; --g2:#a7c7e7; --g3:#f8c291; --g4:#b8e0b0; --g5:#cdb4db;
   --i0:#2b2b2b; --i1:#2b2b2b; --i2:#2b2b2b; --i3:#2b2b2b; --i4:#2b2b2b; --i5:#2b2b2b;
-  --c0:#e06666; --c1:#4a7fc1; --c2:#e3a72f; --c3:#7b5ea7; --c4:#3f8f5f;
+  --c0:#c0392b; --c1:#3a6db0; --c2:#a8650a; --c3:#6c4f99; --c4:#2f7a4d;
   --frame:transparent; --ca:#ffffff; --cb:#f3f1ea; --boxline:#2b2b2b; --tstroke:none; --tsw:0;
   --font-head:"Space Grotesk",system-ui,sans-serif; --font-body:Nunito,system-ui,sans-serif;
   --font-glyph:"Space Grotesk",system-ui,sans-serif; --glyph-weight:700; --shine:0;
@@ -160,6 +160,10 @@ svg .mono{font-family:"JetBrains Mono",monospace}
   .stage{padding:2px}
   .banner b{font-size:32px}
 }
+@media (prefers-reduced-motion: reduce){
+  .pulse,.confetti i{animation:none} .item,.clue,.banner,body{transition:none}
+}
+.btn:focus-visible,.skins button:focus-visible{outline:3px solid var(--c1);outline-offset:2px}
 #source{display:none}
 footer button{font:600 12px "JetBrains Mono",monospace;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:4px 12px;cursor:pointer}
 footer hr{display:none}
@@ -172,8 +176,8 @@ footer hr{display:none}
 [data-skin=tullet]{
   --bg:#ffffff; --card:#ffffff; --ink:#1f1f1f; --line:#ececec; --soft:#f5f5f5; --accent:#ffd86b;
   --g0:#ff8a80; --g1:#ffd86b; --g2:#7fb3ff; --g3:#ffb26b; --g4:#8fd694; --g5:#c29bea;
-  --i0:#fff; --i1:#1f1f1f; --i2:#fff; --i3:#1f1f1f; --i4:#1f1f1f; --i5:#fff;
-  --c0:#ff5a5f; --c1:#2f7de1; --c2:#f5a623; --c3:#8e5bd6; --c4:#2fa36b;
+  --i0:#1f1f1f; --i1:#1f1f1f; --i2:#1f1f1f; --i3:#1f1f1f; --i4:#1f1f1f; --i5:#1f1f1f;
+  --c0:#d0353a; --c1:#1f63c4; --c2:#a8650a; --c3:#7a45c9; --c4:#1f7a4d;
   --ca:#ffffff; --cb:#ffffff; --boxline:#1f1f1f; --frame:#1f1f1f;
   --font-head:Fredoka,sans-serif; --font-glyph:Fredoka,sans-serif; --font-body:Nunito,sans-serif; --glyph-weight:600;
   --coach:#1f1f1f; --hl:#fff3b0;
@@ -184,10 +188,10 @@ footer hr{display:none}
 
 /* ---------- 3 · Lionni (Italy): torn-paper collage, soft blues, yellows and greens ---------- */
 [data-skin=lionni]{
-  --bg:#f4efe6; --card:#fffdf8; --ink:#3b362e; --muted:#8c8376; --line:#e4dccd; --soft:#ece5d8; --accent:#9cc7e8;
+  --bg:#f4efe6; --card:#fffdf8; --ink:#3b362e; --muted:#6e665a; --line:#e4dccd; --soft:#ece5d8; --accent:#9cc7e8;
   --g0:#8fb8de; --g1:#f6d55c; --g2:#9ccc65; --g3:#ef9a9a; --g4:#e8c39e; --g5:#80cbc4;
   --i0:#24384d; --i1:#4d3d0b; --i2:#2d4a14; --i3:#5a2525; --i4:#5a3f22; --i5:#1f4a46;
-  --c0:#d9534f; --c1:#3f7cb5; --c2:#c98d17; --c3:#7a5aa6; --c4:#4e8f3a;
+  --c0:#c0392b; --c1:#2f6aa3; --c2:#8f6208; --c3:#7a5aa6; --c4:#3d7a2c;
   --ca:#fffdf8; --cb:#f7f1e4; --boxline:#c7bca8; --font-head:"Patrick Hand",cursive; --font-glyph:"Patrick Hand",cursive;
   --glyph-weight:400; --coach:#3b362e; --coach-ink:#fffdf8;
 }
@@ -198,8 +202,8 @@ footer hr{display:none}
 [data-skin=miro]{
   --bg:#f6f0e1; --card:#fbf7ec; --ink:#1a1a1a; --line:#e3dac4; --soft:#eee6d2; --accent:#f6cf57;
   --g0:#e9786f; --g1:#f6cf57; --g2:#6f9ed8; --g3:#7fbf7f; --g4:#2a2a2a; --g5:#f2a65a;
-  --i0:#fff; --i1:#1a1a1a; --i2:#fff; --i3:#1a1a1a; --i4:#f6cf57; --i5:#1a1a1a;
-  --c0:#d94b3f; --c1:#2d6cc0; --c2:#1a1a1a; --c3:#7d4fb0; --c4:#3c8c44;
+  --i0:#1a1a1a; --i1:#1a1a1a; --i2:#1a1a1a; --i3:#1a1a1a; --i4:#f6cf57; --i5:#1a1a1a;
+  --c0:#c23a2f; --c1:#2d6cc0; --c2:#1a1a1a; --c3:#7d4fb0; --c4:#2e7034;
   --ca:#fbf7ec; --cb:#f3ecda; --boxline:#1a1a1a; --tstroke:#1a1a1a; --tsw:3px; --frame:#1a1a1a;
   --font-head:Fredoka,sans-serif; --font-glyph:Fredoka,sans-serif; --glyph-weight:700; --coach:#1a1a1a; --coach-ink:#f6f0e1;
 }
@@ -207,10 +211,10 @@ footer hr{display:none}
 
 /* ---------- 5 · Gomi (Japan): warm sketchbook, wobbly brown lines, sunny colours ---------- */
 [data-skin=gomi]{
-  --bg:#fff7ee; --card:#fffdf9; --ink:#4a3b32; --muted:#9a8879; --line:#f0e1d2; --soft:#fbeee0; --accent:#ffb38a;
+  --bg:#fff7ee; --card:#fffdf9; --ink:#4a3b32; --muted:#7a6a5c; --line:#f0e1d2; --soft:#fbeee0; --accent:#ffb38a;
   --g0:#ffb38a; --g1:#9ad0f5; --g2:#b5e48c; --g3:#ffadc6; --g4:#ffe08a; --g5:#c3b1e1;
   --i0:#4a3b32; --i1:#4a3b32; --i2:#4a3b32; --i3:#4a3b32; --i4:#4a3b32; --i5:#4a3b32;
-  --c0:#f06a3f; --c1:#3a8fd1; --c2:#5aa832; --c3:#c45ba0; --c4:#4a9a4a;
+  --c0:#c4471f; --c1:#2a73b0; --c2:#3d7a1f; --c3:#a8437f; --c4:#3d7a3d;
   --ca:#fffdf9; --cb:#fff3e4; --boxline:#4a3b32; --tstroke:#4a3b32; --tsw:2.5px;
   --font-head:"Patrick Hand",cursive; --font-glyph:Fredoka,sans-serif; --glyph-weight:600; --coach:#4a3b32; --coach-ink:#fff7ee;
 }
@@ -218,10 +222,10 @@ footer hr{display:none}
 
 /* ---------- 6 · Wagashi (Japan): sweets-shop pastels, sakura · matcha · yuzu, rounded and calm ---------- */
 [data-skin=wagashi]{
-  --bg:#f8f4ec; --card:#fffcf6; --ink:#5a4a42; --muted:#a3958a; --line:#ece3d6; --soft:#f2ebe0; --accent:#f7c6d0;
-  --g0:#f7c6d0; --g1:#b7d3a8; --g2:#f6e3a1; --g3:#d9b8b0; --g4:#b8d8e8; --g5:#cdbfe3;
+  --bg:#f8f4ec; --card:#fffcf6; --ink:#5a4a42; --muted:#7a6c62; --line:#ece3d6; --soft:#f2ebe0; --accent:#f7c6d0;
+  --g0:#f7c6d0; --g1:#b7d3a8; --g2:#f6e3a1; --g3:#d9b38c; --g4:#b8d8e8; --g5:#cdbfe3;
   --i0:#5a4a42; --i1:#3f5233; --i2:#5c4c16; --i3:#5a3a34; --i4:#2f4e5c; --i5:#4b3d63;
-  --c0:#e07a95; --c1:#6b9a5b; --c2:#c9a23a; --c3:#8a76b5; --c4:#6b9a5b;
+  --c0:#b84a68; --c1:#4a7a3c; --c2:#8a6a10; --c3:#6f5aa0; --c4:#4a7a3c;
   --ca:#fffcf6; --cb:#f6efe3; --boxline:#d8cbb8; --font-head:"Zen Maru Gothic",sans-serif;
   --font-glyph:"Zen Maru Gothic",sans-serif; --font-body:"Zen Maru Gothic",Nunito,sans-serif; --glyph-weight:700;
   --radius:22px; --coach:#5a4a42; --coach-ink:#fffcf6;
@@ -232,7 +236,7 @@ footer hr{display:none}
   --bg:#fdfbf7; --card:#ffffff; --ink:#263238; --line:#ebe6dc; --soft:#f4efe6; --accent:#a0c4ff;
   --g0:#ff9f9a; --g1:#ffd6a5; --g2:#a0c4ff; --g3:#84dcc6; --g4:#bdb2ff; --g5:#ffc6ff;
   --i0:#263238; --i1:#263238; --i2:#263238; --i3:#263238; --i4:#263238; --i5:#263238;
-  --c0:#ef476f; --c1:#118ab2; --c2:#f78c2b; --c3:#7b61ff; --c4:#06a77d;
+  --c0:#c9284f; --c1:#0b6a8a; --c2:#b35c00; --c3:#6243e0; --c4:#04785a;
   --ca:#ffffff; --cb:#f6f3ff; --boxline:#263238;
   --font-head:"Josefin Sans",sans-serif; --font-glyph:"Josefin Sans",sans-serif; --glyph-weight:700; --coach:#263238;
 }
@@ -244,7 +248,7 @@ footer hr{display:none}
   --bg:#ffffff; --card:#ffffff; --ink:#111111; --line:#111111; --soft:#f2f2f2; --accent:#f9d56e;
   --g0:#f28482; --g1:#f9d56e; --g2:#84a9e8; --g3:#8cc084; --g4:#f5a65b; --g5:#c9a27e;
   --i0:#111; --i1:#111; --i2:#111; --i3:#111; --i4:#111; --i5:#111;
-  --c0:#e63946; --c1:#1d6fd8; --c2:#f4a300; --c3:#6a4c93; --c4:#2a9d4a;
+  --c0:#c62834; --c1:#1d6fd8; --c2:#9a6200; --c3:#6a4c93; --c4:#1e7a38;
   --ca:#ffffff; --cb:#ffffff; --boxline:#111; --frame:#111; --tstroke:#111; --tsw:4px; --border:2.5px;
   --font-head:Fredoka,sans-serif; --font-glyph:Fredoka,sans-serif; --glyph-weight:600; --coach:#111;
 }
@@ -253,10 +257,10 @@ footer hr{display:none}
 
 /* ---------- 9 · Matisse (France): paper cut-outs, cobalt and coral on warm white ---------- */
 [data-skin=matisse]{
-  --bg:#fbf7f0; --card:#fffdf8; --ink:#22324d; --muted:#8a8f9c; --line:#ece4d6; --soft:#f2ebdf; --accent:#f4a78f;
-  --g0:#6c8fd1; --g1:#f4a78f; --g2:#9ccfa0; --g3:#f5d77a; --g4:#f2b8c6; --g5:#22324d;
+  --bg:#fbf7f0; --card:#fffdf8; --ink:#22324d; --muted:#666b78; --line:#ece4d6; --soft:#f2ebdf; --accent:#f4a78f;
+  --g0:#3f63b0; --g1:#f4a78f; --g2:#9ccfa0; --g3:#f5d77a; --g4:#f2b8c6; --g5:#22324d;
   --i0:#fff; --i1:#22324d; --i2:#22324d; --i3:#22324d; --i4:#22324d; --i5:#f5d77a;
-  --c0:#e2603f; --c1:#3456a8; --c2:#3f9a55; --c3:#c0607d; --c4:#3f9a55;
+  --c0:#bf4527; --c1:#3456a8; --c2:#2d7a40; --c3:#a8475f; --c4:#2d7a40;
   --ca:#fffdf8; --cb:#f8f0e3; --boxline:#22324d; --font-head:"DM Serif Display",serif; --font-glyph:"DM Serif Display",serif;
   --glyph-weight:400; --coach:#22324d;
 }
@@ -268,7 +272,7 @@ footer hr{display:none}
   --bg:#ffffff; --card:#ffffff; --ink:#151515; --line:#e8e8e8; --soft:#f3f3f3; --accent:#a8e6cf;
   --g0:#f7a1a1; --g1:#ffe27a; --g2:#a6d8f5; --g3:#a8e6cf; --g4:#ffc8a2; --g5:#d5c6f0;
   --i0:#151515; --i1:#151515; --i2:#151515; --i3:#151515; --i4:#151515; --i5:#151515;
-  --c0:#e8505b; --c1:#1f8fd6; --c2:#f2a20c; --c3:#8857c8; --c4:#14a37f;
+  --c0:#c8323d; --c1:#156fb0; --c2:#9a6200; --c3:#8857c8; --c4:#0d7a5e;
   --ca:#ffffff; --cb:#f6f6f6; --boxline:#151515; --tstroke:#151515; --tsw:3px;
   --font-head:"Space Grotesk",sans-serif; --font-glyph:"Space Grotesk",sans-serif; --glyph-weight:700; --coach:#151515;
 }
@@ -278,9 +282,9 @@ footer hr{display:none}
 /* ---------- 0 · Maiolica: the original, cobalt ink and glazed tiles ---------- */
 [data-skin=maiolica]{
   --bg:#f6eedc; --card:#fffaf0; --ink:#1b2a41; --muted:#6c6450; --line:#e2d5b8; --soft:#efe3c6; --accent:#1b2a41; --accent-ink:#fffaf0;
-  --g0:#2f5d9e; --g1:#c8553d; --g2:#e9b52f; --g3:#6f8a2e; --g4:#2f9c95; --g5:#7d3c6b;
+  --g0:#2f5d9e; --g1:#b8492f; --g2:#e9b52f; --g3:#5a7224; --g4:#237a74; --g5:#7d3c6b;
   --i0:#fff; --i1:#fff; --i2:#3a2a06; --i3:#fff; --i4:#fff; --i5:#fff;
-  --c0:#d6246e; --c1:#1b2a41; --c2:#e85d04; --c3:#5a189a; --c4:#0b6e4f;
+  --c0:#d6246e; --c1:#1b2a41; --c2:#b84800; --c3:#5a189a; --c4:#0b6e4f;
   --frame:#1b2a41; --ca:#fffaf0; --cb:#f4e9cf; --boxline:#1b2a41; --tstroke:#1b2a41; --tsw:2.5px; --shine:.2;
   --font-head:"Playfair Display",Georgia,serif; --font-body:Karla,sans-serif; --font-glyph:"Playfair Display",Georgia,serif;
   --glyph-weight:900; --border:2px; --shadow:6px 6px 0 #1b2a41; --btn-shadow:2px 2px 0 #1b2a41; --coach:#1b2a41; --hl:#fde7a6;

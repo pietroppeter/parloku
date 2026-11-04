@@ -23,11 +23,15 @@ or with `?skin=tullet`. The Nim view only names classes, so a skin can change pa
 The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in Nim and compiled to JavaScript.
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
+Devlog: [ten skins for a letter game](devlog/pastel-skins/), how the skins were chosen and checked.
+
 ## Files
 
 - `index.html`: the generated page (served by GitHub Pages from `main`, root). Don't edit it by hand.
 - `src/parloku.nim`: the notebook. Model, rules, solver and drag spec run natively at build time and in the browser.
-- `src/style.nim`: the page CSS (a maiolica theme), inlined in place of nimib's default theme.
+- `src/style.nim`: the page CSS (ten skins plus the original maiolica), inlined in place of nimib's default theme.
+- `src/devlog_pastel_skins.nim` → `devlog/pastel-skins/index.html`: devlog post on how the skins were picked, built and
+  audited (contrast and colour distance computed at build time). Build `src/parloku.nim` first, the post embeds its game.
 - `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
   At build time the solver checks each puzzle has a unique solution that matches its key.
 - `src/deps.sh`, `src/config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/`.
@@ -39,6 +43,7 @@ Needs Nim 2.x (built with 2.2.4) and libpcre (PCRE1). From the repo root:
 ```sh
 sh src/deps.sh
 nim c -r -d:release src/parloku.nim   # writes index.html
+nim c -r -d:release src/devlog_pastel_skins.nim   # writes devlog/pastel-skins/index.html
 ```
 
 ## Links to a puzzle
