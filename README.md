@@ -11,6 +11,11 @@ and you drag them up into the cells. The dragging is a small port of
 [Declarative Dragging](https://declarative-dragging.github.io/) (Horowitz, Blinn & Heer, UIST 2026):
 the code never handles a drop, it only lists the boards a drag can reach.
 
+The game speaks English and Italian (EN / IT switch, or `?lang=it`) and has a 🎓 tutorial on the first puzzle
+(`?tutorial`). The tutorial follows a logical path, not the answer key: put the first letter of every word, then
+follow each word letter by letter while the sudoku forces where the next letter goes, and finish with plain sudoku.
+It asks for the next step after every drop, so it copes with any order and points out wrong tiles.
+
 The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in Nim and compiled to JavaScript.
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 

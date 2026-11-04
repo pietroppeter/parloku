@@ -43,6 +43,19 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
   border-radius:999px;padding:6px 14px;cursor:pointer;box-shadow:2px 2px 0 var(--ink)}
 .btn.on{background:var(--ink);color:var(--card)}
 .btn:active{transform:translate(2px,2px);box-shadow:none}
+.picker > span{display:contents}
+.btn.tut{background:var(--limone)}
+.langs{float:right;display:flex;gap:6px;margin-top:22px}
+.langs .btn{padding:4px 10px}
+.coach{background:var(--ink);color:#f3ead4;border-radius:14px;padding:12px 16px;margin:0 0 14px;border:3px solid var(--ink);
+  box-shadow:5px 5px 0 var(--terra)}
+.coach .hd{font:700 12px "JetBrains Mono",monospace;letter-spacing:.1em;color:var(--limone)}
+.coach p{margin:6px 0 10px;font-size:16px;line-height:1.5}
+.coach p b{color:#fff;background:rgba(255,255,255,.12);padding:0 4px;border-radius:4px}
+.coach .acts{display:flex;gap:8px;flex-wrap:wrap}
+.coach .btn{box-shadow:2px 2px 0 var(--terra)}
+.pulse{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
 .clues{display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:center;margin:6px 0 12px;min-height:46px}
 .clue{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 6px;border-radius:12px;background:var(--card);
   border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);cursor:default;transition:transform .2s}
@@ -92,7 +105,20 @@ p code, li code{overflow-wrap:anywhere}
 @media (max-width:560px){
   header span:nth-child(2){display:none}
   .lede{font-size:17px}
-  .clues{gap:8px}
+  .picker > span{display:contents}
+.btn.tut{background:var(--limone)}
+.langs{float:right;display:flex;gap:6px;margin-top:22px}
+.langs .btn{padding:4px 10px}
+.coach{background:var(--ink);color:#f3ead4;border-radius:14px;padding:12px 16px;margin:0 0 14px;border:3px solid var(--ink);
+  box-shadow:5px 5px 0 var(--terra)}
+.coach .hd{font:700 12px "JetBrains Mono",monospace;letter-spacing:.1em;color:var(--limone)}
+.coach p{margin:6px 0 10px;font-size:16px;line-height:1.5}
+.coach p b{color:#fff;background:rgba(255,255,255,.12);padding:0 4px;border-radius:4px}
+.coach .acts{display:flex;gap:8px;flex-wrap:wrap}
+.coach .btn{box-shadow:2px 2px 0 var(--terra)}
+.pulse{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.clues{gap:8px}
   .clue{gap:3px;padding:4px 6px 4px 4px;box-shadow:2px 2px 0 var(--ink)}
   .clue .n{width:21px;height:21px;font-size:12px}
   .clue .l{width:19px;height:24px;font-size:15px;border-radius:5px}

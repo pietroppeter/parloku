@@ -14,25 +14,31 @@ func pageHeader(blk: JsonNode, nb: Nb): string =
 nb.backend.partials["header"] = pageHeader
 
 nbRawHtml: """
+<div class="langs" id="langs"><button class="btn" data-lang="en">EN</button><button class="btn" data-lang="it">IT</button></div>
 <h1><span class="tile" style="background:#2f5d9e">P</span>arloku</h1>
-<p class="lede">A mini sudoku spelled in letters, with words hidden in it. Drag the tiles up from their stacks.</p>
+<p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste. Trascina su le tessere dalle loro pile.">A mini sudoku spelled in letters, with words hidden in it. Drag the tiles up from their stacks.</p>
 <div class="game">
-  <div class="picker" id="picker"></div>
+  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓 tutorial">🎓 tutorial</button><span id="picker"></span></div>
+  <div class="coach" id="coach" hidden>
+    <div class="hd" id="coach-hd"></div>
+    <p id="coach-text"></p>
+    <div class="acts" id="coach-acts"></div>
+  </div>
   <div class="clues" id="clues"></div>
   <div class="stage" id="board"></div>
   <div class="status">
     <span class="meta" id="meta"></span>
     <span class="acts">
-      <button class="btn" id="hint">💡 hint</button>
-      <button class="btn" id="reset">↺ reset</button>
-      <button class="btn" id="share">🔗 link</button>
+      <button class="btn" id="hint" data-it="💡 aiuto">💡 hint</button>
+      <button class="btn" id="reset" data-it="↺ ricomincia">↺ reset</button>
+      <button class="btn" id="share" data-it="🔗 link">🔗 link</button>
     </span>
   </div>
 </div>
 <div class="rules">
-  <div><b>01 · SUDOKU</b>Each of the six letters appears once in every row, every column and every 2×3 box.</div>
-  <div><b>02 · WORDS</b>Each clue starts in its numbered cell and is spelled one step at a time, up, down, left or right.</div>
-  <div><b>03 · TILES</b>Every letter has a stack of six tiles. Drop one on a cell, drag it away to send it home.</div>
+  <div data-it="<b>01 · SUDOKU</b>Ognuna delle sei lettere compare una volta in ogni riga, in ogni colonna e in ogni riquadro 2×3."><b>01 · SUDOKU</b>Each of the six letters appears once in every row, every column and every 2×3 box.</div>
+  <div data-it="<b>02 · PAROLE</b>Ogni parola parte dalla sua casella numerata e si scrive un passo alla volta: in su, in giù, a destra o a sinistra."><b>02 · WORDS</b>Each clue starts in its numbered cell and is spelled one step at a time, up, down, left or right.</div>
+  <div data-it="<b>03 · TESSERE</b>Ogni lettera ha una pila di sei tessere. Trascinane una su una casella, trascinala via per rimetterla nella pila."><b>03 · TILES</b>Every letter has a stack of six tiles. Drop one on a cell, drag it away to send it home.</div>
 </div>
 """
 
@@ -186,11 +192,12 @@ nbCodeAnd(nbJsFromCode):
       if g[c] != '.' and peersOf[c].anyIt(g[it] == g[c]): result.add c
 
   proc trace(g: Grid, clue: Clue, wild = false): seq[int] =
-    ## longest prefix of the word that can be walked from its start cell (cells not reused)
+    ## longest prefix of the word that can be walked from its start cell
+    ## (the rules let a path come back to a cell it already used)
     var best, path: seq[int]
     let word = clue.word
     proc walk(cell, i: int) =
-      if best.len == word.len or cell in path: return
+      if best.len == word.len: return
       let ok = g[cell] == word[i] or (wild and g[cell] == '.')
       if not ok: return
       path.add cell
@@ -252,7 +259,201 @@ The solver is also the seed of a puzzle *builder*: pick letters, givens and word
 setup has zero, one or many solutions. In the game it powers the 💡 button, which glides one correct tile into place.
 """
 
-nbRawHtml: """<h2><span class="num">03 · THE DRAG SPEC</span>Listing futures instead of handling drops</h2>"""
+nbRawHtml: """<h2><span class="num">03 · A LOGICAL PATH</span>Solving like a person</h2>"""
+
+nbText: """
+Backtracking finds the answer but can't explain it. The 🎓 tutorial needs moves a person can see, so here is
+Pietro's method as code. First put the first letter of every word in its numbered cell. Then follow each word
+letter by letter: the next letter sits next to the previous one, has to fit the sudoku, and has to leave a way
+to finish the word (`spellings` lists every walk that still could). When only one cell qualifies, the letter is forced.
+When no word moves, plain sudoku singles take over: a cell with one candidate left, or a letter with one place left in a row,
+column or box. The tutorial asks for the next step after every drop, so it copes with any order and even with mistakes.
+"""
+
+nbCodeAnd(nbJsFromCode):
+  type
+    StepKind = enum skStart, skWord, skNaked, skHidden, skFix, skReveal
+    Step = object
+      kind: StepKind
+      cell: int              # where the tile goes (-1: no step)
+      letter: char
+      clue: int              # start and word steps: which clue
+      unit: int              # hidden singles: which row, column or box
+      path: seq[int]         # word steps: the word so far, ending in `cell`
+      dead: seq[int]         # word steps: neighbours that fit the sudoku but can't finish the word
+
+  var lang = "en"            # "en" or "it", set by the page
+  proc L(en, it: string): string = (if lang == "it": it else: en)
+
+  proc cands(p: Puzzle, g: Grid, c: int): string =
+    if g[c] != '.': return $g[c]
+    for ch in p.letters:
+      if peersOf[c].allIt(g[it] != ch): result.add ch
+
+  proc neighbours(at: int): seq[int] =
+    for nb in [at - 6, at + 6, at - 1, at + 1]:
+      if nb >= 0 and nb < 36 and (abs(nb - at) == 6 or nb div 6 == at div 6): result.add nb
+
+  proc spellings(p: Puzzle, g: Grid, clue: Clue): seq[seq[int]] =
+    ## every walk that could still spell the clue: each cell holds its letter or could take it,
+    ## and the walk never puts the same letter twice in a row, column or box
+    var found: seq[seq[int]]
+    var cur: seq[int]
+    let word = clue.word
+    proc walk(cell, i: int) =
+      let ch = word[i]
+      if not (g[cell] == ch or (g[cell] == '.' and ch in cands(p, g, cell))): return
+      for k, prev in cur:
+        if prev == cell and word[k] != ch: return
+        if prev != cell and word[k] == ch and prev in peersOf[cell]: return
+      cur.add cell
+      if cur.len == word.len: found.add cur
+      else:
+        for nb in neighbours(cell): walk(nb, i + 1)
+      discard cur.pop
+    walk(idx(clue.pos), 0)
+    found
+
+  proc wordStep(p: Puzzle, g: Grid): Step =
+    result.cell = -1
+    for i, clue in p.clues:
+      let start = idx(clue.pos)
+      if g[start] == '.': return Step(kind: skStart, cell: start, letter: clue.word[0], clue: i, path: @[start])
+    for i, clue in p.clues:
+      let sp = spellings(p, g, clue)
+      var path = @[idx(clue.pos)]
+      for k in 1 ..< clue.word.len:
+        let ch = clue.word[k]
+        let at = path[^1]
+        let fits = neighbours(at).filterIt(g[it] == ch or (g[it] == '.' and ch in cands(p, g, it)))
+        let next = sp.mapIt(it[k]).deduplicate
+        if next.len != 1: break
+        path.add next[0]
+        if g[next[0]] == '.':
+          return Step(kind: skWord, cell: next[0], letter: ch, clue: i, path: path,
+                      dead: fits.filterIt(it != next[0]))
+
+  proc singleStep(p: Puzzle, g: Grid): Step =
+    result.cell = -1
+    for c in 0 ..< 36:
+      if g[c] == '.':
+        let cs = cands(p, g, c)
+        if cs.len == 1: return Step(kind: skNaked, cell: c, letter: cs[0])
+    for u, cells in units:
+      for ch in p.letters:
+        if cells.anyIt(g[it] == ch): continue
+        let spots = cells.filterIt(g[it] == '.' and ch in cands(p, g, it))
+        if spots.len == 1: return Step(kind: skHidden, cell: spots[0], letter: ch, unit: u)
+
+  proc logicalStep(p: Puzzle, g: Grid, solution: Grid): Step =
+    ## the next move a person would make; a wrong tile is pointed out first
+    for c in 0 ..< 36:
+      if g[c] != '.' and solution[c] != '.' and g[c] != solution[c]:
+        return Step(kind: skFix, cell: c, letter: g[c])
+    result = wordStep(p, g)
+    if result.cell < 0: result = singleStep(p, g)
+    if result.cell < 0:
+      for c in 0 ..< 36:
+        if g[c] == '.' and solution[c] != '.': return Step(kind: skReveal, cell: c, letter: solution[c])
+
+  proc rc(c: int): string = &"r{c div 6 + 1}c{c mod 6 + 1}"
+  proc nth(k: int): string =
+    const en = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"]
+    const it = ["prima", "seconda", "terza", "quarta", "quinta", "sesta", "settima", "ottava"]
+    if k < 1 or k > 8: return $k
+    L(en[k - 1], it[k - 1])
+
+  proc inUnit(u: int): string =
+    ## "in row 5" / "nella riga 5"
+    if u < 6: L(&"in row {u + 1}", &"nella riga {u + 1}")
+    elif u < 12: L(&"in column {u - 5}", &"nella colonna {u - 5}")
+    else: L(&"in box {u - 11}", &"nel riquadro {u - 11}")
+
+  proc blockUnit(g: Grid, cell: int, ch: char): int =
+    ## why `ch` can't go in `cell`: -1 the cell is taken, else the unit that already has `ch`
+    if g[cell] != '.': return -1
+    for u, cells in units:
+      if cell in cells and cells.anyIt(g[it] == ch): return u
+    -2
+
+  proc an(ch: char): string = (if ch in "AEFHILMNORSX": "an" else: "a")
+
+  proc blocked(g: Grid, cells: seq[int], ch: char): seq[string] =
+    ## "r3c1 and r5c1 are in column 1, which already has an A"
+    var keys: seq[int]
+    for c in cells:
+      let k = blockUnit(g, c, ch)
+      if k notin keys: keys.add k
+    for k in keys:
+      let group = cells.filterIt(blockUnit(g, it, ch) == k)
+      let names = group.mapIt(rc(it)).join(L(" and ", " e "))
+      let isEn = if group.len > 1: "are" else: "is"
+      let isIt = if group.len > 1: "sono" else: "è"
+      let takenIt = if group.len > 1: "occupate" else: "occupata"
+      if k == -1:
+        result.add L(&"{names} {isEn} taken", &"{names} {isIt} {takenIt}")
+      elif k >= 0:
+        result.add L(&"{names} {isEn} {inUnit(k)}, which already has {an(ch)} {ch}",
+                     &"{names} {isIt} {inUnit(k)}, che ha già una {ch}")
+
+  proc explain(p: Puzzle, g: Grid, s: Step): string =
+    let w = if s.clue < p.clues.len: p.clues[s.clue].word else: ""
+    case s.kind
+    of skStart:
+      L(&"<b>{w}</b> starts in cell {s.clue + 1}, so {rc(s.cell)} is <b>{s.letter}</b>.",
+        &"<b>{w}</b> parte dalla casella {s.clue + 1}, quindi {rc(s.cell)} è <b>{s.letter}</b>.")
+    of skWord:
+      let k = s.path.len
+      let prev = s.path[^2]
+      var notes: seq[string]
+      var others: seq[int]
+      for o in neighbours(prev):
+        if o == s.cell or o in s.path: continue
+        if o notin s.dead:
+          others.add o
+          continue
+        var g2 = g
+        g2[o] = s.letter
+        let nxt = w[k]
+        let room = neighbours(o).filterIt(g2[it] == nxt or (g2[it] == '.' and nxt in cands(p, g2, it)))
+        if room.len == 0:
+          notes.add L(&"{rc(o)} fits {s.letter}, but then the next letter, {nxt}, would have no room",
+                      &"in {rc(o)} la {s.letter} ci starebbe, ma poi la lettera dopo, {nxt}, non avrebbe posto")
+        else:
+          notes.add L(&"{rc(o)} fits {s.letter}, but from there {w} can't be finished",
+                      &"in {rc(o)} la {s.letter} ci starebbe, ma da lì {w} non si può completare")
+      notes = blocked(g, others, s.letter) & notes
+      L(&"The {nth(k)} letter of <b>{w}</b>, <b>{s.letter}</b>, sits next to {rc(prev)}. ",
+        &"La {nth(k)} lettera di <b>{w}</b>, <b>{s.letter}</b>, sta accanto a {rc(prev)}. ") &
+        notes.join("; ") & L(&". So {rc(s.cell)} is <b>{s.letter}</b>.", &". Quindi {rc(s.cell)} è <b>{s.letter}</b>.")
+    of skNaked:
+      let seen = p.letters.filterIt(it != s.letter).join(" ")
+      L(&"{rc(s.cell)} already sees {seen} in its row, column and box: only <b>{s.letter}</b> fits.",
+        &"{rc(s.cell)} vede già {seen} nella sua riga, colonna e riquadro: ci sta solo la <b>{s.letter}</b>.")
+    of skHidden:
+      L(&"{inUnit(s.unit).capitalizeAscii}, <b>{s.letter}</b> fits only in {rc(s.cell)}.",
+        &"{inUnit(s.unit).capitalizeAscii}, la <b>{s.letter}</b> può andare solo in {rc(s.cell)}.")
+    of skFix:
+      L(&"The {s.letter} in {rc(s.cell)} is not right. Drag it back to its stack.",
+        &"La {s.letter} in {rc(s.cell)} non è giusta. Riportala nella sua pila.")
+    of skReveal:
+      L(&"This one is tricky: {rc(s.cell)} is <b>{s.letter}</b>.", &"Questa è difficile: {rc(s.cell)} è <b>{s.letter}</b>.")
+
+nbText: "The path it finds for the first puzzle, which the tutorial walks through:"
+
+nbCode:
+  block:
+    let p = decode(builtin[0][1])
+    let sol = p.solve[0]
+    var g = startGrid(p)
+    var n = 0
+    while '.' in g:
+      let s = logicalStep(p, g, sol)
+      inc n
+      echo &"{n:>2}. ", explain(p, g, s).replace("<b>", "").replace("</b>", "")
+      g[s.cell] = s.letter
+
+nbRawHtml: """<h2><span class="num">04 · THE DRAG SPEC</span>Listing futures instead of handling drops</h2>"""
 
 nbText: """
 The drag engine is the one from [Declarative Dragging, in Nim](https://pietroppeter.github.io/claude-artifacts/declarative-dragging-nim/):
@@ -411,6 +612,9 @@ finished board at build time:
 
 nbCodeAnd(nbJsFromCode):
   var focusClue = -1             # the clue chip under the mouse, drawn bolder
+  var coachTint: seq[int]        # tutorial: cells to tint (the reason for a step)
+  var coachTarget = -1           # tutorial: the cell to fill (or empty)
+  var coachStacks: seq[int]      # tutorial: letter stacks to make glow
 
   proc backdrop(b: Board): string =
     let g = b.grid
@@ -420,7 +624,8 @@ nbCodeAnd(nbJsFromCode):
       let p = cellPos(c)
       let (r, col) = (c div 6, c mod 6)
       let base = if (r div 2 + col div 3) mod 2 == 0: "#fffaf0" else: "#f4e9cf"
-      let fill = if c in bad: "#f5b7ae" else: base
+      let tinted = if c in coachTint: "#fde7a6" else: base
+      let fill = if c in bad: "#f5b7ae" else: tinted
       result.add &"""<rect x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7" fill="{fill}"/>"""
       if c in bad:
         result.add &"""<rect x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7" fill="none" stroke="#c8303a" stroke-width="3"/>"""
@@ -428,6 +633,12 @@ nbCodeAnd(nbJsFromCode):
       let y = by + i.float * cell * 2
       result.add &"""<rect x="{bx}" y="{y - 2.5}" width="{cell * 6}" height="5" fill="#1b2a41"/>"""
     result.add &"""<rect x="{bx + cell * 3 - 2.5}" y="{by}" width="5" height="{cell * 6}" fill="#1b2a41"/>"""
+    for i in 0 .. 5:                 # row and column numbers, for the tutorial's r3c4
+      result.add &"""<text x="{bx - 22}" y="{cellPos(i * 6).y + 5}" text-anchor="middle" font-size="14" class="mono" fill="#9a8d6a">r{i + 1}</text>"""
+      result.add &"""<text x="{cellPos(i).x}" y="{by + cell * 6 + 28}" text-anchor="middle" font-size="14" class="mono" fill="#9a8d6a">c{i + 1}</text>"""
+    for li in coachStacks:
+      let s = stackPos(li)
+      result.add &"""<rect class="pulse" x="{s.x - 40}" y="{s.y - 40}" width="80" height="94" rx="18" fill="#fde7a6" stroke="#d6246e" stroke-width="3"/>"""
     # the stacks: one layer per tile still waiting, and a counter badge
     var left: array[6, int]
     for id in 0 ..< 36:
@@ -462,6 +673,9 @@ nbCodeAnd(nbJsFromCode):
       let r = if focusClue == i: 13.0 else: 11.0
       result.add &"""<circle cx="{s.x}" cy="{s.y}" r="{r}" fill="{ink}" stroke="#fff" stroke-width="2.5"/>"""
       result.add &"""<text x="{s.x}" y="{s.y + 4.5}" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" class="mono">{i + 1}</text>"""
+    if coachTarget >= 0:
+      let p = cellPos(coachTarget)
+      result.add &"""<rect class="pulse" x="{p.x - 37}" y="{p.y - 37}" width="74" height="74" rx="12" fill="none" stroke="#d6246e" stroke-width="5"/>"""
 
   proc staticSvg(b: Board): string =
     result = """<svg viewBox="40 -10 520 520">""" & backdrop(b)
@@ -476,7 +690,7 @@ nbCode:
     solution.staticSvg & "</details>"
 nbRawHtml: spoiler
 
-nbRawHtml: """<h2><span class="num">04 · THE RUNTIME</span>Pointer events in, pick calls out</h2>"""
+nbRawHtml: """<h2><span class="num">05 · THE RUNTIME</span>Pointer events in, pick calls out</h2>"""
 
 nbText: """
 The browser runtime (`std/dom`) keeps one SVG group per tile key, so a CSS transition slides tiles to their new
@@ -581,7 +795,7 @@ nbCodeDisplay(nbJsFromCode):
                 backdrop, overlay: proc (s: S): string): Stage[S] =
     host.innerHTML = cstring(&"""<svg class="d2" viewBox="0 0 {w} {h}"><g class="bg"></g>""" &
       """<g class="fg"></g><g class="overlay"></g><g class="ghosts"></g></svg>""" &
-      """<label class="ghost-toggle"><input type="checkbox"> show machinery</label>""")
+      """<label class="ghost-toggle"><input type="checkbox"> <span data-it="mostra il meccanismo">show machinery</span></label>""")
     let st = Stage[S](state: init, render: render, spec: spec, backdrop: backdrop, overlay: overlay)
     st.svg = host.querySelector("svg")
     st.bg = host.querySelector(".bg")
@@ -628,6 +842,12 @@ nbJsFromCode:
   proc attr(e: Element, k: cstring): cstring {.importjs: "#.getAttribute(#)".}
   proc options(): seq[Element] {.importjs: "Array.from(document.getElementById('builtin').content.querySelectorAll('option'))".}
   proc hoverIndex(ev: Event): cstring {.importjs: "(#.target.closest('[data-clue]')?.dataset.clue ?? null)".}
+  proc navLang(): cstring {.importjs: "String(navigator.language || 'en')".}
+  proc i18nNodes(): seq[Element] {.importjs: "Array.from(document.querySelectorAll('[data-it]'))".}
+  proc setAttr(e: Element, k, v: cstring) {.importjs: "#.setAttribute(#, #)".}
+  proc setDocLang(l: cstring) {.importjs: "document.documentElement.lang = #".}
+  proc setHidden(e: Element, h: bool) {.importjs: "#.hidden = #".}
+  proc dataOf(ev: Event, k: cstring): cstring {.importjs: "((e, k) => e.target.closest('[data-' + k + ']')?.getAttribute('data-' + k) ?? null)(#, #)".}
 
   let host = document.getElementById("board")
   let cluesEl = document.getElementById("clues")
@@ -639,7 +859,13 @@ nbJsFromCode:
   let fromUrl = $search()
   if fromUrl.contains("p=") and decode(fromUrl).valid:
     code = decode(fromUrl).encode
-    if games.allIt(it[0] != code): games.add (code, "from the link")
+    if games.allIt(it[0] != code): games.add (code, "")
+  # language: ?lang=, then the last choice, then the browser's
+  let savedLang = lsGet("parloku:lang")
+  lang = if ($navLang()).startsWith("it"): "it" else: "en"
+  if not savedLang.isNil and $savedLang in ["en", "it"]: lang = $savedLang
+  if fromUrl.contains("lang=it"): lang = "it"
+  if fromUrl.contains("lang=en"): lang = "en"
 
   var solution: Grid
   var started = 0.0
@@ -663,7 +889,8 @@ nbJsFromCode:
 
   proc showMeta() =
     let filled = stage.state.cells.countIt(it >= 0)
-    metaEl.innerHTML = cstring(&"tiles <b>{filled}/36</b> · moves <b>{stage.state.moves}</b> · time <b>{clock()}</b>")
+    metaEl.innerHTML = cstring(L("tiles", "tessere") & &" <b>{filled}/36</b> · " & L("moves", "mosse") &
+      &" <b>{stage.state.moves}</b> · " & L("time", "tempo") & &" <b>{clock()}</b>")
 
   proc showClues() =
     let g = stage.state.grid
@@ -684,8 +911,12 @@ nbJsFromCode:
       html.add &"""<span class="ok">{tick}</span></div>"""
     cluesEl.innerHTML = cstring(html)
 
+  var tutorial = false                 # the 🎓 tutorial runs on the first puzzle, with its own saved board
+  proc storeKey(): cstring =
+    let prefix = if tutorial: "parloku:tutorial:" else: "parloku:"
+    cstring(prefix & code)
   proc save() =
-    lsSet(cstring("parloku:" & code), cstring(stage.state.cells.join(",") & ";" & $stage.state.moves & ";" & $started & ";" & $wonAt))
+    lsSet(storeKey(), cstring(stage.state.cells.join(",") & ";" & $stage.state.moves & ";" & $started & ";" & $wonAt))
 
   proc celebrate() =
     var bits = ""
@@ -699,18 +930,28 @@ nbJsFromCode:
       bits.add &"""<i style="--x:{x}%;--dx:{dx}px;--r:{r}deg;--t:{t:.2f}s;--d:{d:.2f}s;background:{glaze[li]}">{puz.letters[li]}</i>"""
     confetti.innerHTML = cstring(bits)
 
+  let coachEl = document.getElementById("coach")
+  let coachHd = document.getElementById("coach-hd")
+  let coachText = document.getElementById("coach-text")
+  let coachActs = document.getElementById("coach-acts")
+  var intro = 0                        # 0 .. 3: the intro pages, 4: solving
+  var guided = true                    # false once the player chose to finish the sudoku alone
+  var wordsAck = false                 # the "all words are in" page was seen
+  var coachStep: Step
+  proc showCoach()
   proc refresh() =
     let g = stage.state.grid
     let won = solved(puz, g)
     if won and wonAt == 0: wonAt = now()
     if won and not celebrated:
       celebrated = true
-      banner.innerHTML = cstring(&"<b>Bravo!</b><span>{stage.state.moves} moves · {clock()}</span>")
+      banner.innerHTML = cstring(&"<b>Bravo!</b><span>{stage.state.moves} " & L("moves", "mosse") & &" · {clock()}</span>")
       celebrate()
     if won: host.classList.add("won")
     else: host.classList.remove("won")
     showClues()
     showMeta()
+    showCoach()
 
   stage.onCommit = proc () =
     if started == 0 and stage.state.moves > 0: started = now()
@@ -726,7 +967,7 @@ nbJsFromCode:
     var b = emptyBoard()
     started = 0
     wonAt = 0
-    let saved = lsGet(cstring("parloku:" & c))
+    let saved = lsGet(storeKey())
     if not saved.isNil:
       let parts = ($saved).split(';')
       let cells = parts[0].split(',')
@@ -737,11 +978,12 @@ nbJsFromCode:
         wonAt = parseFloat(parts[3])
     celebrated = solved(puz, b.grid)     # don't throw confetti again on reload
     confetti.innerHTML = ""
-    banner.innerHTML = cstring(&"<b>Bravo!</b><span>{b.moves} moves · {clock()}</span>")
+    banner.innerHTML = cstring(&"<b>Bravo!</b><span>{b.moves} " & L("moves", "mosse") & &" · {clock()}</span>")
     var html = ""
     for i, (gc, title) in games:
-      let on = if gc == c: " on" else: ""
-      html.add &"""<button class="btn{on}" data-i="{i}">{i + 1} · {title}</button>"""
+      let on = if gc == c and not tutorial: " on" else: ""
+      let name = if title == "": L("from the link", "dal link") else: title
+      html.add &"""<button class="btn{on}" data-i="{i}">{i + 1} · {name}</button>"""
     pickerEl.innerHTML = cstring(html)
     stage.setState(b)
 
@@ -752,11 +994,12 @@ nbJsFromCode:
   pickerEl.addEventListener("click", proc (ev: Event) =
     let i = dataI(ev)
     if not i.isNil:
+      tutorial = false
       load(games[parseInt($i)][0])
       pushQuery(cstring("p=" & code)))
 
   document.getElementById("reset").addEventListener("click", proc (ev: Event) =
-    lsSet(cstring("parloku:" & code), "")
+    lsSet(storeKey(), "")
     load(code))
 
   document.getElementById("share").addEventListener("click", proc (ev: Event) =
@@ -764,27 +1007,31 @@ nbJsFromCode:
     copyText(cstring(url))
     pushQuery(cstring("p=" & code))
     let btn = document.getElementById("share")
-    btn.innerHTML = "✓ copied")
+    btn.innerHTML = cstring(L("✓ copied", "✓ copiato")))
 
-  document.getElementById("hint").addEventListener("click", proc (ev: Event) =
-    ## glide one correct tile in: an empty or wrong cell gets a tile of the right letter
+  proc placeCorrect(c: int) =
+    ## glide a tile of the right letter into cell `c`: one still on its stack, else one sitting in a wrong cell
     let b = stage.state
     let g = b.grid
-    var wrong: seq[int]
-    for c in 0 ..< 36:
-      if solution[c] != '.' and g[c] != solution[c]: wrong.add c
-    if wrong.len == 0: return
-    let c = wrong[int(rnd() * wrong.len.float) mod wrong.len]
     let li = puz.letters.find(solution[c])
+    if li < 0: return
     var id = -1
-    for k in 0 .. 5:                     # prefer a tile still on its stack...
+    for k in 0 .. 5:
       if id < 0 and b.cells.find(li * 6 + k) < 0: id = li * 6 + k
-    for k in 0 .. 5:                     # ...else one sitting in a wrong cell
+    for k in 0 .. 5:
       let at = b.cells.find(li * 6 + k)
       if id < 0 and at >= 0 and g[at] != solution[at]: id = li * 6 + k
     if id < 0: return
     if started == 0: started = now()
-    stage.setState(b.home(id).place(id, c)))
+    stage.setState(b.home(id).place(id, c))
+
+  document.getElementById("hint").addEventListener("click", proc (ev: Event) =
+    ## one correct tile glides in, into an empty or wrong cell
+    let g = stage.state.grid
+    var wrong: seq[int]
+    for c in 0 ..< 36:
+      if solution[c] != '.' and g[c] != solution[c]: wrong.add c
+    if wrong.len > 0: placeCorrect(wrong[int(rnd() * wrong.len.float) mod wrong.len]))
 
   cluesEl.addEventListener("pointerover", proc (ev: Event) =
     let i = hoverIndex(ev)
@@ -796,12 +1043,134 @@ nbJsFromCode:
     focusClue = -1
     stage.top.innerHTML = cstring(overlay(stage.state)))
 
-  load(code)
+  # ---- the 🎓 tutorial: a coach above the board that asks the logical path for the next move after every drop
+
+  proc buttons(acts: seq[(string, string)]): string =
+    for (act, label) in acts: result.add &"""<button class="btn" data-act="{act}">{label}</button>"""
+
+  proc introText(): string =
+    case intro
+    of 0: L("Welcome! This is the first Parloku. Fill the grid with the six letters <b>A I L P S T</b>, dragging tiles from the stacks below the board.",
+            "Benvenuto! Questo è il primo Parloku. Riempi la griglia con le sei lettere <b>A I L P S T</b>, trascinando le tessere dalle pile sotto la griglia.")
+    of 1: L("As in sudoku, each letter appears once in every row, every column and every 2×3 box. One of each is highlighted.",
+            "Come nel sudoku, ogni lettera compare una volta in ogni riga, in ogni colonna e in ogni riquadro 2×3. Ne vedi evidenziato uno per tipo.")
+    of 2: L("The three words above are the clues. Each one starts in its numbered cell and goes one step at a time: up, down, left or right.",
+            "Le tre parole in alto sono gli indizi. Ognuna parte dalla sua casella numerata e procede un passo alla volta: in su, in giù, a destra o a sinistra.")
+    else: L("The method: first put the first letter of every word. Then follow each word letter by letter. When the sudoku leaves only one cell for the next letter, that letter is forced. Let's start!",
+            "Il metodo: prima metti la prima lettera di ogni parola. Poi segui ogni parola lettera per lettera. Quando il sudoku lascia una sola casella per la lettera dopo, quella lettera è obbligata. Cominciamo!")
+
+  proc showCoach() =
+    coachTint = @[]
+    coachTarget = -1
+    coachStacks = @[]
+    if not tutorial:
+      coachEl.setHidden(true)
+      stage.draw(stage.state)
+      return
+    coachEl.setHidden(false)
+    let g = stage.state.grid
+    var text = ""
+    var acts: seq[(string, string)]
+    let filled = toSeq(0 ..< 36).countIt(g[it] != '.')
+    coachHd.innerHTML = cstring(L("🎓 TUTORIAL", "🎓 TUTORIAL") & &" · {filled}/36")
+    if intro < 4:
+      text = introText()
+      acts = @[("next", L("next →", "avanti →")), ("exit", L("exit", "esci"))]
+      if intro == 0: coachStacks = toSeq(0 .. 5)
+      if intro == 1: coachTint = units[2] & units[10] & units[12]
+      if intro == 2: coachTint = puz.clues.mapIt(idx(it.pos))
+    elif solved(puz, g):
+      text = L("<b>Bravo, solved!</b> Now try puzzle 2, AMICA · GIOCO · MAGIA, on your own: the same method works.",
+               "<b>Bravo, risolto!</b> Ora prova da solo il puzzle 2, AMICA · GIOCO · MAGIA: il metodo è lo stesso.")
+      acts = @[("exit", L("close", "chiudi"))]
+    else:
+      let s = logicalStep(puz, g, solution)
+      coachStep = s
+      if s.kind in {skNaked, skHidden, skReveal} and not wordsAck:
+        text = L("<b>All three words are in!</b> The rest is plain sudoku: from now on, every move is a cell with only one letter left. I can keep guiding you, or you can finish on your own.",
+                 "<b>Le tre parole sono al loro posto!</b> Il resto è sudoku puro: da qui in poi ogni mossa è una casella con una sola lettera possibile. Posso continuare a guidarti, oppure puoi finire da solo.")
+        acts = @[("guide", L("keep guiding me", "continua a guidarmi")), ("alone", L("on my own", "faccio da solo"))]
+      elif not guided and s.kind != skFix:
+        coachEl.setHidden(true)
+      else:
+        text = explain(puz, g, s)
+        if s.kind != skFix:
+          text.add L(&" Drag {an(s.letter)} <b>{s.letter}</b> there.", &" Trascina lì una <b>{s.letter}</b>.")
+          coachStacks = @[puz.letters.find(s.letter)]
+        coachTarget = s.cell
+        case s.kind
+        of skWord: coachTint = neighbours(s.path[^2]).filterIt(it != s.cell and it notin s.path)
+        of skNaked: coachTint = peersOf[s.cell]
+        of skHidden: coachTint = units[s.unit]
+        else: discard
+        acts = @[("show", L("show me", "fammi vedere")), ("exit", L("exit", "esci"))]
+    coachText.innerHTML = cstring(text)
+    coachActs.innerHTML = cstring(buttons(acts))
+    stage.draw(stage.state)
+
+  proc startTutorial() =
+    tutorial = true
+    intro = 0
+    guided = true
+    wordsAck = false
+    code = games[0][0]
+    lsSet(storeKey(), "")
+    load(code)
+    document.getElementById("coach").scrollIntoView()
+
+  coachActs.addEventListener("click", proc (ev: Event) =
+    let act = dataOf(ev, "act")
+    if act.isNil: return
+    case $act
+    of "next": inc intro
+    of "guide": wordsAck = true
+    of "alone":
+      wordsAck = true
+      guided = false
+    of "show":
+      let s = coachStep
+      if s.kind == skFix:
+        let b = stage.state
+        stage.setState(b.home(b.cells[s.cell]))
+      elif s.cell >= 0: placeCorrect(s.cell)
+      return                           # setState already asked the coach for the next step
+    of "exit":
+      tutorial = false
+      load(code)
+      return
+    else: discard
+    showCoach())
+
+  document.getElementById("tutorial").addEventListener("click", proc (ev: Event) = startTutorial())
+
+  # ---- English / Italian
+  let langsEl = document.getElementById("langs")
+  proc applyLang() =
+    setDocLang(cstring(lang))
+    lsSet("parloku:lang", cstring(lang))
+    for e in i18nNodes():
+      if e.attr("data-en").isNil: e.setAttr("data-en", e.innerHTML)
+      e.innerHTML = e.attr(cstring("data-" & lang))
+    for b in langsEl.querySelectorAll("button"):
+      if $b.attr("data-lang") == lang: b.classList.add("on")
+      else: b.classList.remove("on")
+    load(code)
+  langsEl.addEventListener("click", proc (ev: Event) =
+    let l = dataOf(ev, "lang")
+    if l.isNil: return
+    lang = $l
+    applyLang())
+
+  if fromUrl.contains("tutorial"):
+    tutorial = true
+    code = games[0][0]
+  applyLang()
 
 nbText: """
 That's the game. Puzzles live in [`data/`](https://github.com/pietroppeter/parloku/tree/main/data) as puzzlepaw JSON,
 and any puzzle can be played from a link such as `?p=AILPST_01S.33L.54P_50ITALIA.30PASTA.10ALPI`
 (the 🔗 button copies it). Progress is kept in your browser, per puzzle.
+The game speaks English and Italian (EN / IT at the top, or `?lang=it`), and `?tutorial` opens the 🎓 tutorial directly.
 
 Built with [nimib](https://github.com/pietroppeter/nimib). Hit *show source* below for the whole notebook.
 """
