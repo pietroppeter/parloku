@@ -43,7 +43,6 @@ proc slice(s, start, stop: string): string =
   doAssert a >= 0 and b > a, "index.html is missing " & start & ": build src/parloku.nim first"
   s[a ..< b]
 let skinsRow = slice(built, """<div class="skins"""", "\n")
-let langsRow = slice(built, """<div class="langs"""", "\n")
 let game = slice(built, """<div class="game">""", """<div class="rules">""")
 let builtinList = slice(built, """<template id="builtin">""", "\n")
 let gameScript = slice(built, "<script>", "</script>") & "</script>"
@@ -54,7 +53,7 @@ nbRawHtml: """
 <p class="lede">Pietro asked for a Parloku that is less cluttered, in pastel colours, that his seven-year-old daughter would like
 and grown-ups would still find beautiful. Instead of guessing one answer, here are ten, each after an artist or a tradition.
 Pick one below and play; the notes under the board change with it.</p>
-""" & skinsRow & langsRow & game & builtinList
+""" & skinsRow & game & builtinList
 
 nbRawHtml: """<div class="about" id="about"></div>"""
 

@@ -23,7 +23,9 @@ or with `?skin=tullet`. The Nim view only names classes, so a skin can change pa
 The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in Nim and compiled to JavaScript.
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
-Devlog: [ten skins for a letter game](devlog/pastel-skins/), how the skins were chosen and checked.
+Devlog:
+- [Back to basics](devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
+- [Ten skins for a letter game](devlog/pastel-skins/): how the skins were chosen and checked.
 
 ## Files
 
@@ -44,6 +46,7 @@ Needs Nim 2.x (built with 2.2.4) and libpcre (PCRE1). From the repo root:
 sh src/deps.sh
 nim c -r -d:release src/parloku.nim   # writes index.html
 nim c -r -d:release src/devlog_pastel_skins.nim   # writes devlog/pastel-skins/index.html
+nim c -r -d:release src/devlog_basics.nim         # writes devlog/basics/index.html (picture: src/devlog_basics/before.js)
 ```
 
 ## Links to a puzzle

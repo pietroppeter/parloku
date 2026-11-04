@@ -67,14 +67,14 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
 .skins .dots i{width:13px;height:13px;border-radius:50%;margin-right:-4px;border:1.5px solid var(--card)}
 /* game */
 .game{margin:14px 0 8px}
-.picker{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.picker{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
 .picker > span{display:contents}
 .btn{font:700 13px var(--font-body);border:var(--border) solid var(--ink);background:var(--card);color:var(--ink);
   border-radius:999px;padding:6px 14px;cursor:pointer;box-shadow:var(--btn-shadow)}
 .btn.on{background:var(--accent);color:var(--accent-ink)}
 .btn.tut{background:var(--hl)}
 .btn:active{transform:translate(1px,1px);box-shadow:none}
-.langs{float:right;display:flex;gap:6px;margin-top:18px}
+.langs{display:flex;gap:6px;margin-left:auto}
 .langs .btn{padding:4px 10px}
 .coach{background:var(--coach);color:var(--coach-ink);border-radius:var(--radius);padding:12px 16px;margin:0 0 14px}
 .coach .hd{font:700 12px "JetBrains Mono",monospace;letter-spacing:.1em;opacity:.8}
@@ -112,7 +112,7 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .sh{fill:#fff;opacity:var(--shine)}
 .gv,.gvc{fill:none;stroke:var(--ink);stroke-opacity:.35;stroke-width:2;stroke-dasharray:3 4}
 .frame{fill:var(--frame)}
-.cell.ca{fill:var(--ca)} .cell.cb{fill:var(--cb)} .cell.tint{fill:var(--hl)} .cell.bad{fill:var(--bad)}
+.cell{stroke:color-mix(in srgb,var(--ink) 16%,transparent);stroke-width:1.5} .cell.ca{fill:var(--ca)} .cell.cb{fill:var(--cb)} .cell.tint{fill:var(--hl)} .cell.bad{fill:var(--bad)}
 .badline{fill:none;stroke:var(--bad-line);stroke-width:3}
 .boxline{fill:var(--boxline)}
 .lbl{fill:var(--muted);display:none} .tutoring .lbl{display:inline}
@@ -130,10 +130,23 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .ghosts .tether{stroke:var(--c0);stroke-width:2;stroke-dasharray:4 4}
 .ghost-toggle{position:absolute;right:12px;bottom:6px;font:12px "JetBrains Mono",monospace;color:var(--muted);cursor:pointer;user-select:none}
 .ghost-toggle input{accent-color:var(--c0);vertical-align:-2px}
-.status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin:14px 0}
+.status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:12px 0}
 .status .meta{font:600 13px "JetBrains Mono",monospace;color:var(--muted)}
 .status .meta b{color:var(--ink)}
 .status .acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn.num{min-width:36px;padding:6px 0;text-align:center}
+.btn:disabled{opacity:.4;cursor:default;box-shadow:none}
+.btn:disabled:active{transform:none}
+.clue{cursor:pointer}
+.machinery-slot{margin:10px 0}
+.machinery-slot .ghost-toggle{position:static;font-size:14px}
+/* fingers are bigger than mouse pointers: 44px targets on touch screens */
+@media (pointer:coarse){
+  .btn{min-height:44px;padding:8px 16px;font-size:14px}
+  .btn.num{min-width:44px;padding:8px 0}
+  .langs .btn{min-height:40px;padding:6px 12px}
+  .skins button{min-height:40px}
+}
 .banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;
   background:var(--card);color:var(--ink);border-radius:var(--radius);padding:14px 28px;text-align:center;border:3px solid var(--ink);
   transition:all .45s cubic-bezier(.2,1.4,.4,1);white-space:nowrap}
@@ -152,7 +165,8 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .spoiler svg{width:100%;max-width:360px;display:block;margin:8px auto}
 @media (max-width:560px){
   header span:nth-child(2){display:none}
-  .lede{font-size:17px}
+  .lede{font-size:15px;margin:0}
+  h1{font-size:38px;margin:10px 0 0}
   .clues{gap:8px}
   .clue{gap:3px;padding:4px 6px 4px 4px}
   .clue .n{width:21px;height:21px;font-size:12px}

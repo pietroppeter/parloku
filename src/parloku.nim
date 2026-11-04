@@ -10,20 +10,19 @@ nb.doc.context["stylesheet"] = %pageStyle
 nb.doc.context["highlight"] = %""
 nb.doc.context["disableHighlightJs"] = %true
 func pageHeader(blk: JsonNode, nb: Nb): string =
-  """<header><span>parloku · a wordoku you drag</span><span>a nimib notebook · nim → js</span></header>"""
+  ""                                   # the title says it all: no header line above the game
 nb.backend.partials["header"] = pageHeader
 
 var skinButtons = ""
 for (id, label, flag) in skinList:
   skinButtons.add "<button data-skin=\"" & id & "\"><span class=\"dots\"><i></i><i></i><i></i></span>" & label & " " & flag & "</button>"
-nbRawHtml: "<div class=\"skins\" id=\"skins\">" & skinButtons & "</div>"
-
 nbRawHtml: """
-<div class="langs" id="langs"><button class="btn" data-lang="en">EN</button><button class="btn" data-lang="it">IT</button></div>
 <h1><span class="tile">P</span>arloku</h1>
-<p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste. Trascina su le tessere dalle loro pile.">A mini sudoku spelled in letters, with words hidden in it. Drag the tiles up from their stacks.</p>
+<p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste.">A mini sudoku spelled in letters, with words hidden in it.</p>
 <div class="game">
-  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓 tutorial">🎓 tutorial</button><span id="picker"></span></div>
+  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓 tutorial">🎓 tutorial</button><span id="picker"></span>
+<div class="langs" id="langs"><button class="btn" data-lang="en">EN</button><button class="btn" data-lang="it">IT</button></div>
+  </div>
   <div class="coach" id="coach" hidden>
     <div class="hd" id="coach-hd"></div>
     <p id="coach-text"></p>
@@ -32,8 +31,8 @@ nbRawHtml: """
   <div class="clues" id="clues"></div>
   <div class="stage" id="board"></div>
   <div class="status">
-    <span class="meta" id="meta"></span>
     <span class="acts">
+      <button class="btn" id="undo" data-it="↶ annulla" disabled>↶ undo</button>
       <button class="btn" id="hint" data-it="💡 aiuto">💡 hint</button>
       <button class="btn" id="reset" data-it="↺ ricomincia">↺ reset</button>
       <button class="btn" id="share" data-it="🔗 link">🔗 link</button>
@@ -46,6 +45,7 @@ nbRawHtml: """
   <div data-it="<b>03 · TESSERE</b>Ogni lettera ha una pila di sei tessere. Trascinane una su una casella, trascinala via per rimetterla nella pila."><b>03 · TILES</b>Every letter has a stack of six tiles. Drop one on a cell, drag it away to send it home.</div>
 </div>
 """
+nbRawHtml: "<div class=\"skins\" id=\"skins\">" & skinButtons & "</div>"
 
 nbText: """
 Parloku is [Pietro](https://github.com/pietroppeter)'s word-flavoured
@@ -464,7 +464,9 @@ nbText: """
 The drag engine is the one from [Declarative Dragging, in Nim](https://pietroppeter.github.io/claude-artifacts/declarative-dragging-nim/):
 a view is a pure function from model to keyed, positioned items, and a *behaviour* turns a list of reachable
 models into a picker that chooses the one landing the held item closest to the pointer.
+Tick the box and drag a tile on the board above: the dashed squares are every board this drag can reach.
 """
+nbRawHtml: """<p class="machinery-slot" id="machinery-slot"></p>"""
 
 nbRawHtml: "<details><summary>show the engine (closest · within · orElse, ~60 lines)</summary>"
 nbCodeAnd(nbJsFromCode):
@@ -677,10 +679,10 @@ nbCodeAnd(nbJsFromCode):
         let dash = if full: "" else: "stroke-dasharray=\"2 7\""
         result.add &"""<path class="casing" d="{d}" stroke-width="{w + 4}"/>"""
         result.add &"""<path class="wp {ink}" d="{d}" stroke-width="{w}" {dash}/>"""
-      let s = cellPos(idx(clue.pos)) + vec(-cell / 2 + 10, -cell / 2 + 10)
-      let r = if focusClue == i: 13.0 else: 11.0
+      let s = cellPos(idx(clue.pos)) + vec(-cell / 2 + 13, -cell / 2 + 13)
+      let r = if focusClue == i: 16.0 else: 14.0
       result.add &"""<circle class="mk {ink}" cx="{s.x}" cy="{s.y}" r="{r}"/>"""
-      result.add &"""<text x="{s.x}" y="{s.y + 4.5}" text-anchor="middle" font-size="13" font-weight="700" class="mono mkt">{i + 1}</text>"""
+      result.add &"""<text x="{s.x}" y="{s.y + 5.5}" text-anchor="middle" font-size="16" font-weight="700" class="mono mkt">{i + 1}</text>"""
     if coachTarget >= 0:
       let p = cellPos(coachTarget)
       result.add &"""<rect class="aim pulse" x="{p.x - 37}" y="{p.y - 37}" width="74" height="74" rx="12"/>"""
@@ -859,7 +861,6 @@ nbJsFromCode:
 
   let host = document.getElementById("board")
   let cluesEl = document.getElementById("clues")
-  let metaEl = document.getElementById("meta")
   let pickerEl = document.getElementById("picker")
   var games: seq[(string, string)]
   for o in options(): games.add ($o.attr("value"), $o.innerHTML)
@@ -883,6 +884,11 @@ nbJsFromCode:
   proc emptyBoard(): Board = puz.boardOf(puz.startGrid)
   puz = decode(code)
   let stage = mount(host, 600, 650, emptyBoard(), renderBoard, tileSpec, backdrop, overlay)
+  block:
+    let slot = document.getElementById("machinery-slot")
+    let toggle = host.querySelector(".ghost-toggle")
+    if slot.isNil: toggle.setHidden(true)
+    else: slot.appendChild(toggle)
   let banner = document.createElement("div")
   banner.className = "banner"
   host.appendChild(banner)
@@ -895,10 +901,6 @@ nbJsFromCode:
     let s = if started > 0: int((t0 - started) / 1000) else: 0
     &"{s div 60}:{s mod 60:02}"
 
-  proc showMeta() =
-    let filled = stage.state.cells.countIt(it >= 0)
-    metaEl.innerHTML = cstring(L("tiles", "tessere") & &" <b>{filled}/36</b> · " & L("moves", "mosse") &
-      &" <b>{stage.state.moves}</b> · " & L("time", "tempo") & &" <b>{clock()}</b>")
 
   proc showClues() =
     let g = stage.state.grid
@@ -958,11 +960,18 @@ nbJsFromCode:
     if won: host.classList.add("won")
     else: host.classList.remove("won")
     showClues()
-    showMeta()
     showCoach()
 
+  var history: seq[Board]               # boards before each change, for ↶ undo
+  var last = stage.state
+  let undoBtn = document.getElementById("undo")
+  proc setDisabled(e: Element, d: bool) {.importjs: "#.disabled = #".}
   stage.onCommit = proc () =
     if started == 0 and stage.state.moves > 0: started = now()
+    if stage.state.cells != last.cells:
+      history.add last
+      last = stage.state
+    undoBtn.setDisabled(history.len == 0)
     refresh()
     save()
 
@@ -991,12 +1000,13 @@ nbJsFromCode:
     for i, (gc, title) in games:
       let on = if gc == c and not tutorial: " on" else: ""
       let name = if title == "": L("from the link", "dal link") else: title
-      html.add &"""<button class="btn{on}" data-i="{i}">{i + 1} · {name}</button>"""
+      html.add &"""<button class="btn num{on}" data-i="{i}" title="{name}" aria-label="{L("puzzle", "puzzle")} {i + 1}: {name}">{i + 1}</button>"""
     pickerEl.innerHTML = cstring(html)
     stage.setState(b)
+    history = @[]
+    last = stage.state
+    undoBtn.setDisabled(true)
 
-  every(proc () =
-    if started > 0 and wonAt == 0: showMeta(), 1000)
 
   proc dataI(ev: Event): cstring {.importjs: "(#.target.closest('[data-i]')?.dataset.i ?? null)".}
   pickerEl.addEventListener("click", proc (ev: Event) =
@@ -1006,9 +1016,26 @@ nbJsFromCode:
       load(games[parseInt($i)][0])
       pushQuery(cstring("p=" & code)))
 
-  document.getElementById("reset").addEventListener("click", proc (ev: Event) =
-    lsSet(storeKey(), "")
-    load(code))
+  let resetBtn = document.getElementById("reset")
+  var armed = 0.0                      # reset wipes the board: the first tap only asks "sure?"
+  resetBtn.addEventListener("click", proc (ev: Event) =
+    if stage.state.cells.allIt(it < 0) or (armed > 0 and now() - armed < 3000):
+      armed = 0
+      resetBtn.innerHTML = cstring(L("↺ reset", "↺ ricomincia"))
+      lsSet(storeKey(), "")
+      load(code)
+    else:
+      armed = now()
+      resetBtn.innerHTML = cstring(L("↺ sure?", "↺ sicuro?")))
+  every(proc () =
+    if armed > 0 and now() - armed >= 3000:
+      armed = 0
+      resetBtn.innerHTML = cstring(L("↺ reset", "↺ ricomincia")), 500)
+
+  undoBtn.addEventListener("click", proc (ev: Event) =
+    if history.len == 0: return
+    last = history.pop
+    stage.setState(last))
 
   document.getElementById("share").addEventListener("click", proc (ev: Event) =
     let url = $pageUrl() & "?p=" & code
@@ -1047,8 +1074,16 @@ nbJsFromCode:
     if f != focusClue:
       focusClue = f
       stage.top.innerHTML = cstring(overlay(stage.state)))
+  var pinnedClue = -1                  # a tapped clue stays highlighted: phones have no hover
   cluesEl.addEventListener("pointerleave", proc (ev: Event) =
-    focusClue = -1
+    focusClue = pinnedClue
+    stage.top.innerHTML = cstring(overlay(stage.state)))
+  cluesEl.addEventListener("click", proc (ev: Event) =
+    let i = hoverIndex(ev)
+    let f = if i.isNil: -1 else: parseInt($i)
+    pinnedClue = if f == pinnedClue: -1 else: f
+    focusClue = pinnedClue
+    showClues()
     stage.top.innerHTML = cstring(overlay(stage.state)))
 
   # ---- the 🎓 tutorial: a coach above the board that asks the logical path for the next move after every drop
