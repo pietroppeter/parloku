@@ -13,9 +13,14 @@ func pageHeader(blk: JsonNode, nb: Nb): string =
   """<header><span>parloku · a wordoku you drag</span><span>a nimib notebook · nim → js</span></header>"""
 nb.backend.partials["header"] = pageHeader
 
+var skinButtons = ""
+for (id, label, flag) in skinList:
+  skinButtons.add "<button data-skin=\"" & id & "\"><span class=\"dots\"><i></i><i></i><i></i></span>" & label & " " & flag & "</button>"
+nbRawHtml: "<div class=\"skins\" id=\"skins\">" & skinButtons & "</div>"
+
 nbRawHtml: """
 <div class="langs" id="langs"><button class="btn" data-lang="en">EN</button><button class="btn" data-lang="it">IT</button></div>
-<h1><span class="tile" style="background:#2f5d9e">P</span>arloku</h1>
+<h1><span class="tile">P</span>arloku</h1>
 <p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste. Trascina su le tessere dalle loro pile.">A mini sudoku spelled in letters, with words hidden in it. Drag the tiles up from their stacks.</p>
 <div class="game">
   <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓 tutorial">🎓 tutorial</button><span id="picker"></span></div>
@@ -525,13 +530,11 @@ nbRawHtml: "</details>"
 nbText: """
 The view puts each tile either in its cell or on its letter's stack. All the tiles of one stack sit at the
 same spot, so the stack is drawn as layers in the backdrop, with a badge counting the tiles still to place.
-Six glazes, one per letter, in the colours of Italian maiolica.
+Six colours, one per letter. The view only names classes (`g0`…`g5`, `ca`, `boxline`, `wp c1`…), so the page's CSS *skin* picks the palette, the fonts and even the tile shape: square, rounded or round.
 """
 
 nbCodeAnd(nbJsFromCode):
-  const glaze = ["#2f5d9e", "#c8553d", "#e9b52f", "#6f8a2e", "#2f9c95", "#7d3c6b"]
-  const glazeInk = ["#ffffff", "#ffffff", "#3a2a06", "#ffffff", "#ffffff", "#ffffff"]
-  const clueInk = ["#d6246e", "#1b2a41", "#e85d04", "#5a189a", "#0b6e4f"]
+  ## colours live in the page's CSS skins: --g0..--g5 tile colours, --i0..--i5 their letters, --c0..--c4 the clues
   const cell = 78.0
   const bx = 66.0
   const by = 16.0
@@ -539,13 +542,18 @@ nbCodeAnd(nbJsFromCode):
   proc cellPos(c: int): Vec = vec(bx + float(c mod 6) * cell + cell / 2, by + float(c div 6) * cell + cell / 2)
   proc stackPos(li: int): Vec = vec(50 + li.float * 100, 566)
 
+  proc shapes(li: int, cls = "tile"): string =
+    &"""<g class="{cls} s{li mod 2} g{li}"><rect class="sq" x="-31" y="-31" width="62" height="62" rx="3"/>""" &
+      """<rect class="rd" x="-31" y="-31" width="62" height="62" rx="12"/><circle class="ci" r="32"/>""" &
+      """<circle class="ring" r="21"/></g>"""
+
   proc tileSvg(li: int, given: bool): string =
     let letter = puz.letters[li]
-    result = &"""<rect x="-31" y="-31" width="62" height="62" rx="12" fill="{glaze[li]}" stroke="#1b2a41" stroke-width="2.5"/>""" &
-      """<rect x="-25" y="-26" width="50" height="20" rx="8" fill="#fff" opacity=".2"/>""" &
-      &"""<text y="13" text-anchor="middle" font-size="36" class="glyph" fill="{glazeInk[li]}">{letter}</text>"""
+    ## all three shapes are drawn; the page's skin (CSS) shows one, and sets the colours
+    result = shapes(li) & """<rect class="sh" x="-25" y="-26" width="50" height="20" rx="8"/>""" &
+      &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{letter}</text>"""
     if given:
-      result.add """<rect x="-26" y="-26" width="52" height="52" rx="8" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="2"/>"""
+      result.add """<rect class="gv" x="-26" y="-26" width="52" height="52" rx="8"/><circle class="gvc" r="25"/>"""
 
   proc renderBoard(b: Board): seq[Item] =
     var at: array[36, int]
@@ -619,26 +627,26 @@ nbCodeAnd(nbJsFromCode):
   proc backdrop(b: Board): string =
     let g = b.grid
     let bad = g.clashes
-    result = &"""<rect x="{bx - 9}" y="{by - 9}" width="{cell * 6 + 18}" height="{cell * 6 + 18}" rx="14" fill="#1b2a41"/>"""
+    result = &"""<rect class="frame" x="{bx - 9}" y="{by - 9}" width="{cell * 6 + 18}" height="{cell * 6 + 18}" rx="14"/>"""
     for c in 0 ..< 36:
       let p = cellPos(c)
       let (r, col) = (c div 6, c mod 6)
-      let base = if (r div 2 + col div 3) mod 2 == 0: "#fffaf0" else: "#f4e9cf"
-      let tinted = if c in coachTint: "#fde7a6" else: base
-      let fill = if c in bad: "#f5b7ae" else: tinted
-      result.add &"""<rect x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7" fill="{fill}"/>"""
+      let base = if (r div 2 + col div 3) mod 2 == 0: "ca" else: "cb"
+      let tinted = if c in coachTint: "tint" else: base
+      let fill = if c in bad: "bad" else: tinted
+      result.add &"""<rect class="cell {fill}" x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7"/>"""
       if c in bad:
-        result.add &"""<rect x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7" fill="none" stroke="#c8303a" stroke-width="3"/>"""
+        result.add &"""<rect x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7" class="badline"/>"""
     for i in 1 .. 2:
       let y = by + i.float * cell * 2
-      result.add &"""<rect x="{bx}" y="{y - 2.5}" width="{cell * 6}" height="5" fill="#1b2a41"/>"""
-    result.add &"""<rect x="{bx + cell * 3 - 2.5}" y="{by}" width="5" height="{cell * 6}" fill="#1b2a41"/>"""
+      result.add &"""<rect class="boxline" x="{bx}" y="{y - 2.5}" width="{cell * 6}" height="5"/>"""
+    result.add &"""<rect class="boxline" x="{bx + cell * 3 - 2.5}" y="{by}" width="5" height="{cell * 6}"/>"""
     for i in 0 .. 5:                 # row and column numbers, for the tutorial's r3c4
-      result.add &"""<text x="{bx - 22}" y="{cellPos(i * 6).y + 5}" text-anchor="middle" font-size="14" class="mono" fill="#9a8d6a">r{i + 1}</text>"""
-      result.add &"""<text x="{cellPos(i).x}" y="{by + cell * 6 + 28}" text-anchor="middle" font-size="14" class="mono" fill="#9a8d6a">c{i + 1}</text>"""
+      result.add &"""<text x="{bx - 22}" y="{cellPos(i * 6).y + 5}" text-anchor="middle" font-size="14" class="mono lbl">r{i + 1}</text>"""
+      result.add &"""<text x="{cellPos(i).x}" y="{by + cell * 6 + 28}" text-anchor="middle" font-size="14" class="mono lbl">c{i + 1}</text>"""
     for li in coachStacks:
       let s = stackPos(li)
-      result.add &"""<rect class="pulse" x="{s.x - 40}" y="{s.y - 40}" width="80" height="94" rx="18" fill="#fde7a6" stroke="#d6246e" stroke-width="3"/>"""
+      result.add &"""<rect class="glow pulse" x="{s.x - 40}" y="{s.y - 40}" width="80" height="94" rx="18"/>"""
     # the stacks: one layer per tile still waiting, and a counter badge
     var left: array[6, int]
     for id in 0 ..< 36:
@@ -646,17 +654,17 @@ nbCodeAnd(nbJsFromCode):
     for li in 0 .. 5:
       let s = stackPos(li)
       if left[li] == 0:
-        result.add &"""<rect x="{s.x - 31}" y="{s.y - 31}" width="62" height="62" rx="12" fill="none" stroke="#b9aa82" stroke-width="2" stroke-dasharray="5 5"/>"""
-        result.add &"""<text x="{s.x}" y="{s.y + 9}" text-anchor="middle" font-size="26" fill="#6f8a2e">✓</text>"""
+        result.add &"""<rect class="empty" x="{s.x - 31}" y="{s.y - 31}" width="62" height="62" rx="12"/>"""
+        result.add &"""<text class="done" x="{s.x}" y="{s.y + 9}" text-anchor="middle" font-size="26">✓</text>"""
       for j in countdown(left[li] - 1, 1):
-        result.add &"""<rect x="{s.x - 31 + j.float * 2}" y="{s.y - 31 + j.float * 5}" width="62" height="62" rx="12" fill="{glaze[li]}" stroke="#1b2a41" stroke-width="2" opacity="{1 - j.float * 0.1:.2f}"/>"""
+        result.add &"""<g transform="translate({s.x + j.float * 2},{s.y + j.float * 5})" opacity="{1 - j.float * 0.1:.2f}">{shapes(li, "layer")}</g>"""
 
   proc overlay(b: Board): string =
     let g = b.grid
     let n = puz.clues.len
     for i, clue in puz.clues:
       let path = g.trace(clue)
-      let ink = clueInk[i mod clueInk.len]
+      let ink = &"c{i mod 5}"
       let o = (i.float - (n - 1).float / 2) * 6
       let full = path.len == clue.word.len
       if path.len > 1:
@@ -667,18 +675,18 @@ nbCodeAnd(nbJsFromCode):
           d.add &"{cmd}{p.x + o:.1f},{p.y + o:.1f} "
         let w = if focusClue == i or full: 5.0 else: 3.5
         let dash = if full: "" else: "stroke-dasharray=\"2 7\""
-        result.add &"""<path d="{d}" fill="none" stroke="#fff" stroke-width="{w + 4}" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>"""
-        result.add &"""<path d="{d}" fill="none" stroke="{ink}" stroke-width="{w}" stroke-linecap="round" stroke-linejoin="round" {dash}/>"""
+        result.add &"""<path class="casing" d="{d}" stroke-width="{w + 4}"/>"""
+        result.add &"""<path class="wp {ink}" d="{d}" stroke-width="{w}" {dash}/>"""
       let s = cellPos(idx(clue.pos)) + vec(-cell / 2 + 10, -cell / 2 + 10)
       let r = if focusClue == i: 13.0 else: 11.0
-      result.add &"""<circle cx="{s.x}" cy="{s.y}" r="{r}" fill="{ink}" stroke="#fff" stroke-width="2.5"/>"""
-      result.add &"""<text x="{s.x}" y="{s.y + 4.5}" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" class="mono">{i + 1}</text>"""
+      result.add &"""<circle class="mk {ink}" cx="{s.x}" cy="{s.y}" r="{r}"/>"""
+      result.add &"""<text x="{s.x}" y="{s.y + 4.5}" text-anchor="middle" font-size="13" font-weight="700" class="mono mkt">{i + 1}</text>"""
     if coachTarget >= 0:
       let p = cellPos(coachTarget)
-      result.add &"""<rect class="pulse" x="{p.x - 37}" y="{p.y - 37}" width="74" height="74" rx="12" fill="none" stroke="#d6246e" stroke-width="5"/>"""
+      result.add &"""<rect class="aim pulse" x="{p.x - 37}" y="{p.y - 37}" width="74" height="74" rx="12"/>"""
 
   proc staticSvg(b: Board): string =
-    result = """<svg viewBox="40 -10 520 520">""" & backdrop(b)
+    result = """<svg viewBox="40 -10 520 520"><defs><filter id="rough2"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout2"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs>""" & backdrop(b)
     for it in renderBoard(b):
       if b.cells.find(parseInt(it.key[1 .. ^1])) >= 0:
         result.add &"""<g transform="translate({it.pos.x},{it.pos.y})">{it.svg}</g>"""
@@ -793,7 +801,7 @@ nbCodeDisplay(nbJsFromCode):
   proc mount[S](host: Element, w, h: float, init: S, render: Render[S],
                 spec: proc (s: S, key: string): Behavior[S],
                 backdrop, overlay: proc (s: S): string): Stage[S] =
-    host.innerHTML = cstring(&"""<svg class="d2" viewBox="0 0 {w} {h}"><g class="bg"></g>""" &
+    host.innerHTML = cstring(&"""<svg class="d2" viewBox="0 0 {w} {h}"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs><g class="bg"></g>""" &
       """<g class="fg"></g><g class="overlay"></g><g class="ghosts"></g></svg>""" &
       """<label class="ghost-toggle"><input type="checkbox"> <span data-it="mostra il meccanismo">show machinery</span></label>""")
     let st = Stage[S](state: init, render: render, spec: spec, backdrop: backdrop, overlay: overlay)
@@ -900,11 +908,11 @@ nbJsFromCode:
       let full = path.len == clue.word.len
       let cls = if full: " done" else: ""
       let foc = if focusClue == i: " focus" else: ""
-      html.add &"""<div class="clue{cls}{foc}" data-clue="{i}"><span class="n" style="background:{clueInk[i mod clueInk.len]}">{i + 1}</span>"""
+      html.add &"""<div class="clue{cls}{foc}" data-clue="{i}"><span class="n" style="background:var(--c{i mod 5})">{i + 1}</span>"""
       for k, ch in clue.word:
         let li = puz.letters.find(ch)
         if k < path.len:
-          html.add &"""<span class="l on" style="background:{glaze[li]};color:{glazeInk[li]}">{ch}</span>"""
+          html.add &"""<span class="l on" style="background:var(--g{li});color:var(--i{li})">{ch}</span>"""
         else:
           html.add &"""<span class="l">{ch}</span>"""
       let tick = if full: "✓" else: ""
@@ -927,7 +935,7 @@ nbJsFromCode:
       let r = int(rnd() * 720) - 360
       let t = 1.6 + rnd() * 1.6
       let d = rnd() * 0.6
-      bits.add &"""<i style="--x:{x}%;--dx:{dx}px;--r:{r}deg;--t:{t:.2f}s;--d:{d:.2f}s;background:{glaze[li]}">{puz.letters[li]}</i>"""
+      bits.add &"""<i style="--x:{x}%;--dx:{dx}px;--r:{r}deg;--t:{t:.2f}s;--d:{d:.2f}s;background:var(--g{li});color:var(--i{li})">{puz.letters[li]}</i>"""
     confetti.innerHTML = cstring(bits)
 
   let coachEl = document.getElementById("coach")
@@ -1063,6 +1071,8 @@ nbJsFromCode:
     coachTint = @[]
     coachTarget = -1
     coachStacks = @[]
+    if tutorial: host.classList.add("tutoring")
+    else: host.classList.remove("tutoring")
     if not tutorial:
       coachEl.setHidden(true)
       stage.draw(stage.state)
@@ -1160,6 +1170,25 @@ nbJsFromCode:
     if l.isNil: return
     lang = $l
     applyLang())
+
+  # ---- skins: the look of the page, remembered per browser, or ?skin=name
+  proc setSkin(e: Element, v: cstring) {.importjs: "#.dataset.skin = #".}
+  let skinsEl = document.getElementById("skins")
+  proc applySkin(name: string) =
+    document.body.setSkin(cstring(name))
+    lsSet("parloku:skin", cstring(name))
+    for b in skinsEl.querySelectorAll("button"):
+      if $b.attr("data-skin") == name: b.classList.add("on")
+      else: b.classList.remove("on")
+  var skin = "munari"
+  let savedSkin = lsGet("parloku:skin")
+  if not savedSkin.isNil and ($savedSkin).len > 0: skin = $savedSkin
+  let si = fromUrl.find("skin=")
+  if si >= 0: skin = fromUrl[si + 5 .. ^1].split('&')[0]
+  applySkin(skin)
+  skinsEl.addEventListener("click", proc (ev: Event) =
+    let k = dataOf(ev, "skin")
+    if not k.isNil: applySkin($k))
 
   if fromUrl.contains("tutorial"):
     tutorial = true

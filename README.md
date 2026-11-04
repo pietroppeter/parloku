@@ -16,6 +16,10 @@ The game speaks English and Italian (EN / IT switch, or `?lang=it`) and has a ðŸ
 follow each word letter by letter while the sudoku forces where the next letter goes, and finish with plain sudoku.
 It asks for the next step after every drop, so it copes with any order and points out wrong tiles.
 
+Its look is a CSS *skin*: ten pastel ones after artists and illustrators (Munari, Tullet, Lionni, MirÃ³, Taro Gomi,
+Japanese wagashi, Delaunay, Bruna, Matisse, Maija Isola) plus the original maiolica, switchable at the top of the page
+or with `?skin=tullet`. The Nim view only names classes, so a skin can change palette, fonts and tile shape.
+
 The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in Nim and compiled to JavaScript.
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
