@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <title>Parloku builder: come funziona</title>
+  <meta content="text/html; charset=utf-8" http-equiv="content-type">
+  <meta content="width=device-width, initial-scale=1" name="viewport">
+  <meta content="nimib 0.4.3" name="generator">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Karla:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;700;800&family=Fredoka:wght@500;600;700&family=Patrick+Hand&family=Zen+Maru+Gothic:wght@500;700&family=Josefin+Sans:wght@400;600;700&family=DM+Serif+Display&family=Space+Grotesk:wght@400;500;700&family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+/* ---------- the default skin: Munari (also the fallback for every variable) ---------- */
+:root,[data-skin=munari]{
+  --bg:#fbfaf6; --card:#ffffff; --ink:#2b2b2b; --muted:#6b665c; --line:#e7e3d8; --soft:#f3f1ea;
+  --accent:#a7c7e7; --accent-ink:#2b2b2b; --hl:#fff1b8; --bad:#ffd3d3; --bad-line:#e06666;
+  --g0:#f4a6a6; --g1:#f9e29c; --g2:#a7c7e7; --g3:#f8c291; --g4:#b8e0b0; --g5:#cdb4db;
+  --i0:#2b2b2b; --i1:#2b2b2b; --i2:#2b2b2b; --i3:#2b2b2b; --i4:#2b2b2b; --i5:#2b2b2b;
+  --c0:#c0392b; --c1:#3a6db0; --c2:#a8650a; --c3:#6c4f99; --c4:#2f7a4d;
+  --frame:transparent; --ca:#ffffff; --cb:#f3f1ea; --boxline:#2b2b2b; --tstroke:none; --tsw:0;
+  --font-head:"Space Grotesk",system-ui,sans-serif; --font-body:Nunito,system-ui,sans-serif;
+  --font-glyph:"Space Grotesk",system-ui,sans-serif; --glyph-weight:700; --shine:0;
+  --radius:16px; --border:1.5px; --shadow:none; --btn-shadow:none; --coach:#2b2b2b; --coach-ink:#fbfaf6;
+}
+/* ---------- Niki de Saint Phalle (France): bright Nanas, soft blobs with a black outline ---------- */
+[data-skin=niki]{
+  --bg:#fff8ef; --card:#ffffff; --ink:#1e1e1e; --muted:#5b5348; --line:#f0e2cf; --soft:#fff1e0; --accent:#ffe066; --accent-ink:#1e1e1e;
+  --g0:#ffb3c6; --g1:#ffe066; --g2:#8fd2ff; --g3:#b5f0a0; --g4:#ffb98a; --g5:#d9b5ff;
+  --i0:#1e1e1e; --i1:#1e1e1e; --i2:#1e1e1e; --i3:#1e1e1e; --i4:#1e1e1e; --i5:#1e1e1e;
+  --w0:#c01c3a; --w1:#0a7552; --w2:#1b3f9e;   /* red, green, blue: in RGB order */
+  --frame:transparent; --ca:#ffffff; --cb:#fff1e0; --boxline:#1e1e1e; --tstroke:#1e1e1e; --tsw:2.5px;
+  --font-head:"Baloo 2",system-ui,sans-serif; --font-body:"Baloo 2",Nunito,system-ui,sans-serif;
+  --font-glyph:"Baloo 2",system-ui,sans-serif; --glyph-weight:800; --coach:#1e1e1e; --hl:#fff3b0;
+}
+[data-skin=niki] .tile .rd,[data-skin=niki] .layer .rd{display:none}
+[data-skin=niki] .tile .bl,[data-skin=niki] .layer .bl{display:inline}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+:root{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+html{background:var(--bg)}
+body{margin:0 auto;max-width:760px;padding:0 16px 60px;color:var(--ink);font:17px/1.6 var(--font-body);background:var(--bg);
+  transition:background .3s}
+header,footer .nb-box{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);padding:12px 0}
+header{font-family:"JetBrains Mono",monospace}
+footer .nb-box{border-top:1px solid var(--line);margin-top:40px}
+header a, footer a{color:var(--muted)}
+h1,h2,h3{font-family:var(--font-head);line-height:1.08;letter-spacing:-.01em}
+h1{font-size:clamp(44px,10vw,72px);font-weight:700;margin:18px 0 4px}
+h1 .tile{display:inline-block;width:.92em;height:.92em;line-height:.92em;text-align:center;border-radius:.2em;
+  background:var(--g2);color:var(--i2);font-size:.82em;margin-right:.04em;vertical-align:.04em;border:var(--tsw-h,0) solid var(--ink)}
+h2{font-size:28px;font-weight:700;margin:52px 0 10px;padding-top:18px;border-top:2px solid var(--line)}
+h2 .num{font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--c0);display:block;margin-bottom:6px;letter-spacing:.1em}
+a{color:var(--c1);text-decoration-thickness:1px;text-underline-offset:3px}
+p code, li code{font:14.5px "JetBrains Mono",monospace;background:var(--soft);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.lede{font-size:19px;color:var(--muted);margin-top:4px}
+pre{margin:14px 0;overflow-x:auto;border-radius:10px}
+pre code{display:block;padding:14px 16px;font:13.2px/1.55 "JetBrains Mono",monospace;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--ink)}
+pre.nb-output, pre samp{display:block;padding:12px 16px;font:13px/1.5 "JetBrains Mono",monospace;background:#2b2b2b;color:#f3f1ea;border-radius:10px;white-space:pre;overflow-x:auto}
+details{margin:14px 0;border:1px dashed var(--line);border-radius:10px;padding:4px 12px;background:var(--card)}
+details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--muted);padding:6px 0}
+/* skin switcher */
+.skins{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 8px;margin:0 -16px;padding-left:16px;scrollbar-width:none}
+.skins::-webkit-scrollbar{display:none}
+.skins button{flex:none;display:flex;align-items:center;gap:6px;font:600 13px var(--font-body);color:var(--ink);background:var(--card);
+  border:1.5px solid var(--line);border-radius:999px;padding:5px 11px 5px 7px;cursor:pointer}
+.skins button.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}
+.skins .dots{display:flex}
+.skins .dots i:nth-child(1){background:var(--g0)} .skins .dots i:nth-child(2){background:var(--g1)} .skins .dots i:nth-child(3){background:var(--g2)}
+.skins .dots i{width:13px;height:13px;border-radius:50%;margin-right:-4px;border:1.5px solid var(--card)}
+/* game */
+.game{margin:14px 0 8px}
+.picker{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.picker > span{display:contents}
+.btn{font:700 13px var(--font-body);border:var(--border) solid var(--ink);background:var(--card);color:var(--ink);
+  border-radius:999px;padding:6px 14px;cursor:pointer;box-shadow:var(--btn-shadow)}
+.btn.on{background:var(--accent);color:var(--accent-ink)}
+.btn.tut{background:var(--hl)}
+.btn:active{transform:translate(1px,1px);box-shadow:none}
+.langs{display:flex;gap:6px;margin-left:auto}
+.langs .btn{padding:4px 10px}
+.coach{background:var(--coach);color:var(--coach-ink);border-radius:var(--radius);padding:12px 16px;margin:0 0 14px}
+.coach .hd{font:700 12px "JetBrains Mono",monospace;letter-spacing:.1em;opacity:.8}
+.coach p{margin:6px 0 10px;font-size:16px;line-height:1.5}
+.coach p b{background:rgba(255,255,255,.16);padding:0 4px;border-radius:4px}
+.coach .acts{display:flex;gap:8px;flex-wrap:wrap}
+.pulse{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.clues{display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:center;margin:6px 0 12px;min-height:46px}
+.clue{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 6px;border-radius:var(--radius);background:var(--card);
+  border:var(--border) solid var(--line);box-shadow:var(--btn-shadow);cursor:default;transition:transform .2s}
+.clue .n{width:26px;height:26px;border-radius:50%;color:#fff;font:700 14px "JetBrains Mono",monospace;display:grid;place-items:center}
+.clue .l{width:26px;height:30px;border-radius:7px;display:grid;place-items:center;font:var(--glyph-weight) 18px var(--font-glyph);
+  border:1.5px dashed var(--line);color:var(--muted);transition:background .25s,color .25s}
+/* a clue letter already on the board: bold, dark, with a thick dark edge; the ones still to place stay light */
+.clue.done{border-color:var(--ink)}
+.clue .ok{font-size:18px;width:18px;text-align:center;color:var(--c4);font-weight:700}
+.stage{position:relative;background:var(--card);border:var(--border) solid var(--line);border-radius:calc(var(--radius) + 4px);box-shadow:var(--shadow);padding:6px;overflow:hidden}
+.stage svg.d2{display:block;overflow:visible;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.stage svg text{font-family:var(--font-body)}
+svg .glyph{font-family:var(--font-glyph);font-weight:var(--glyph-weight)}
+svg .mono{font-family:"JetBrains Mono",monospace}
+.item{transition:transform .34s cubic-bezier(.2,.9,.25,1)}
+.item.grab{cursor:grab}
+.item.lifted{transition:none;cursor:grabbing;filter:drop-shadow(0 10px 8px rgba(0,0,0,.18))}
+.item.lifted > *{transform:scale(1.12)}
+/* board and tiles, drawn by the Nim view; skins pick colours and shapes */
+.g0{fill:var(--g0)} .g1{fill:var(--g1)} .g2{fill:var(--g2)} .g3{fill:var(--g3)} .g4{fill:var(--g4)} .g5{fill:var(--g5)}
+.i0{fill:var(--i0)} .i1{fill:var(--i1)} .i2{fill:var(--i2)} .i3{fill:var(--i3)} .i4{fill:var(--i4)} .i5{fill:var(--i5)}
+.tile .sq,.tile .ci,.tile .bl,.layer .sq,.layer .ci,.layer .bl,.ring,.gv{display:none}
+.tile rect,.tile circle,.tile path,.layer rect,.layer circle,.layer path{stroke:var(--tstroke);stroke-width:var(--tsw)}
+.layer{filter:brightness(.88)}
+.tile .ring{fill:none;stroke:rgba(255,255,255,.6);stroke-width:5}
+.sh{fill:#fff;opacity:var(--shine)}
+/* a given can't move: just a thicker dark outline */
+.tile.given rect,.tile.given circle,.tile.given path{stroke:var(--ink);stroke-width:4.5px}
+.tile.given .ring{stroke:rgba(255,255,255,.6)}
+.frame{fill:var(--frame)}
+.cell{stroke:color-mix(in srgb,var(--ink) 16%,transparent);stroke-width:1.5} .cell.ca{fill:var(--ca)} .cell.cb{fill:var(--cb)} .cell.tint{fill:var(--hl)} .cell.bad{fill:var(--bad)}
+.badline{fill:none;stroke:var(--bad-line);stroke-width:3}
+/* no red while a tile is held: only once it is let go */
+.dragging .cell.bad.ca{fill:var(--ca)} .dragging .cell.bad.cb{fill:var(--cb)} .dragging .cell.bad.tint{fill:var(--hl)} .dragging .badline{display:none}
+.boxline{fill:var(--boxline)}
+.lbl{fill:var(--muted);display:none} .tutoring .lbl{display:inline}
+.glow{fill:var(--hl);stroke:var(--c0);stroke-width:3}
+.empty{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 5} .done{fill:var(--c4)}
+.casing{fill:none;stroke:var(--card);stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.wp{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.wp.c0{stroke:var(--c0)} .wp.c1{stroke:var(--c1)} .wp.c2{stroke:var(--c2)} .wp.c3{stroke:var(--c3)} .wp.c4{stroke:var(--c4)}
+.mk{stroke:var(--card);stroke-width:2.5} .mkt{fill:#fff}
+.mk.c0{fill:var(--c0)} .mk.c1{fill:var(--c1)} .mk.c2{fill:var(--c2)} .mk.c3{fill:var(--c3)} .mk.c4{fill:var(--c4)}
+.aim{fill:none;stroke:var(--c0);stroke-width:5}
+.ghosts,.overlay{pointer-events:none}
+.ghosts .target{fill:none;stroke:var(--ink);stroke-width:3;stroke-dasharray:6 5;opacity:.45}
+.ghosts .land{fill:var(--c0);opacity:.5}
+.ghosts .tether{stroke:var(--c0);stroke-width:2;stroke-dasharray:4 4}
+.ghost-toggle{position:absolute;right:12px;bottom:6px;font:12px "JetBrains Mono",monospace;color:var(--muted);cursor:pointer;user-select:none}
+.ghost-toggle input{accent-color:var(--c0);vertical-align:-2px}
+.status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:12px 0}
+.status .meta{font:600 13px "JetBrains Mono",monospace;color:var(--muted)}
+.status .meta b{color:var(--ink)}
+.status .acts{display:flex;gap:8px;flex-wrap:wrap}
+.btn.num{min-width:36px;padding:6px 0;text-align:center}
+.picker .btn.num{min-width:0;padding:6px 14px;letter-spacing:.04em;font-weight:700}
+.btn:disabled{opacity:.4;cursor:default;box-shadow:none}
+.btn:disabled:active{transform:none}
+/* words: three dark colours, apart from the six pastel letters; one word per line, left, centre, right */
+:root{--w0:#1f5aa6;--w1:#b34700;--w2:#a3195b}
+.clues{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:8px}
+.clue{align-self:flex-start;border-width:3px;padding:5px 10px}
+.clue:nth-child(3n+2){align-self:center} .clue:nth-child(3n){align-self:flex-end}
+.clue.focus{box-shadow:0 0 0 3px color-mix(in srgb,currentColor 0%,transparent),0 4px 12px rgba(0,0,0,.12)}
+.wo,.wl,.wm{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.wf.w0{fill:var(--w0)} .wf.w1{fill:var(--w1)} .wf.w2{fill:var(--w2)} .wo.w0,.wl.w0{stroke:var(--w0)} .wo.w1,.wl.w1{stroke:var(--w1)} .wo.w2,.wl.w2{stroke:var(--w2)}
+.wo,.wl{transition:stroke-width .2s}
+/* tiles that divide */
+.neck{stroke:var(--tstroke);stroke-width:var(--tsw)}
+.necks,.fx{pointer-events:none}
+.ripple{fill:none;stroke-width:4;transform-box:fill-box;transform-origin:center;animation:ripple .45s ease-out forwards}
+.ripple.g0{stroke:var(--g0)} .ripple.g1{stroke:var(--g1)} .ripple.g2{stroke:var(--g2)} .ripple.g3{stroke:var(--g3)} .ripple.g4{stroke:var(--g4)} .ripple.g5{stroke:var(--g5)}
+@keyframes ripple{from{transform:scale(.95);opacity:.9}to{transform:scale(1.5);opacity:0}}
+/* the game page: only the game (focus); tap empty space for the rest (chrome); "more" opens the whole page (explain) */
+body.focus>header,body.focus footer,body.chrome>header,body.chrome footer,
+body.focus main>:not(.play):not(.sp),body.chrome main>:not(.play):not(.sp){display:none}
+body.focus,body.chrome{padding-bottom:0}
+body.focus .play,body.chrome .play{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:8px 0}
+body.focus .play>h1,body.focus .play>.lede,body.focus .play>.rules,body.focus .play>.skins,
+body.chrome .play>h1,body.chrome .play>.lede,body.chrome .play>.rules,
+body.focus .picker,body.focus .status{display:none}
+body.focus .game,body.chrome .game{margin:0}
+body.chrome .play>.skins{display:none}
+.clue .ok:empty{display:none}
+@media (max-width:440px){body.chrome .status .tx{display:none} body.chrome .status .btn{min-width:48px}}
+body.chrome .picker,body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
+  padding:10px 16px;background:color-mix(in srgb,var(--bg) 94%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+body.chrome .picker{top:0;padding-top:max(10px,env(safe-area-inset-top))}
+/* the menu bar: one row, scrolled sideways; only tutorial, puzzles and styles */
+body.chrome .picker{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0}
+body.chrome .picker::-webkit-scrollbar{display:none}
+body.chrome .picker>*{flex:none}
+body.chrome .picker .langs,body.chrome .status,body.chrome .picker .tut,body.chrome .play>.skins{display:none}
+body.chrome .status{bottom:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+@media (prefers-reduced-motion: reduce){.ripple{animation:none;opacity:0}}
+.machinery-slot{margin:10px 0}
+.machinery-slot .ghost-toggle{position:static;font-size:14px}
+/* fingers are bigger than mouse pointers: 44px targets on touch screens */
+@media (pointer:coarse){
+  .btn{min-height:44px;padding:8px 16px;font-size:14px}
+  .btn.num{min-width:44px;padding:8px 0}
+  .picker .btn.num{min-width:0;padding:8px 14px}
+  .langs .btn{min-height:40px;padding:6px 12px}
+  .skins button{min-height:40px}
+}
+.banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;
+  background:var(--card);color:var(--ink);border-radius:var(--radius);padding:14px 28px;text-align:center;border:3px solid var(--ink);
+  transition:all .45s cubic-bezier(.2,1.4,.4,1);white-space:nowrap}
+.banner b{display:block;font:700 42px var(--font-head)}
+.banner span{font:600 13px "JetBrains Mono",monospace;color:var(--muted)}
+.stage.won .banner{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.confetti i{position:absolute;left:var(--x);top:-30px;width:20px;height:20px;border-radius:50%;
+  font:700 11px/20px var(--font-glyph);text-align:center;font-style:normal;
+  animation:fall var(--t) cubic-bezier(.3,.6,.6,1) var(--d) forwards}
+@keyframes fall{to{transform:translate(var(--dx),720px) rotate(var(--r))}}
+.rules{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+@media (max-width:640px){.rules{grid-template-columns:1fr}}
+.rules div{background:var(--card);border:var(--border) solid var(--line);border-radius:var(--radius);padding:10px 12px;font-size:15px;line-height:1.45}
+.rules b{font:700 12px "JetBrains Mono",monospace;color:var(--c0);display:block;letter-spacing:.08em;margin-bottom:2px}
+.spoiler svg{width:100%;max-width:360px;display:block;margin:8px auto}
+@media (max-width:560px){
+  header span:nth-child(2){display:none}
+  .lede{font-size:15px;margin:0}
+  h1{font-size:38px;margin:10px 0 0}
+  .clues{gap:8px}
+  .clue{gap:3px;padding:4px 6px 4px 4px}
+  .clue .n{width:21px;height:21px;font-size:12px}
+  .clue .l{width:19px;height:24px;font-size:15px;border-radius:5px}
+  .stage{padding:2px}
+  .banner b{font-size:32px}
+}
+@media (prefers-reduced-motion: reduce){
+  .pulse,.confetti i{animation:none} .item,.clue,.banner,body{transition:none}
+}
+.btn:focus-visible,.skins button:focus-visible{outline:3px solid var(--c1);outline-offset:2px}
+#source{display:none}
+footer button{font:600 12px "JetBrains Mono",monospace;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:4px 12px;cursor:pointer}
+footer hr{display:none}
+
+/* ---------- 1 · Munari (Italy): white page, circles and squares taking turns, no outlines ---------- */
+[data-skin=munari] .s0 .rd{display:none} [data-skin=munari] .s0 .ci{display:inline}
+[data-skin=munari] .s1 .rd{display:none} [data-skin=munari] .s1 .sq{display:inline}
+
+/* ---------- 2 · Tullet (France): big round dots on white, red · yellow · blue first ---------- */
+[data-skin=tullet]{
+  --bg:#ffffff; --card:#ffffff; --ink:#1f1f1f; --line:#ececec; --soft:#f5f5f5; --accent:#ffd86b;
+  --g0:#ff8a80; --g1:#ffd86b; --g2:#7fb3ff; --g3:#ffb26b; --g4:#8fd694; --g5:#c29bea;
+  --i0:#1f1f1f; --i1:#1f1f1f; --i2:#1f1f1f; --i3:#1f1f1f; --i4:#1f1f1f; --i5:#1f1f1f;
+  --c0:#d0353a; --c1:#1f63c4; --c2:#a8650a; --c3:#7a45c9; --c4:#1f7a4d;
+  --ca:#ffffff; --cb:#ffffff; --boxline:#1f1f1f; --frame:#1f1f1f;
+  --font-head:Fredoka,sans-serif; --font-glyph:Fredoka,sans-serif; --font-body:Nunito,sans-serif; --glyph-weight:600;
+  --coach:#1f1f1f; --hl:#fff3b0;
+}
+[data-skin=tullet] .tile .rd,[data-skin=tullet] .layer .rd{display:none}
+[data-skin=tullet] .tile .ci,[data-skin=tullet] .layer .ci{display:inline}
+[data-skin=tullet] .cell{stroke:#ececec;stroke-width:1}
+
+/* ---------- 3 · Lionni (Italy): torn-paper collage, soft blues, yellows and greens ---------- */
+[data-skin=lionni]{
+  --bg:#f4efe6; --card:#fffdf8; --ink:#3b362e; --muted:#6e665a; --line:#e4dccd; --soft:#ece5d8; --accent:#9cc7e8;
+  --g0:#8fb8de; --g1:#f6d55c; --g2:#9ccc65; --g3:#ef9a9a; --g4:#e8c39e; --g5:#80cbc4;
+  --i0:#24384d; --i1:#4d3d0b; --i2:#2d4a14; --i3:#5a2525; --i4:#5a3f22; --i5:#1f4a46;
+  --c0:#c0392b; --c1:#2f6aa3; --c2:#8f6208; --c3:#7a5aa6; --c4:#3d7a2c;
+  --ca:#fffdf8; --cb:#f7f1e4; --boxline:#c7bca8; --font-head:"Patrick Hand",cursive; --font-glyph:"Patrick Hand",cursive;
+  --glyph-weight:400; --coach:#3b362e; --coach-ink:#fffdf8;
+}
+[data-skin=lionni] .tile{filter:url(#rough)} [data-skin=lionni] .layer{filter:url(#rough) brightness(.88)}
+[data-skin=lionni] svg .glyph{font-size:40px}
+
+/* ---------- 4 · Miró (Spain): cream ground, black lines, a black dot among the colours ---------- */
+[data-skin=miro]{
+  --bg:#f6f0e1; --card:#fbf7ec; --ink:#1a1a1a; --line:#e3dac4; --soft:#eee6d2; --accent:#f6cf57;
+  --g0:#e9786f; --g1:#f6cf57; --g2:#6f9ed8; --g3:#7fbf7f; --g4:#2a2a2a; --g5:#f2a65a;
+  --i0:#1a1a1a; --i1:#1a1a1a; --i2:#1a1a1a; --i3:#1a1a1a; --i4:#f6cf57; --i5:#1a1a1a;
+  --c0:#c23a2f; --c1:#2d6cc0; --c2:#1a1a1a; --c3:#7d4fb0; --c4:#2e7034;
+  --ca:#fbf7ec; --cb:#f3ecda; --boxline:#1a1a1a; --tstroke:#1a1a1a; --tsw:3px; --frame:#1a1a1a;
+  --font-head:Fredoka,sans-serif; --font-glyph:Fredoka,sans-serif; --glyph-weight:700; --coach:#1a1a1a; --coach-ink:#f6f0e1;
+}
+[data-skin=miro] .s0 .rd{display:none} [data-skin=miro] .s0 .ci{display:inline}
+
+/* ---------- 5 · Gomi (Japan): warm sketchbook, wobbly brown lines, sunny colours ---------- */
+[data-skin=gomi]{
+  --bg:#fff7ee; --card:#fffdf9; --ink:#4a3b32; --muted:#7a6a5c; --line:#f0e1d2; --soft:#fbeee0; --accent:#ffb38a;
+  --g0:#ffb38a; --g1:#9ad0f5; --g2:#b5e48c; --g3:#ffadc6; --g4:#ffe08a; --g5:#c3b1e1;
+  --i0:#4a3b32; --i1:#4a3b32; --i2:#4a3b32; --i3:#4a3b32; --i4:#4a3b32; --i5:#4a3b32;
+  --c0:#c4471f; --c1:#2a73b0; --c2:#3d7a1f; --c3:#a8437f; --c4:#3d7a3d;
+  --ca:#fffdf9; --cb:#fff3e4; --boxline:#4a3b32; --tstroke:#4a3b32; --tsw:2.5px;
+  --font-head:"Patrick Hand",cursive; --font-glyph:Fredoka,sans-serif; --glyph-weight:600; --coach:#4a3b32; --coach-ink:#fff7ee;
+}
+[data-skin=gomi] .tile,[data-skin=gomi] .boxline{filter:url(#rough)} [data-skin=gomi] .layer{filter:url(#rough) brightness(.9)}
+
+/* ---------- 6 · Wagashi (Japan): sweets-shop pastels, sakura · matcha · yuzu, rounded and calm ---------- */
+[data-skin=wagashi]{
+  --bg:#f8f4ec; --card:#fffcf6; --ink:#5a4a42; --muted:#7a6c62; --line:#ece3d6; --soft:#f2ebe0; --accent:#f7c6d0;
+  --g0:#f7c6d0; --g1:#b7d3a8; --g2:#f6e3a1; --g3:#d9b38c; --g4:#b8d8e8; --g5:#cdbfe3;
+  --i0:#5a4a42; --i1:#3f5233; --i2:#5c4c16; --i3:#5a3a34; --i4:#2f4e5c; --i5:#4b3d63;
+  --c0:#b84a68; --c1:#4a7a3c; --c2:#8a6a10; --c3:#6f5aa0; --c4:#4a7a3c;
+  --ca:#fffcf6; --cb:#f6efe3; --boxline:#d8cbb8; --font-head:"Zen Maru Gothic",sans-serif;
+  --font-glyph:"Zen Maru Gothic",sans-serif; --font-body:"Zen Maru Gothic",Nunito,sans-serif; --glyph-weight:700;
+  --radius:22px; --coach:#5a4a42; --coach-ink:#fffcf6;
+}
+
+/* ---------- 7 · Delaunay (France): rhythm of concentric circles in bright pastels ---------- */
+[data-skin=delaunay]{
+  --bg:#fdfbf7; --card:#ffffff; --ink:#263238; --line:#ebe6dc; --soft:#f4efe6; --accent:#a0c4ff;
+  --g0:#ff9f9a; --g1:#ffd6a5; --g2:#a0c4ff; --g3:#84dcc6; --g4:#bdb2ff; --g5:#ffc6ff;
+  --i0:#263238; --i1:#263238; --i2:#263238; --i3:#263238; --i4:#263238; --i5:#263238;
+  --c0:#c9284f; --c1:#0b6a8a; --c2:#b35c00; --c3:#6243e0; --c4:#04785a;
+  --ca:#ffffff; --cb:#f6f3ff; --boxline:#263238;
+  --font-head:"Josefin Sans",sans-serif; --font-glyph:"Josefin Sans",sans-serif; --glyph-weight:700; --coach:#263238;
+}
+[data-skin=delaunay] .tile .rd,[data-skin=delaunay] .layer .rd{display:none}
+[data-skin=delaunay] .tile .ci,[data-skin=delaunay] .layer .ci,[data-skin=delaunay] .tile .ring{display:inline}
+
+/* ---------- 8 · Bruna (Netherlands): flat colour, thick black outline, nothing else ---------- */
+[data-skin=bruna]{
+  --bg:#ffffff; --card:#ffffff; --ink:#111111; --line:#111111; --soft:#f2f2f2; --accent:#f9d56e;
+  --g0:#f28482; --g1:#f9d56e; --g2:#84a9e8; --g3:#8cc084; --g4:#f5a65b; --g5:#c9a27e;
+  --i0:#111; --i1:#111; --i2:#111; --i3:#111; --i4:#111; --i5:#111;
+  --c0:#c62834; --c1:#1d6fd8; --c2:#9a6200; --c3:#6a4c93; --c4:#1e7a38;
+  --ca:#ffffff; --cb:#ffffff; --boxline:#111; --frame:#111; --tstroke:#111; --tsw:4px; --border:2.5px;
+  --font-head:Fredoka,sans-serif; --font-glyph:Fredoka,sans-serif; --glyph-weight:600; --coach:#111;
+}
+[data-skin=bruna] .tile .rd,[data-skin=bruna] .layer .rd{display:none}
+[data-skin=bruna] .tile .sq,[data-skin=bruna] .layer .sq{display:inline}
+
+/* ---------- 9 · Matisse (France): paper cut-outs, cobalt and coral on warm white ---------- */
+[data-skin=matisse]{
+  --bg:#fbf7f0; --card:#fffdf8; --ink:#22324d; --muted:#666b78; --line:#ece4d6; --soft:#f2ebdf; --accent:#f4a78f;
+  --g0:#3f63b0; --g1:#f4a78f; --g2:#9ccfa0; --g3:#f5d77a; --g4:#f2b8c6; --g5:#22324d;
+  --i0:#fff; --i1:#22324d; --i2:#22324d; --i3:#22324d; --i4:#22324d; --i5:#f5d77a;
+  --c0:#bf4527; --c1:#3456a8; --c2:#2d7a40; --c3:#a8475f; --c4:#2d7a40;
+  --ca:#fffdf8; --cb:#f8f0e3; --boxline:#22324d; --font-head:"DM Serif Display",serif; --font-glyph:"DM Serif Display",serif;
+  --glyph-weight:400; --coach:#22324d;
+}
+[data-skin=matisse] .tile{filter:url(#cutout)} [data-skin=matisse] .layer{filter:url(#cutout) brightness(.88)}
+[data-skin=matisse] svg .glyph{font-size:40px}
+
+/* ---------- 10 · Isola (Finland): big bold blooms, black outlines, fresh pastels ---------- */
+[data-skin=isola]{
+  --bg:#ffffff; --card:#ffffff; --ink:#151515; --line:#e8e8e8; --soft:#f3f3f3; --accent:#a8e6cf;
+  --g0:#f7a1a1; --g1:#ffe27a; --g2:#a6d8f5; --g3:#a8e6cf; --g4:#ffc8a2; --g5:#d5c6f0;
+  --i0:#151515; --i1:#151515; --i2:#151515; --i3:#151515; --i4:#151515; --i5:#151515;
+  --c0:#c8323d; --c1:#156fb0; --c2:#9a6200; --c3:#8857c8; --c4:#0d7a5e;
+  --ca:#ffffff; --cb:#f6f6f6; --boxline:#151515; --tstroke:#151515; --tsw:3px;
+  --font-head:"Space Grotesk",sans-serif; --font-glyph:"Space Grotesk",sans-serif; --glyph-weight:700; --coach:#151515;
+}
+[data-skin=isola] .tile .rd,[data-skin=isola] .layer .rd{display:none}
+[data-skin=isola] .tile .ci,[data-skin=isola] .layer .ci{display:inline}
+
+/* ---------- 0 · Maiolica: the original, cobalt ink and glazed tiles ---------- */
+[data-skin=maiolica]{
+  --bg:#f6eedc; --card:#fffaf0; --ink:#1b2a41; --muted:#6c6450; --line:#e2d5b8; --soft:#efe3c6; --accent:#1b2a41; --accent-ink:#fffaf0;
+  --g0:#2f5d9e; --g1:#b8492f; --g2:#e9b52f; --g3:#5a7224; --g4:#237a74; --g5:#7d3c6b;
+  --i0:#fff; --i1:#fff; --i2:#3a2a06; --i3:#fff; --i4:#fff; --i5:#fff;
+  --c0:#d6246e; --c1:#1b2a41; --c2:#b84800; --c3:#5a189a; --c4:#0b6e4f;
+  --frame:#1b2a41; --ca:#fffaf0; --cb:#f4e9cf; --boxline:#1b2a41; --tstroke:#1b2a41; --tsw:2.5px; --shine:.2;
+  --font-head:"Playfair Display",Georgia,serif; --font-body:Karla,sans-serif; --font-glyph:"Playfair Display",Georgia,serif;
+  --glyph-weight:900; --border:2px; --shadow:6px 6px 0 #1b2a41; --btn-shadow:2px 2px 0 #1b2a41; --coach:#1b2a41; --hl:#fde7a6;
+}
+[data-skin=maiolica] .gv{display:inline;stroke:#fff;stroke-opacity:.75;stroke-dasharray:none} [data-skin=maiolica] .gvc{display:none}
+[data-skin=maiolica] .stage,[data-skin=maiolica] .clue,[data-skin=maiolica] .rules div{border-color:#1b2a41}
+</style>
+<style>
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.bld h1 .sub{font-size:.42em;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.sets{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;margin:6px -16px 0;padding-left:16px;scrollbar-width:none}
+.sets::-webkit-scrollbar{display:none}
+.sets .btn{flex:none}
+.row.custom{display:flex;gap:8px;margin:4px 0 8px}
+.row.custom input{flex:1;min-width:0;font:600 15px var(--font-body);padding:8px 12px;border:2px solid var(--ink);border-radius:999px;background:var(--card);color:var(--ink);text-transform:uppercase}
+.say{min-height:24px;font-size:15px;color:var(--muted);margin:4px 0 4px}
+.clue{cursor:pointer}
+/* words sit on the left, each after its ring: drag the ring onto the board to start the word */
+.bld .clue,.bld .clue:nth-child(3n+2),.bld .clue:nth-child(3n){align-self:flex-start}
+.clue .wring{flex:none;width:22px;height:22px;border-radius:50%;border:4px solid var(--wc);background:var(--card);cursor:grab;touch-action:none;margin-right:2px}
+.clue .wring.on{background:color-mix(in srgb,var(--wc) 25%,var(--card))}
+.ringghost{position:fixed;left:0;top:0;width:48px;height:48px;box-sizing:border-box;border-radius:50%;border:6px solid var(--wc);pointer-events:none;z-index:60}
+.opt{fill:none;stroke-width:4;stroke-dasharray:7 6;animation:optp 1s ease-in-out infinite alternate}
+.opt.w0{stroke:var(--w0)} .opt.w1{stroke:var(--w1)} .opt.w2{stroke:var(--w2)}
+@keyframes optp{from{opacity:.45}to{opacity:1}}
+.bld,.bld *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.bld input{-webkit-user-select:text;user-select:text}
+.bld .stage{touch-action:none}
+.jig.j0{animation:jig0 .28s ease-in-out infinite alternate} .jig.j1{animation:jig1 .28s ease-in-out infinite alternate}
+.jig.lift{filter:drop-shadow(0 8px 8px rgba(0,0,0,.25))}
+@keyframes jig0{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
+@keyframes jig1{from{transform:rotate(4deg)}to{transform:rotate(-4deg)}}
+.growtile circle{stroke:var(--tstroke);stroke-width:var(--tsw)}
+.growtile{pointer-events:none;filter:drop-shadow(0 6px 6px rgba(0,0,0,.2))}
+/* pencil marks in the empty cells */
+.pm{font:700 15px "JetBrains Mono",monospace;fill:color-mix(in srgb,var(--ink) 50%,transparent);pointer-events:none}
+.dragging .pm{opacity:.5}
+.pm.on{font-weight:800;font-size:17px}
+.pm.on.w0{fill:var(--w0)} .pm.on.w1{fill:var(--w1)} .pm.on.w2{fill:var(--w2)}
+.status .acts{align-items:center}
+.nou{font:600 13px var(--font-body);color:var(--muted);margin-left:8px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.tool.dice{width:38px;height:38px;font-size:18px;margin-left:6px}
+.tool:disabled{opacity:.35;cursor:default}
+/* words on the left, four round tools in a square on the right */
+.bld .top{display:flex;align-items:center;gap:10px}
+.bld .top .clues{flex:1;min-width:0}
+.tools{display:grid;grid-template-columns:repeat(2,44px);gap:8px;flex:none}
+.tool{width:44px;height:44px;border-radius:50%;border:var(--border) solid var(--ink);background:var(--card);display:grid;place-items:center;
+  font-size:20px;line-height:1;padding:0;cursor:pointer;color:var(--ink);font-family:inherit}
+.tool.pinsrc{background:var(--hl);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.pinghost{font-size:34px;line-height:52px;text-align:center}
+/* the pin: drag it from the bar onto a letter; pinned tiles wear a small one in the corner */
+svg.pin line{stroke:var(--ink);stroke-width:3;stroke-linecap:round}
+svg.pin circle{fill:var(--w0);stroke:var(--ink);stroke-width:2.5}
+svg.pin circle.hi{fill:rgba(255,255,255,.65);stroke:none}
+.pinghost{position:fixed;left:0;top:0;width:36px;height:52px;pointer-events:none;z-index:60;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
+.pinghost svg{width:100%;height:100%}
+.pinmark line{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round}
+.pinmark circle{fill:var(--w0);stroke:var(--ink);stroke-width:2}
+/* a tapped word's outline wiggles */
+.wig{animation:wig .65s ease-in-out}
+@keyframes wig{0%,100%{transform:none}15%{transform:rotate(-5deg) scale(1.04)}35%{transform:rotate(4deg) scale(1.04)}55%{transform:rotate(-3deg)}75%{transform:rotate(2deg)}}
+@media (prefers-reduced-motion: reduce){.wig{animation:none}}
+.sol{font:600 13px var(--font-body);color:var(--muted);margin-left:8px}
+.sol b{font:800 20px var(--font-head);color:var(--ink);margin-right:4px;vertical-align:-2px}
+.sol.zero,.sol.zero b{color:var(--w0)}
+.panel{margin:16px 0;padding:12px 14px;border:var(--border) solid var(--ink);border-radius:var(--radius);background:var(--card)}
+.panel .verdict{font:600 16px var(--font-body);color:var(--muted)}
+.panel .verdict b{font:800 34px var(--font-head);margin-right:6px;vertical-align:-4px;color:var(--ink)}
+.panel .verdict.one b{color:var(--w1)} .panel .verdict.zero b{color:var(--w0)}
+.panel .note{margin:2px 0 8px;font-size:14px;color:var(--muted)}
+.panel .warn{margin:8px 0 0;font-size:14px;color:var(--w0)}
+.panel .code code{display:block;font:13px "JetBrains Mono",monospace;background:var(--soft);padding:6px 10px;border-radius:8px;overflow-wrap:anywhere}
+.panel .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.panel a.btn{text-decoration:none}
+.how{font-size:15px}
+.how p{margin:8px 0}
+pre > code{font-size:12.5px!important}
+/* one compact screen: the bar of word sets, the words and tools, the board, one status line */
+.bld{max-width:520px;margin:0 auto}
+.bld .bar{display:flex;align-items:center;gap:6px;margin:2px 0 4px}
+.bld .logo{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font:800 20px var(--font-head);background:var(--c0,#7dc4ff);color:var(--ink);border:2px solid var(--ink)}
+.bld .sets{flex:1;min-width:0;margin:0;padding:2px 0}
+.bld .sets .btn{padding:4px 10px;font-size:12px}
+.tool.sm{width:32px;height:32px;font-size:15px;text-decoration:none}
+.bld .row.custom{margin:0 0 4px}
+.bld .say{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:70;max-width:min(92vw,480px);background:var(--ink);color:var(--card);
+  font:600 13px/1.35 var(--font-body);padding:7px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.2);min-height:0;margin:0}
+.bld .game{margin:0}
+.bld .clues{gap:4px;margin:0}
+.bld .clue{padding:2px 8px 2px 3px;gap:3px;border-width:2.5px}
+.bld .clue .l{width:19px;height:23px;font-size:14px;border-radius:5px}
+.bld .clue .wring{width:18px;height:18px;border-width:3.5px}
+.bld .top{gap:6px}
+.bld .tools{grid-template-columns:repeat(2,38px);gap:6px}
+.bld .tool{width:38px;height:38px;font-size:17px}
+.bld .stage{margin:4px auto 0;max-width:min(100%,calc((100svh - 272px) * 500 / 664));min-width:250px}
+.bld .status{margin:2px 0 0;padding:0}
+.bld .status .acts{gap:4px;flex-wrap:nowrap;justify-content:center}
+.bld .status .btn{padding:4px 10px;font-size:13px}
+.bld .tool.dice{width:32px;height:32px;font-size:16px;margin-left:2px}
+.bld .panel{margin:6px 0 0;padding:6px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:13px}
+.bld .panel .verdict{font:600 13px var(--font-body)}
+.bld .panel .verdict b{font:800 20px var(--font-head);margin-right:3px;vertical-align:-2px}
+.bld .panel .note{margin:0;font-size:12px}
+.bld .panel .warn{margin:0;font-size:12px;flex-basis:100%}
+.bld .btn.sm{padding:3px 10px;font-size:12px;text-decoration:none}
+.bld ~ *, footer, body > hr{display:none}
+body:has(.bld) main{padding-top:6px!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important}
+body:has(.bld){padding-top:0!important;padding-bottom:0!important}
+</style>
+
+  
+  <style>
+.nb-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nb-small {
+  font-size: 0.8rem;
+}
+button.nb-small {
+  float: right;
+  padding: 2px;
+  padding-right: 5px;
+  padding-left: 5px;
+}
+section#source {
+  display:none
+}
+pre > code {
+  font-size: 1.2em;
+}
+.nb-output {
+  line-height: 1.15;
+}
+figure {
+  margin: 2rem 0;
+}
+figcaption {
+  text-align: center;
+}
+  
+</style>
+  
+    
+</head>
+<body>
+<main>
+<h1 id="parloku-builder:-come-funziona">Parloku builder: come funziona</h1>
+<p><a href="builder.html">← torna al builder</a></p>
+<p><strong>Parole.</strong> Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.</p>
+<p><strong>Lettere forzate.</strong> Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.</p>
+<p><strong>Togliere.</strong> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
+<p><strong>Gioco.</strong> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
+<p><strong>Ordine delle lettere.</strong> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.</p>
+<p><strong>Icone.</strong> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.</p>
+<p><strong>Soluzioni.</strong> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Con «niente U» scarta anche le parole che girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra); una parola lunga può comunque toccarsi più avanti. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.</p>
+<p><strong>Annotazioni.</strong> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
+<p><strong>Indizi.</strong> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
+<p>The builder is a <a href="https://github.com/pietroppeter/nimib">nimib</a> notebook. Board, tiles and gestures are the game's;
+the pencil marks and the solution count come from <a href="https://github.com/pietroppeter/puzzlepaw">puzzlepaw</a>'s
+<code>parloku/solver</code>, compiled to JavaScript with the page. The word sets are checked natively while the page is built:</p>
+<pre><code class="nohighlight nim hljs"><span class="hljs-keyword">const</span> wordSets = [
+  <span class="hljs-string">&quot;ITALIA PASTA ALPI&quot;</span>, <span class="hljs-string">&quot;AMICA GIOCO MAGIA&quot;</span>, <span class="hljs-string">&quot;IMPARA PRIMA MATITA&quot;</span>, <span class="hljs-string">&quot;PAROLE PERLE OPERA&quot;</span>,
+  <span class="hljs-string">&quot;LOGICA GIOCA CALCOLI&quot;</span>, <span class="hljs-string">&quot;ALBA LUNA NUBE&quot;</span>, <span class="hljs-string">&quot;CENA PANE PERA&quot;</span>, <span class="hljs-string">&quot;ESTATE MARE SERATA&quot;</span>,
+  <span class="hljs-string">&quot;CANE PESCE APE&quot;</span>, <span class="hljs-string">&quot;NERO ROSA ORO&quot;</span>, <span class="hljs-string">&quot;CANTO NOTE TONO&quot;</span>, <span class="hljs-string">&quot;PROVA TROVA PORTA&quot;</span>]
+<span class="hljs-keyword">proc</span> lettersOf(words: <span class="hljs-built_in">seq</span>[<span class="hljs-built_in">string</span>]): <span class="hljs-built_in">string</span> =
+  <span class="hljs-keyword">for</span> w <span class="hljs-keyword">in</span> words:
+    <span class="hljs-keyword">for</span> ch <span class="hljs-keyword">in</span> w:
+      <span class="hljs-keyword">if</span> ch <span class="hljs-keyword">notin</span> <span class="hljs-literal">result</span>: <span class="hljs-literal">result</span>.add ch
+<span class="hljs-keyword">for</span> s <span class="hljs-keyword">in</span> wordSets:
+  <span class="hljs-keyword">let</span> ws = s.split(' <span class="hljs-string">')</span>
+  <span class="hljs-keyword">var</span> p: <span class="hljs-type">Problem</span>
+  <span class="hljs-keyword">let</span> ls = lettersOf(ws)
+  <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-number">0</span> ..&lt; min(<span class="hljs-number">6</span>, ls.len): p.letters[i] = ls[i]
+  <span class="hljs-keyword">for</span> w <span class="hljs-keyword">in</span> ws: p.wordHints.add <span class="hljs-type">HintWord</span>(pos: (row: <span class="hljs-number">0</span>, col: <span class="hljs-number">0</span>), word: w)
+  <span class="hljs-keyword">let</span> issues = validate(p)
+  <span class="hljs-keyword">echo</span> &amp;<span class="hljs-string">&quot;{s:&lt;20} letters {ls.len}  &quot;</span>, (<span class="hljs-keyword">if</span> ls.len == <span class="hljs-number">6</span> <span class="hljs-keyword">and</span> issues.len == <span class="hljs-number">0</span>: <span class="hljs-string">&quot;ok&quot;</span> <span class="hljs-keyword">else</span>: $issues)</code></pre>
+<pre class="nb-output">ITALIA PASTA ALPI    letters 6  ok
+AMICA GIOCO MAGIA    letters 6  ok
+IMPARA PRIMA MATITA  letters 6  ok
+PAROLE PERLE OPERA   letters 6  ok
+LOGICA GIOCA CALCOLI letters 6  ok
+ALBA LUNA NUBE       letters 6  ok
+CENA PANE PERA       letters 6  ok
+ESTATE MARE SERATA   letters 6  ok
+CANE PESCE APE       letters 6  ok
+NERO ROSA ORO        letters 6  ok
+CANTO NOTE TONO      letters 6  ok
+PROVA TROVA PORTA    letters 6  ok
+</pre>
+</main>
+<footer>
+<div class="nb-box">
+ <span><span class="nb-small">made with <a href="https://pietroppeter.github.io/nimib/">nimib 🐳</a></span></span>
+ <span></span>
+ <span><button class="nb-small" id="show" onclick="toggleSourceDisplay()">Show Source</button></span>
+</div>
+</footer>
+<section id="source">
+<pre><code class="nohighlight nim hljs"><span class="hljs-comment">## Come funziona il builder di Parloku: i gesti e cosa calcola. La pagina del builder è `builder.html`</span>
+<span class="hljs-comment">## (src/builder.nim), tenuta compatta per poter giocare senza scorrere; le spiegazioni stanno qui.</span>
+<span class="hljs-keyword">import</span> std/[json, os, strformat, strutils]
+<span class="hljs-keyword">import</span> nimib
+<span class="hljs-keyword">import</span> style, builder_style
+<span class="hljs-keyword">import</span> parloku/[types, solver]
+
+nbInit
+nb.doc.filename = currentSourcePath().parentDir.parentDir / <span class="hljs-string">&quot;builder-howto.html&quot;</span>
+nb.doc.context[<span class="hljs-string">&quot;title&quot;</span>] = %<span class="hljs-string">&quot;Parloku builder: come funziona&quot;</span>
+nb.doc.context[<span class="hljs-string">&quot;stylesheet&quot;</span>] = %(pageStyle &amp; builderCss)
+nb.doc.context[<span class="hljs-string">&quot;highlight&quot;</span>] = %<span class="hljs-string">&quot;&quot;</span>
+nb.doc.context[<span class="hljs-string">&quot;disableHighlightJs&quot;</span>] = %<span class="hljs-literal">true</span>
+<span class="hljs-keyword">func</span> pageHeader(blk: <span class="hljs-type">JsonNode</span>, nb: <span class="hljs-type">Nb</span>): <span class="hljs-built_in">string</span> = <span class="hljs-string">&quot;&quot;</span>
+nb.backend.partials[<span class="hljs-string">&quot;header&quot;</span>] = pageHeader
+
+nbText: <span class="hljs-string">&quot;&quot;&quot;
+# Parloku builder: come funziona
+
+[← torna al builder](builder.html)
+
+**Parole.** Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.
+
+**Lettere forzate.** Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.
+
+**Togliere.** Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.
+
+**Gioco.** Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.
+
+**Ordine delle lettere.** Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.
+
+**Icone.** 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.
+
+**Soluzioni.** Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Con «niente U» scarta anche le parole che girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra); una parola lunga può comunque toccarsi più avanti. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.
+
+**Annotazioni.** Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.
+
+**Indizi.** Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.
+&quot;&quot;&quot;</span>
+
+nbText: <span class="hljs-string">&quot;&quot;&quot;
+The builder is a [nimib](https://github.com/pietroppeter/nimib) notebook. Board, tiles and gestures are the game's;
+the pencil marks and the solution count come from [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)'s
+`parloku/solver`, compiled to JavaScript with the page. The word sets are checked natively while the page is built:
+&quot;&quot;&quot;</span>
+
+nbCode:
+  <span class="hljs-keyword">const</span> wordSets = [
+    <span class="hljs-string">&quot;ITALIA PASTA ALPI&quot;</span>, <span class="hljs-string">&quot;AMICA GIOCO MAGIA&quot;</span>, <span class="hljs-string">&quot;IMPARA PRIMA MATITA&quot;</span>, <span class="hljs-string">&quot;PAROLE PERLE OPERA&quot;</span>,
+    <span class="hljs-string">&quot;LOGICA GIOCA CALCOLI&quot;</span>, <span class="hljs-string">&quot;ALBA LUNA NUBE&quot;</span>, <span class="hljs-string">&quot;CENA PANE PERA&quot;</span>, <span class="hljs-string">&quot;ESTATE MARE SERATA&quot;</span>,
+    <span class="hljs-string">&quot;CANE PESCE APE&quot;</span>, <span class="hljs-string">&quot;NERO ROSA ORO&quot;</span>, <span class="hljs-string">&quot;CANTO NOTE TONO&quot;</span>, <span class="hljs-string">&quot;PROVA TROVA PORTA&quot;</span>]
+  <span class="hljs-keyword">proc</span> lettersOf(words: <span class="hljs-built_in">seq</span>[<span class="hljs-built_in">string</span>]): <span class="hljs-built_in">string</span> =
+    <span class="hljs-keyword">for</span> w <span class="hljs-keyword">in</span> words:
+      <span class="hljs-keyword">for</span> ch <span class="hljs-keyword">in</span> w:
+        <span class="hljs-keyword">if</span> ch <span class="hljs-keyword">notin</span> <span class="hljs-literal">result</span>: <span class="hljs-literal">result</span>.add ch
+  <span class="hljs-keyword">for</span> s <span class="hljs-keyword">in</span> wordSets:
+    <span class="hljs-keyword">let</span> ws = s.split(' <span class="hljs-string">')</span>
+    <span class="hljs-keyword">var</span> p: <span class="hljs-type">Problem</span>
+    <span class="hljs-keyword">let</span> ls = lettersOf(ws)
+    <span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-number">0</span> ..&lt; min(<span class="hljs-number">6</span>, ls.len): p.letters[i] = ls[i]
+    <span class="hljs-keyword">for</span> w <span class="hljs-keyword">in</span> ws: p.wordHints.add <span class="hljs-type">HintWord</span>(pos: (row: <span class="hljs-number">0</span>, col: <span class="hljs-number">0</span>), word: w)
+    <span class="hljs-keyword">let</span> issues = validate(p)
+    <span class="hljs-keyword">echo</span> &amp;<span class="hljs-string">&quot;{s:&lt;20} letters {ls.len}  &quot;</span>, (<span class="hljs-keyword">if</span> ls.len == <span class="hljs-number">6</span> <span class="hljs-keyword">and</span> issues.len == <span class="hljs-number">0</span>: <span class="hljs-string">&quot;ok&quot;</span> <span class="hljs-keyword">else</span>: $issues)
+
+
+nbSave
+</code></pre>
+</section>
+  
+<script>
+  function toggleSourceDisplay() {
+    var btn = document.getElementById("show")
+    var source = document.getElementById("source");
+    if (btn.innerHTML=="Show Source") {
+      btn.innerHTML = "Hide Source";
+      source.style.display = "block";
+    } else {
+      btn.innerHTML = "Show Source";
+      source.style.display = "none";
+    }
+  }
+</script>
+  
+</body>

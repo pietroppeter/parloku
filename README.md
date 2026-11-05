@@ -58,3 +58,24 @@ nim c -r -d:release src/devlog_splash.nim         # writes devlog/splash/index.h
 Any puzzle can be played from a link: `?p=LETTERS_GIVENS_WORDS`, the same code format as puzzlepaw.
 Givens are `<row><col><letter>` and words `<row><col><word>`, 0-based and separated by dots. For example
 [`?p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI`](https://pietroppeter.github.io/parloku/?p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI).
+
+## Builder
+
+`builder.html` ([src/builder.nim](src/builder.nim)) makes new puzzles with the game's board and gestures. Pick a
+set of three words. Each word is listed with a ring: drag the ring onto a cell to start the word there with its first
+letter. Hold the word's last letter to see where the next one can go, then drag there (or tap one) to add it. The head can also be walked along the cells in one drag: each free next cell adds the next letter, stepping back onto the letter before shrinks the word, and letting go on an empty cell without a step moves the head there (as in the game). A double
+tap on a letter sends it back, together with the rest of its word after it; a double tap on the ring removes the word.
+Every empty cell shows in pencil the letters some complete grid can still put there, and a cell with none turns red.
+A double tap on an empty cell with a single pencil mark puts that letter there. Holding a letter below makes the six
+letters wiggle so they can be reordered by dragging one onto another; a double tap on a letter ends it. Four round tools sit next to the
+words: 📌 drag the pin onto a placed letter to fix it as a clue (hold a pinned letter to unpin it), ↺ restart,
+💾 copy a link that reopens the builder in this exact state (`builder.html?s=...`), and 🔗 copy the link to play. Next to undo, a solver looks for up to 10 complete grids that keep every letter on the board and fit all three
+words, trying every start for the words not placed yet: it shows 0 when the words no longer fit, the exact number
+up to 9, or 10+. For now it only looks for solutions where no word overlaps another or itself. In the pencil marks, the letters of the three
+words in one of them take their word's colour; 🎲 shows another. A panel counts the solutions of
+the puzzle a player would get (word starts and pinned letters only), with a link to play it.
+The builder page is kept to one screen so pieces can be dragged without scrolling; its explanations are in
+`builder-howto.html` ([src/builder_howto.nim](src/builder_howto.nim)), linked from the ? button.
+The solver is [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)'s `parloku/solver`, fetched by `deps.sh`
+and compiled to JavaScript. Build with `nim c -r -d:release src/builder.nim`.
+
