@@ -36,9 +36,14 @@ a{color:var(--leaf);text-underline-offset:3px}
 .kicker{font:700 12px "JetBrains Mono",monospace;letter-spacing:.14em;color:var(--leaf);margin:28px 0 0}
 .lede{font:italic 600 20px/1.45 Fraunces,Georgia,serif;color:#3b4d33;margin-top:4px}
 p code,li code,td code{font:14px "JetBrains Mono",monospace;background:#e6e4cc;padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
-pre{margin:14px 0;overflow-x:auto;border-radius:12px}
-pre code{display:block;padding:14px 16px;font:12.8px/1.55 "JetBrains Mono",monospace;background:var(--card);border:1px solid var(--line);border-radius:12px;color:#22301d}
-pre.nb-output,pre samp{display:block;padding:12px 16px;font:12.8px/1.5 "JetBrains Mono",monospace;background:var(--ink);color:#eef0dc;border-radius:12px;white-space:pre;overflow-x:auto}
+pre{margin:14px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%;
+  padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;font:11.5px/1.55 "JetBrains Mono",monospace;tab-size:2}
+pre,pre code{font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0}
+pre code{display:block;width:max-content;min-width:100%;padding:0;background:none;border:0;font:inherit;color:#22301d;white-space:pre}
+pre.nb-output{background:var(--ink);border-color:var(--ink);color:#eef0dc;white-space:pre}
+@media (min-width:620px){pre{font-size:12.5px}}
+.hljs-keyword{color:#7a3e9d;font-weight:600}.hljs-type{color:#2f6f8f}.hljs-built_in{color:#3d7a2a}
+.hljs-string{color:#b4492d}.hljs-number,.hljs-literal{color:#a0661b}.hljs-comment{color:#8a8f7a;font-style:italic}
 details{margin:14px 0;border:1px dashed #b9b591;border-radius:12px;padding:4px 12px;background:var(--card)}
 details summary{cursor:pointer;font:13px "JetBrains Mono",monospace;color:var(--muted);padding:6px 0}
 table{border-collapse:collapse;font-size:15px;width:100%} td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
@@ -87,8 +92,10 @@ nbText: """
 Drag **S** or **O** towards one of the empty rings. Watch the neck thin as you go, snap as you reach a ring,
 and grow back if you return. Let go anywhere else and the bud is pulled home.
 
-Each letter may be used **twice**. **L** already has both of its copies out, so tug it: it stretches and
-won't let go. Every tile in the garden is a cell, so the ones you planted can bud as well.
+Each letter may be used **twice**, and every tile in the garden is a cell, so the ones you planted can bud as well.
+**L** already has both of its copies out, so its seed looks empty and gives nothing. A tile that can't divide any more
+comes away *whole* instead: move it to another ring, or drop it on another **L** and the two fuse back into one cell.
+Fuse an L into its seed and the seed fills up again, ready to bud.
 """
 
 nbRawHtml: """
@@ -101,7 +108,7 @@ nbRawHtml: """
 
 nbText: """
 The number of places is free: the drag lists every ring the copy may land on, and there can be one or many.
-Tick *show machinery* to see them: each coral dot is a place the copy could go, plus one for home.
+Tick *show machinery* to see them: each coral dot is a place the tile could go, plus one for home.
 """
 
 nbRawHtml: """<h2><span class="num">02 · ON THE BOARD</span>The same cells in a mini sudoku</h2>"""
@@ -109,7 +116,8 @@ nbRawHtml: """<h2><span class="num">02 · ON THE BOARD</span>The same cells in a
 nbText: """
 Here the places come from a rule instead of a list. A letter may go into an empty cell only if its row, its
 column and its 2×3 box don't have it yet. The six letters below the board are sources, and so is every tile on it.
-Once a letter has no legal cell left (all six are placed, or the rows and boxes block it), it won't come loose.
+Once a letter has no legal cell left for a copy (all six are placed, or the rows and boxes block it), its tiles stop
+dividing: they move whole to another legal cell, or fuse with a tile of the same letter.
 These are the three given letters of puzzle 1 (ITALIA, PASTA, ALPI). Here only the sudoku rule applies, not the words.
 """
 
@@ -126,13 +134,16 @@ The effect has two independent halves:
 
 1. **Where can the copy go?** That's a question about the *model*, and [zogyn](https://github.com/pietroppeter/zogyn)
    answers it. We never write a drop handler. For the grabbed tile we list the states the drag can reach: "nothing happened"
-   plus "a copy planted in place *i*", one per place. zogyn shows whichever lands the tile closest to the pointer.
-2. **What does it look like?** A membrane layer draws round bodies and the stretchy neck between mother and bud.
+   plus "a copy planted in place *i*", one per place. A tile that can't divide lists "moved to place *i*" and
+   "fused into tile *k*" instead. zogyn shows whichever lands the tile closest to the pointer.
+2. **What does it look like?** A membrane layer draws round bodies and the stretchy neck between two cells
+   (mother and bud, or two tiles about to fuse).
    It never decides anything. Every frame it looks at which state zogyn picked and where the tiles are on screen.
 
 The trick that ties them together: **the neck exists exactly when zogyn's pick is the "nothing happened" state.**
-If the pick is a planted state, the cell has divided. So "splits near a place, rejoins near home" isn't extra
-code. It falls out of the same choice that decides where the tile lands.
+If the pick is a planted state, the cell has divided. Fusing is the same picture run backwards: a neck appears when
+the pick is "fused into *k*", between the held tile and *k*. So "splits near a place, rejoins near home, fuses near a
+sibling" isn't extra code. It falls out of the same choice that decides where the tile lands.
 """
 
 nbRawHtml: """<h3>The model: a tile leaves a fresh copy behind</h3>"""
@@ -140,12 +151,14 @@ nbRawHtml: """<h3>The model: a tile leaves a fresh copy behind</h3>"""
 nbText: """
 Every tile has an id, and the id is its key on screen (what your eye tracks). A source is a seed or any planted tile.
 When you plant from a source, *the tile you hold* keeps its id and moves to the place, and the source gets a **fresh id**.
-So the thing in your hand is the one that moves, and a new cell appears where it was.
+So the thing in your hand is the one that moves, and a new cell appears where it was. A tile that fuses
+is kept for a moment in `absorbed`, drawn on top of its partner, so zogyn can see where it lands. Once it has
+glided in, the page drops it (`tidy`).
 This block runs natively (the figures below are drawn at build time) and in the page:
 """
 
 nbCodeAnd(nbJsFromCode):
-  import std/[strformat, strutils, math]
+  import std/[strformat, strutils, math, sequtils]
   import zogyn
 
   type
@@ -154,6 +167,7 @@ nbCodeAnd(nbJsFromCode):
       seedId: seq[int]     # id of the tile sitting on each seed
       cell: string         # letter in each place, ' ' when empty
       cellId: seq[int]     # id of the tile in each place (0 when empty)
+      absorbed: seq[(int, int)]  # (id, id it fused into): gliding into a sibling, until `tidy`
       next: int            # next fresh id
     Rule = proc (s: Patch, letter: char, place: int): bool
 
@@ -181,26 +195,66 @@ nbCodeAnd(nbJsFromCode):
     if seed: result.seedId[i] = s.next else: result.cellId[i] = s.next
     result.next = s.next + 1
 
+  func looksLike(s: Patch, key: string): char =
+    ## the letter on screen, fusing tiles included
+    result = s.letterOf(key)
+    for (id, into) in s.absorbed:
+      if tkey(id) == key: return s.letterOf(tkey(into))
+
+  func tidy(s: Patch): Patch =
+    result = s
+    result.absorbed = @[]
+
   proc targets(s: Patch, key: string, rule: Rule): seq[Patch] =
-    ## every state the drag can reach besides "nothing happened"
+    ## the copies the tile can bud: one state per place a copy may go
     let letter = s.letterOf(key)
     for place, c in s.cell:
       if c == ' ' and rule(s, letter, place): result.add s.plant(key, place)
 
+  proc wholeMoves(s: Patch, key: string, rule: Rule): seq[Patch] =
+    ## a tile that can't divide comes away whole: moved to another place, or fused into a sibling
+    let (seed, i) = s.source(key)
+    if seed or i < 0: return                 # seeds never move
+    let letter = s.cell[i]
+    var lifted = s
+    lifted.cell[i] = ' '
+    lifted.cellId[i] = 0
+    for place, c in lifted.cell:
+      if c == ' ' and place != i and rule(lifted, letter, place):
+        var moved = lifted
+        moved.cell[place] = letter
+        moved.cellId[place] = s.cellId[i]
+        result.add moved
+    for j, id in s.seedId:
+      if s.seeds[j] == letter:
+        var fused = lifted
+        fused.absorbed.add (s.cellId[i], id)
+        result.add fused
+    for k, id in s.cellId:
+      if k != i and s.cell[k] == letter:
+        var fused = lifted
+        fused.absorbed.add (s.cellId[i], id)
+        result.add fused
+
   proc cellSpec(rule: Rule, snap: float): Spec[Patch] =
     result = proc (s: Patch, key: string): Behavior[Patch] =
       if s.letterOf(key) == '\0': return nil
-      let places = s.targets(key, rule)
-      if places.len == 0:
-        closest(@[s])                    # nowhere to go: the only reachable state is home
-      else:
-        closest(places).within(snap).orElse(closest(@[s]))
+      let buds = s.targets(key, rule)        # it can divide: bud a copy
+      if buds.len > 0:
+        return closest(buds).within(snap).orElse(closest(@[s]))
+      let whole = s.wholeMoves(key, rule)    # it can't: move it, or fuse it into a sibling
+      if whole.len == 0: return nil          # a spent seed gives nothing
+      let fuse = whole.filterIt(it.absorbed.len > 0)
+      let move = whole.filterIt(it.absorbed.len == 0)
+      # siblings attract from further away than empty places do
+      closest(fuse).within(2 * snap).orElse(closest(move).within(snap)).orElse(closest(@[s]))
 
 nbText: """
-That last proc is the whole interaction. `closest(places).within(snap)` picks a planted state once the tile is
-within `snap` of a free place; `.orElse(closest(@[s]))` falls back to home anywhere else. A letter with no place left
-gets `closest(@[s])`: still grabbable, but its only reachable state is the one it's in. Nothing else in the code
-knows which letters are stuck.
+That last proc is the whole interaction. `closest(places).within(snap)` picks a reachable state once the tile is
+within `snap` of where it would land; `.orElse(closest(@[s]))` falls back to home anywhere else. Which list it gets
+decides the gesture: buds while the letter can still divide, whole moves and fusions once it can't (fusions are
+tried first and from twice as far, so a sibling seems to pull). A spent seed
+gets `nil`, so it can't even be grabbed. Nothing else in the code knows which letters are spent.
 
 The two rules differ in one line each:
 """
@@ -279,6 +333,7 @@ nbCodeAnd(nbJsFromCode):
     letter: char
     neckTo: int        # index of the body it's joined to, or -1
     hw: float          # waist of that neck
+    faded: bool        # a spent seed: drawn hollow
 
   func membrane(bodies: openArray[Body], sw = 3.0): string =
     ## outline first (every shape stroked twice as wide), fills on top:
@@ -287,7 +342,9 @@ nbCodeAnd(nbJsFromCode):
     for b in bodies:
       let c = &"""cx="{b.at.x:.1f}" cy="{b.at.y:.1f}" r="{b.r:.1f}""""
       ink2.add &"""<circle {c}/>"""
-      fill.add &"""<circle {c} fill="{glaze(b.letter)}"/>"""
+      var hue = glaze(b.letter)
+      if b.faded: hue = "#f2f0e1"
+      fill.add &"""<circle {c} fill="{hue}"/>"""
       if b.neckTo >= 0:
         let o = bodies[b.neckTo]
         let p = neck(b.at, b.r, o.at, o.r, b.hw)
@@ -349,6 +406,11 @@ nbCodeAnd(nbJsFromCode):
       for i, id in s.cellId:
         if id > 0:
           result.add Item(key: tkey(id), pos: lay.placeAt(i, s.cell.len), svg: tile(s.cell[i]))
+      for (id, into) in s.absorbed:          # a fusing tile lands on its partner
+        let (seed, k) = s.source(tkey(into))
+        var at = lay.placeAt(k, s.cell.len)
+        if seed: at = lay.seedAt(k, s.seeds.len)
+        result.add Item(key: tkey(id), pos: at, svg: tile(s.looksLike(tkey(id))))
 
   let garden = Layout(r: 22,
     seedAt: proc (j, n: int): Vec = vec(180 + (j.float - float(n - 1) / 2) * 80, 250),
@@ -388,12 +450,16 @@ nbCode:
   let rg = cellRender(garden)
   let sg = cellSpec(gardenRule, 1.7 * garden.r)
   let g0 = newGarden(5)
-  echo "places: ", g0.cell.len, "   L stuck: ", g0.targets("t3", gardenRule).len == 0
+  echo "places: ", g0.cell.len, "   L can divide: ", g0.targets("t3", gardenRule).len > 0,
+       "   L seed grabbable: ", not sg(g0, "t3").isNil
   let spot = garden.placeAt(2, 5)
   let g1 = dragTo(sg, rg, g0, "t1", spot)                     # S released on the middle ring
   echo "S released on place 2 → '", g1.cell, "', the seed now holds t", g1.seedId[0]
   echo "S released halfway   → unchanged: ", dragTo(sg, rg, g0, "t1", vec(180, 170)) == g0
-  echo "L released on place 2 → unchanged: ", dragTo(sg, rg, g0, "t3", spot) == g0
+  let g2 = dragTo(sg, rg, g0, "t4", spot)                     # a planted L moved whole
+  echo "planted L released on place 2 → '", g2.cell, "'"
+  let g3 = dragTo(sg, rg, g0, "t4", garden.seedAt(2, 3)).tidy  # ...or fused into the L seed
+  echo "planted L dropped on its seed → '", g3.cell, "', now L can divide: ", g3.targets("t3", gardenRule).len > 0
 
 nbRawHtml: """<h3>The effect layer: drawing what zogyn picked</h3>"""
 
@@ -407,11 +473,14 @@ It reads each tile's *actual* position from its computed CSS transform, so the b
   back home the tile glides back, and the neck follows it until they touch.
 - **Did it just split or rejoin?** When the answer flips, it starts a small spring. A split makes mother and daughter
   wobble (a damped sine on their radius). A rejoin grows the neck back from nothing, with a little overshoot.
-- **Is it stuck?** When zogyn offers a single reachable state, the tile is held on a leash: the pointer's offset `d` is
-  squashed to `0.45·r·tanh(d / 0.45r)`, so it bulges towards you and never comes loose. The status line says why.
+- **Is it fusing?** When the pick is "fused into *k*" (or a released tile is still gliding into *k*), it draws a
+  neck between the tile and *k*. The waist grows as they get closer, the budding curve run backwards. When the
+  tile has arrived the page tidies it out of the model, and *k* gives a little wobble as it takes it in.
+
+Spent seeds are drawn hollow with a faded letter. The layer finds them by asking the spec: `nil` means nothing to give.
 
 None of this touches zogyn: its stage already exposes the pick (`choice`), the candidates (`picker.lands`), the held
-key and an `onMove` hook. The layer is about a hundred lines:
+key, and `onMove`/`onCommit` hooks. The layer is about 150 lines:
 """
 
 nbRawHtml: "<details><summary>the effect layer (browser only)</summary>"
@@ -421,6 +490,7 @@ nbCodeDisplay(nbJsFromCode):
 
   proc now(): float {.importjs: "performance.now()".}
   proc raf(cb: proc ()) {.importjs: "requestAnimationFrame(#)".}
+  proc later(cb: proc (), ms: int) {.importjs: "setTimeout(#, #)".}
   proc onScreen(e: Element): Vec {.importjs:
     "(m => ({x: m.e, y: m.f}))(new DOMMatrix(getComputedStyle(#).transform))".}
   proc svgG(): Element {.importjs: "document.createElementNS('http://www.w3.org/2000/svg', 'g')".}
@@ -429,11 +499,13 @@ nbCodeDisplay(nbJsFromCode):
   type Cells = ref object
     st: Stage[Patch]
     r: float
+    rule: Rule
     layer, status: Element
     tether: string            # key still joined to its mother: held at home, or gliding back
-    joined: bool              # was the held tile joined last frame?
-    stuck: bool               # is (or was, while it glides back) the held tile one with nowhere to go?
+    joined: bool              # was the held bud joined last frame?
     splitAt, joinAt: float    # when it last split / rejoined (ms)
+    mergeKey: string          # the tile that just took in a sibling, and when
+    mergeAt: float
     awake: float              # keep animating until then
     running: bool
 
@@ -443,27 +515,35 @@ nbCodeDisplay(nbJsFromCode):
   proc node(c: Cells, key: string): Element =
     c.st.fg.querySelector(cstring(&"""[data-key="{key}"]"""))
 
+  proc fusing(s: Patch, key: string): string =
+    ## the partner `key` is fusing into in `s`, or ""
+    for (id, into) in s.absorbed:
+      if tkey(id) == key: return tkey(into)
+
   proc frame(c: Cells) =
     let (st, r, t) = (c.st, c.r, now())
     let held = st.dragKey
     let s = st.shown
+    let buds = held.len > 0 and st.state.targets(held, c.rule).len > 0   # dividing, not moving whole
     if held.len > 0:
       let home = st.choice.ok and st.choice.state == st.state
-      if home != c.joined:
+      if buds and home != c.joined:
         if home: c.joinAt = t else: c.splitAt = t
-        c.joined = home
-      c.tether = if home: held else: ""
-      c.stuck = st.picker.lands.len == 1
-    var bodies: seq[Body]
+      c.joined = buds and home
+      c.tether = ""
+      if c.joined: c.tether = held
     var onPage: seq[(string, Vec)]
     for e in st.fg.querySelectorAll("[data-key]"):
       onPage.add ($e.getAttribute("data-key"), e.onScreen)
     let homeOfTether = if c.tether.len > 0: st.render.locate(st.state, c.tether) else: nowhere
     let wob = spring(t - c.splitAt, 0.09)
+    var bodies: seq[Body]
+    var index: Table[string, int]
     var motherGlyph = ""
     for (key, at) in onPage:
-      let letter = s.letterOf(key)
+      let letter = s.looksLike(key)
       if letter == '\0': continue
+      let n = c.node(key)
       if key == c.tether:
         let d = dist(at, homeOfTether)
         if held.len == 0 and d < 0.6:
@@ -474,15 +554,31 @@ nbCodeDisplay(nbJsFromCode):
           let g = grow * (1 + 0.25 * sin(grow * PI))   # regrow the neck with a little overshoot
           bodies.add Body(at: homeOfTether, r: r * (1 - 0.06 * (1 - k)), letter: letter, neckTo: -1)
           bodies.add Body(at: at, r: r * k, letter: letter, neckTo: bodies.len - 1, hw: waist(d, r) * g)
-          if not c.stuck: motherGlyph = &"""<g transform="translate({homeOfTether.x:.1f} {homeOfTether.y:.1f})">{glyph(letter, r)}</g>"""
-          c.node(key).querySelector(".nuc").setCss("transform", cstring(&"scale({k:.3f})"))
+          index[key] = bodies.len - 1
+          motherGlyph = &"""<g transform="translate({homeOfTether.x:.1f} {homeOfTether.y:.1f})">{glyph(letter, r)}</g>"""
+          n.querySelector(".nuc").setCss("transform", cstring(&"scale({k:.3f})"))
           continue
-      let near = key == held or dist(at, st.render.locate(st.state, held)) < 1
       var k = 1.0
-      if held.len > 0 and near: k = wob
-      bodies.add Body(at: at, r: r * k, letter: letter, neckTo: -1)
-      let n = c.node(key)
-      if not n.isNil: n.querySelector(".nuc").setCss("transform", "scale(1)")
+      if buds and (key == held or dist(at, st.render.locate(st.state, held)) < 1): k = wob
+      if key == c.mergeKey: k = spring(t - c.mergeAt, 0.12)
+      let spent = st.spec(st.state, key).isNil and st.state.letterOf(key) != '\0'
+      bodies.add Body(at: at, r: r * k, letter: letter, neckTo: -1, faded: spent)
+      index[key] = bodies.len - 1
+      n.querySelector(".nuc").setCss("transform", "scale(1)")
+      var o: cstring = "1"
+      if spent: o = "0.4"
+      n.querySelector(".nuc").setCss("opacity", o)
+    # fusing pairs: the held tile over its chosen partner, or a released one gliding in
+    var pairs: seq[(string, string)]
+    if held.len > 0 and st.choice.ok and s.fusing(held).len > 0: pairs.add (held, s.fusing(held))
+    for (id, into) in st.state.absorbed: pairs.add (tkey(id), tkey(into))
+    for (a, b) in pairs:
+      if a in index and b in index:
+        let (ia, ib) = (index[a], index[b])
+        let d = dist(bodies[ia].at, bodies[ib].at)
+        if d > 0.6:
+          bodies[ia].neckTo = ib
+          bodies[ia].hw = waist(d, r)
     c.layer.innerHTML = cstring(membrane(bodies) & motherGlyph)
 
   proc kick(c: Cells, ms = 900.0) =
@@ -494,33 +590,38 @@ nbCodeDisplay(nbJsFromCode):
       if c.st.dragKey.len > 0 or now() < c.awake: raf(step) else: c.running = false
     raf(step)
 
-  proc leash(c: Cells) =
-    ## a tile with nowhere to go bulges towards the pointer but stays attached
+  proc tidyUp(c: Cells) =
+    ## once a fused tile has glided into its partner, drop it from the model
     let st = c.st
-    if st.dragKey.len == 0 or st.picker.lands.len != 1: return
-    let home = st.render.locate(st.state, st.dragKey)
-    let off = st.at - home
-    let d = norm(off)
-    if d < 0.01: return
-    let reach = 0.45 * c.r * tanh(d / (0.45 * c.r))
-    c.node(st.dragKey).setCss("transform", tr(home + off * (reach / d)))
+    if st.state.absorbed.len == 0: return
+    if st.dragKey.len > 0:
+      later(proc () = c.tidyUp(), 200)
+      return
+    let (_, into) = st.state.absorbed[^1]
+    c.mergeKey = tkey(into)
+    c.mergeAt = now()
+    st.setState(st.state.tidy)
 
   proc grow(st: Stage[Patch], r: float, statusId: string, rule: Rule): Cells =
-    let c = Cells(st: st, r: r, layer: svgG(), status: document.getElementById(cstring(statusId)))
+    let c = Cells(st: st, r: r, rule: rule, layer: svgG(), status: document.getElementById(cstring(statusId)))
     c.layer.setAttribute("class", "membrane")
     st.svg.insertBefore(c.layer, st.fg)
     st.onMove = proc () =
-      c.leash()
       let held = st.dragKey
       if held.len > 0:
         let letter = st.state.letterOf(held)
         let n = st.state.targets(held, rule).len
-        var msg = &"{letter} can go to {n} places"
-        if n == 1: msg = &"{letter} can go to 1 place"
-        if n == 0: msg = &"{letter} has nowhere to go, so it stays put"
-        elif st.choice.ok and st.choice.state != st.state: msg = &"{letter} has split off: let go to plant it"
+        var msg = &"{letter} can bud a copy into {n} places"
+        if n == 1: msg = &"{letter} can bud a copy into 1 place"
+        if n == 0: msg = &"{letter} can't divide any more: move it, or drop it on another {letter}"
+        if st.choice.ok and st.choice.state != st.state:
+          if n > 0: msg = &"{letter} has split off: let go to plant it"
+          elif st.choice.state.fusing(held).len > 0: msg = &"let go and the two {letter}s fuse"
+          else: msg = &"let go to move {letter} here"
         c.status.textContent = cstring(msg)
       c.kick()
+    st.onCommit = proc (before, after: Patch) =
+      if after.absorbed.len > 0: later(proc () = c.tidyUp(), 380)
     c.kick()
     c
 nbRawHtml: "</details>"
@@ -536,8 +637,9 @@ nbRawHtml: """<h2><span class="num">04 · NEXT</span>What this opens up</h2>"""
 nbText: """
 - **More kinds of source.** The model doesn't care what a source is. The clue words' letters can become seeds too,
   each with its own layout position, like the six shared letters and the board tiles here.
-- **Taking a tile back.** For now a planted tile stays (use *reset*). A natural inverse is fusion: drop a tile
-  onto a cell of the same letter and they merge. In zogyn's terms that's one more reachable state per same-letter cell.
+- **Moving a tile that could still divide.** Right now a tile buds while its letter has copies left, and moves whole
+  only once it can't. To fix a misplaced S early you first have to use up the S's. A second gesture could pick
+  the mode (a long press to lift it whole, say). In zogyn's terms that just means a different list of states.
 - **Feel.** The waist curve, the 1.7·r snap radius and the spring constants are all one-liners. They're worth tuning
   on a phone with a thumb, not with a mouse.
 """
