@@ -18,4 +18,5 @@ fusion nim-lang/fusion 562467452b32cb7a97410ea177f083e6d8405734
 markdown soasme/nim-markdown 995405b78fb49b7658b7f0d94efe1b52f86c0a85
 parsetoml NimParsers/parsetoml d297f5a81be2472905d367aa675dcbbca6e7a5d2
 jsony treeform/jsony ce1ea84458c721947bd8e86ec065eeefab2656f1
+puzzlepaw pietroppeter/puzzlepaw fccf4a9ac9935426e24cd50e08a8ebd3924de61f
 DEPS

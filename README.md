@@ -54,3 +54,13 @@ nim c -r -d:release src/devlog_basics.nim         # writes devlog/basics/index.h
 Any puzzle can be played from a link: `?p=LETTERS_GIVENS_WORDS`, the same code format as puzzlepaw.
 Givens are `<row><col><letter>` and words `<row><col><word>`, 0-based and separated by dots. For example
 [`?p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI`](https://pietroppeter.github.io/parloku/?p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI).
+
+## Builder
+
+`builder.html` ([src/builder.nim](src/builder.nim)) makes new puzzles: pick a set of three words, lay each one
+on the grid by dragging across the cells, and drag letters from below the grid to add clues. Every empty cell
+shows the letters some complete grid can still put there, a cell with none turns red, and a panel counts the
+solutions of the puzzle a player would get (word starts and clues only), with a link to play it.
+The solver is [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)'s `parloku/solver`, fetched by `deps.sh`
+and compiled to JavaScript. Build with `nim c -r -d:release src/builder.nim`.
+
