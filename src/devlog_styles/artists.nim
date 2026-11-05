@@ -48,7 +48,7 @@ const styles* = [
     works: @[Work(title: "16 animali", year: "1957", note: "one block of wood, sixteen animals, no gaps", motif: "jigsaw"),
              Work(title: "Il gioco delle favole", year: "1965", note: "cards that slot together into endless stories", motif: "slots",
                   url: wiki("Il_gioco_delle_favole", "it")),
-             Work(title: "La mela e la farfalla", year: "1960", note: "with Iela Mari: a wordless book", motif: "apple"),
+             Work(title: "Timor calendar", year: "1966", note: "a perpetual calendar you flip by hand", motif: "slots"),
              Work(title: "Autoprogettazione", year: "1974", note: "furniture you build yourself from planks", motif: "planks")]),
 
   Style(id: "kusama", name: "Yayoi Kusama", life: "born 1929", place: "Matsumoto and Tokyo", flag: "🇯🇵",
@@ -70,7 +70,7 @@ const styles* = [
     works: @[Work(title: "The Obliteration Room", year: "2002–", note: "a white room, thousands of dot stickers", motif: "dots"),
              Work(title: "Pumpkin", year: "1994", note: "the yellow pumpkin on the pier at Naoshima", motif: "pumpkin"),
              Work(title: "Infinity Mirror Room", year: "1965–", note: "lights repeated forever by mirrors", motif: "rings"),
-             Work(title: "Infinity Nets", year: "1959–", note: "canvases covered in tiny loops", motif: "net")]),
+             Work(title: "Ascension of Polka Dots on the Trees", year: "2006", note: "trees wrapped in red and white dots", motif: "net")]),
 
   Style(id: "dufy", name: "Raoul Dufy", life: "1877–1953", place: "Le Havre, Paris and Nice", flag: "🇫🇷",
     role: "painter, textile and ceramics designer",
@@ -88,8 +88,8 @@ const styles* = [
     links: @[Link(label: "Wikipedia", url: wiki("Raoul_Dufy")),
              Link(label: "Wikipedia (fr)", url: wiki("Raoul_Dufy", "fr"))],
     works: @[Work(title: "La Fée Électricité", year: "1937", note: "250 panels for the Paris Exposition", motif: "bands"),
-             Work(title: "Regatta at Cowes", year: "1934", note: "sails, flags and blue sea", motif: "sails"),
-             Work(title: "La Promenade des Anglais, Nice", year: "1920s", note: "palms and the bay, colour off the line", motif: "offset"),
+             Work(title: "Street Decked with Flags", year: "1906", note: "a holiday street, all flags and colour", motif: "sails"),
+             Work(title: "Thirty Years, or La Vie en Rose", year: "1931", note: "colour patches, quick lines on top", motif: "offset"),
              Work(title: "Fabrics for Bianchini-Férier", year: "1912–28", note: "flowers and shells printed on silk", motif: "flowers")]),
 
   Style(id: "albers", name: "Josef Albers", life: "1888–1976", place: "Bottrop, the Bauhaus, Black Mountain and Yale", flag: "🇩🇪",
@@ -109,7 +109,7 @@ const styles* = [
     works: @[Work(title: "Homage to the Square", year: "1950–76", note: "over a thousand nested squares", motif: "nested", url: wiki("Homage_to_the_Square")),
              Work(title: "Interaction of Color", year: "1963", note: "the book: one colour looks like two", motif: "interaction"),
              Work(title: "Structural Constellations", year: "1950s", note: "line drawings that flip as you look", motif: "constellation"),
-             Work(title: "Bauhaus glass pictures", year: "1920s", note: "flashed glass, cut into grids", motif: "grid")]),
+             Work(title: "Armchair", year: "Bauhaus years", note: "furniture from his Bauhaus workshop", motif: "grid")]),
 
   Style(id: "morandi", name: "Giorgio Morandi", life: "1890–1964", place: "Bologna", flag: "🇮🇹",
     role: "painter and printmaker",
@@ -207,10 +207,10 @@ const styles* = [
     why: "He is the Italian artist who took toys and advertising seriously, and both are part of this game.",
     links: @[Link(label: "Wikipedia", url: wiki("Fortunato_Depero")),
              Link(label: "Casa d'Arte Futurista Depero", url: wiki("Casa_d%27arte_futurista_Depero", "it"))],
-    works: @[Work(title: "Balli plastici", year: "1918", note: "a ballet for wooden puppets", motif: "puppets"),
+    works: @[Work(title: "Il nuovo teatro futurista", year: "1924", note: "poster for the Teatro Goldoni", motif: "puppets"),
              Work(title: "Depero futurista (the bolted book)", year: "1927", note: "held together by two bolts", motif: "bolts"),
              Work(title: "Campari Soda bottle", year: "1932", note: "a cone you can hold in your hand", motif: "cone"),
-             Work(title: "Futurist tapestries", year: "1920s", note: "patchwork in bright cloth", motif: "patch")]),
+             Work(title: "Cavalli", year: "", note: "horses broken into Futurist planes", motif: "patch")]),
 
   Style(id: "tanaka", name: "Ikko Tanaka", life: "1930–2002", place: "Nara and Tokyo", flag: "🇯🇵",
     role: "graphic designer",
@@ -286,7 +286,7 @@ const styles* = [
     works: @[Work(title: "La gazza ladra", year: "1964", note: "cut-paper film to Rossini, with Gianini", motif: "birds"),
              Work(title: "Pulcinella", year: "1973", note: "the mask, in a dream of paper", motif: "mask"),
              Work(title: "Il flauto magico", year: "1978", note: "film and stage sets for Mozart", motif: "stage"),
-             Work(title: "Ceramics", year: "1950s–", note: "plates and tiles from Albisola", motif: "plate")]),
+             Work(title: "Museo Luzzati", year: "", note: "his museum in Porta Siberia, Genoa", motif: "plate")]),
 
   Style(id: "afklint", name: "Hilma af Klint", life: "1862–1944", place: "Stockholm", flag: "🇸🇪",
     role: "painter",
@@ -348,7 +348,7 @@ const styles* = [
     works: @[Work(title: "Carlton bookcase", year: "1981", note: "a totem of coloured shelves", motif: "carlton"),
              Work(title: "Valentine typewriter", year: "1969", note: "Olivetti, with Perry King: a red toy", motif: "valentine"),
              Work(title: "Bacterio laminate", year: "1978", note: "a pattern of tiny squiggles", motif: "squiggle"),
-             Work(title: "Totems", year: "1960s", note: "stacked ceramics in stripes", motif: "totem")]),
+             Work(title: "Casablanca bookcase", year: "1981", note: "Memphis laminate with arms", motif: "totem")]),
 
   Style(id: "barragan", name: "Luis Barragán", life: "1902–1988", place: "Guadalajara and Mexico City", flag: "🇲🇽",
     role: "architect",

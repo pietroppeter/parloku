@@ -4,6 +4,7 @@
 ## the page is plain HTML and SVG with no script. Colours are checked while the page builds.
 ## Build: sh src/deps.sh && nim c -r -d:release src/devlog_styles.nim   (writes devlog/styles/index.html)
 import std/[json, os, strutils, strformat, math, sequtils, uri, hashes]
+import std/xmltree as xt
 import nimib
 import devlog_styles/artists
 
@@ -352,14 +353,28 @@ proc sketch(st: Style, motif: string): string =
 
 proc searchUrl(q: string): string = "https://www.google.com/search?tbm=isch&q=" & encodeUrl(q)
 
+# pictures found on Wikimedia Commons by src/devlog_styles/fetch_images.py: hotlinked, never copied into the repo.
+# Where a viewer blocks remote images (claude.ai artifacts do), the sketch underneath stays and the credit hides.
+let pictures = block:
+  let f = root / "src" / "devlog_styles" / "images.json"
+  if fileExists(f): parseFile(f) else: newJObject()
+
 proc galleryHtml(st: Style): string =
   result = """<div class="gallery">"""
   for wk in st.works:
     let q = st.name.replace(" and Memphis", "") & " " & wk.title
-    result &= &"""<figure><a class="pic" href="{searchUrl(q)}" target="_blank" rel="noopener">{sketch(st, wk.motif)}<span class="go">see it ↗</span></a>""" &
+    let pic = pictures{st.id & "/" & wk.title}
+    var img, credit = ""
+    if pic != nil and pic.kind == JObject:
+      let alt = xt.escape(wk.title & " by " & st.name)
+      img = &"""<img src="{xt.escape(pic["src"].getStr)}" alt="{alt}" loading="lazy" referrerpolicy="no-referrer" onerror="this.closest('figure').classList.add('noimg');this.remove()">"""
+      let who = pic{"credit"}.getStr.strip
+      credit = &"""<span class="credit">picture: <a href="{xt.escape(pic["page"].getStr)}" target="_blank" rel="noopener">""" &
+        xt.escape((if who != "": who & ", " else: "") & pic{"license"}.getStr("Commons")) & "</a></span>"
+    result &= &"""<figure><a class="pic" href="{searchUrl(q)}" target="_blank" rel="noopener">{sketch(st, wk.motif)}{img}<span class="go">see it ↗</span></a>""" &
       &"""<figcaption><b>{wk.title}</b>{(if wk.year != "": " · " & wk.year else: "")}<br><span>{wk.note}</span>""" &
       (if wk.url != "": &""" · <a href="{wk.url}" target="_blank" rel="noopener">about</a>""" else: "") &
-      "</figcaption></figure>"
+      credit & "</figcaption></figure>"
   result &= "</div>"
 
 proc skinCss(st: Style): string =
@@ -430,6 +445,10 @@ svg.board{display:block;width:100%;height:auto}
 .gallery figure{margin:0;background:var(--card);border-radius:14px;overflow:hidden;border:1px solid color-mix(in srgb,var(--ink) 10%,transparent)}
 .gallery .pic{display:block;position:relative}
 .gallery svg{display:block;width:100%;height:auto}
+.gallery .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--card)}
+.gallery .credit{display:block;margin-top:4px;font-size:10.5px;line-height:1.3;color:var(--muted)}
+.gallery .credit a{color:var(--muted)}
+.gallery .noimg .credit{display:none}
 .gallery .go{position:absolute;right:6px;bottom:6px;font:700 11px Nunito,sans-serif;background:var(--ink);color:var(--card);border-radius:999px;padding:1px 8px}
 .gallery figcaption{padding:6px 9px 9px;font-size:13px;line-height:1.35}
 .gallery figcaption span{color:var(--muted)}
@@ -479,9 +498,11 @@ things children love. Their look had to survive being reduced to a palette, a sh
 travel: Italy, France and Japan as Pietro asked, then Germany, Sweden, the US, Canada, Mexico, Brazil, South Africa and
 India. Eight of the twenty are women. I borrowed only principles (palettes, shapes, edges, type), never characters or motifs.
 
-**About the galleries.** Published claude.ai pages can't load images from other sites, and most of these works are still
-under copyright. So each gallery card is a small abstract sketch made from the style's own palette, as a reminder only.
-Tap a card to open an image search for the real work, or "about" for its page.
+**About the galleries.** Pictures come from Wikimedia Commons, where every file is freely licensed, and they are
+linked from there, not copied here. The credit under each one names the author and licence. Commons has no free picture
+for many of these works, since most are still under copyright, and claude.ai pages block remote images altogether. Wherever
+a picture is missing, the card shows a small abstract sketch in the style's own palette instead. Tap any card to open an
+image search for the real work, or "about" for its page.
 """
 
 var toc = """<ul class="toc">"""
