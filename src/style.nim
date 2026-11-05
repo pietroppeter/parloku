@@ -193,6 +193,19 @@ body.chrome .picker::-webkit-scrollbar{display:none}
 body.chrome .picker>*{flex:none}
 body.chrome .picker .langs,body.chrome .status,body.chrome .picker .tut,body.chrome .play>.skins{display:none}
 body.chrome .status{bottom:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+/* the menu: three buttons (how to play, again! with its list of puzzles, restart); elsewhere only the puzzle list */
+.menu-only{display:none}
+body.chrome .picker .menu-only{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
+body.chrome .picker{justify-content:center;overflow:visible}
+body.chrome #picker{display:none}
+body.chrome #picker.open{display:flex;flex-direction:column;gap:8px;position:fixed;left:50%;transform:translateX(-50%);
+  top:calc(max(10px,env(safe-area-inset-top)) + 58px);width:min(340px,calc(100vw - 32px));padding:12px;z-index:30;
+  background:var(--card);border:var(--border) solid var(--ink);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+body.chrome #picker.open .btn{justify-content:flex-start;text-align:left;width:100%;display:flex;gap:8px;align-items:center}
+#picker .ck{display:inline-block;width:1.1em;color:var(--w1);font-weight:800}
+.picker > #picker .ck:empty{display:none}
+body.chrome #picker .ck:empty{display:inline-block}
+@media (max-width:400px){body.chrome .picker{gap:6px;padding-left:8px;padding-right:8px} body.chrome .picker .menu-only{padding:6px 11px;font-size:13px}}
 @media (prefers-reduced-motion: reduce){.ripple{animation:none;opacity:0}}
 .machinery-slot{margin:10px 0}
 .machinery-slot .ghost-toggle{position:static;font-size:14px}

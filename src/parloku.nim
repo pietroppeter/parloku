@@ -21,7 +21,7 @@ nbRawHtml: """
 <h1><span class="tile">P</span>arloku</h1>
 <p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste.">A mini sudoku spelled in letters, with words hidden in it.</p>
 <div class="game">
-  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><span id="picker"></span>
+  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><a class="btn menu-only" id="howto" href="istruzioni.html" data-it="istruzioni">how to play</a><button class="btn menu-only" id="again" aria-haspopup="true" aria-expanded="false" data-it="ancora! ▾">again! ▾</button><span id="picker"></span>
 <div class="langs" id="langs"><button class="btn" data-lang="en">EN</button><button class="btn" data-lang="it">IT</button></div>
   </div>
   <div class="coach" id="coach" hidden>
@@ -35,7 +35,7 @@ nbRawHtml: """
     <span class="acts">
       <button class="btn" id="undo" data-it="↶<span class='tx'> annulla</span>" aria-label="undo" disabled>↶<span class="tx"> undo</span></button>
       <button class="btn" id="hint" data-it="💡<span class='tx'> aiuto</span>" aria-label="hint">💡<span class="tx"> hint</span></button>
-      <button class="btn" id="reset" data-it="↺<span class='tx'> ricomincia</span>" aria-label="reset">↺<span class="tx"> reset</span></button>
+      <button class="btn" id="reset" aria-label="reset">↺ restart</button>
       <button class="btn" id="share" data-it="🔗<span class='tx'> link</span>" aria-label="link">🔗<span class="tx"> link</span></button>
       <button class="btn" id="more" data-it="📖<span class='tx'> altro</span>" aria-label="more" hidden>📖<span class="tx"> more</span></button>
     </span>
@@ -1001,6 +1001,7 @@ nbJsFromCode:
   var games: seq[(string, string)]
   for o in options(): games.add ($o.attr("value"), $o.innerHTML)
   var code = games[0][0]
+  var tutorial = false                 # the 🎓 tutorial runs on the first puzzle, with its own saved board
   let fromUrl = $search()
   if fromUrl.contains("p=") and decode(fromUrl).valid:
     code = decode(fromUrl).encode
@@ -1284,13 +1285,15 @@ nbJsFromCode:
     ## the menu bar goes away by itself after a few idle seconds
     clearTimer(hideTimer)
     hideTimer = setTimer(proc () =
-      if document.body.classList.contains("chrome"): setMode("focus"), 4000)
+      if document.body.classList.contains("chrome") and not document.getElementById("picker").classList.contains("open"): setMode("focus"), 4000)
   proc setMode(m: string) =
     for k in ["focus", "chrome", "explain"]:
       if k == m: document.body.classList.add(cstring(k))
       else: document.body.classList.remove(cstring(k))
     if m == "chrome":
       armHide()
+    else:
+      document.getElementById("picker").classList.remove("open")
   let playEl = document.getElementById("play")
   if not playEl.isNil:
     setMode("focus")
@@ -1313,6 +1316,27 @@ nbJsFromCode:
   let confetti = document.createElement("div")
   confetti.className = "confetti"
   host.appendChild(confetti)
+
+  # ---- solved puzzles are remembered on this device, and ticked in the "again!" list
+  proc solvedCodes(): seq[string] =
+    let v = lsGet("parloku:solved")
+    if not v.isNil and ($v).len > 0: result = ($v).split(',')
+  proc markSolved(c: string) =
+    var cs = solvedCodes()
+    if c notin cs:
+      cs.add c
+      lsSet("parloku:solved", cstring(cs.join(",")))
+  proc renderPicker() =
+    let done = solvedCodes()
+    var html = ""
+    for i, (gc, title) in games:
+      var cls = ""
+      if gc == code and not tutorial: cls.add " on"
+      if gc in done: cls.add " done"
+      let name = if title == "": L("from the link", "dal link") else: title
+      let tick = if gc in done: "✓" else: ""
+      html.add &"""<button class="btn num{cls}" data-i="{i}" aria-label="{L("puzzle", "puzzle")} {i + 1}: {name}"><span class="ck">{tick}</span>{name}</button>"""   # named by its three words
+    pickerEl.innerHTML = cstring(html)
 
   proc clock(): string =
     let t0 = if wonAt > 0: wonAt else: now()
@@ -1339,7 +1363,6 @@ nbJsFromCode:
       html.add &"""<span class="ok">{tick}</span></div>"""
     cluesEl.innerHTML = cstring(html)
 
-  var tutorial = false                 # the 🎓 tutorial runs on the first puzzle, with its own saved board
   proc storeKey(): cstring =
     let prefix = if tutorial: "parloku:tutorial:" else: "parloku:"
     cstring(prefix & code)
@@ -1371,6 +1394,9 @@ nbJsFromCode:
     let g = stage.state.grid
     let won = solved(puz, g)
     if won and wonAt == 0: wonAt = now()
+    if won and not tutorial and code notin solvedCodes():
+      markSolved(code)
+      renderPicker()
     if won and not celebrated:
       celebrated = true
       banner.innerHTML = cstring(&"<b>Bravo!</b><span>{stage.state.moves} " & L("moves", "mosse") & &" · {clock()}</span>")
@@ -1384,8 +1410,16 @@ nbJsFromCode:
   var last = stage.state
   let undoBtn = document.getElementById("undo")
   proc setDisabled(e: Element, d: bool) {.importjs: "#.disabled = #".}
+  var undoable = false                  # the restart button reads "undo restart" (below)
+  var quiet = false                     # our own setState calls, which are not the player's moves
+  var before: Board                     # the board, its history and clock before the restart
+  var beforeHistory: seq[Board]
+  var beforeStarted, beforeWon = 0.0
+  var undoTimer = 0
+  var endUndoCb: proc ()                # set below, with the restart button
   stage.onCommit = proc () =
     if started == 0 and stage.state.moves > 0: started = now()
+    if undoable and not quiet and stage.state.cells != last.cells: endUndoCb()   # a move: no going back to before the restart
     if stage.state.cells != last.cells:
       history.add last
       last = stage.state
@@ -1414,12 +1448,7 @@ nbJsFromCode:
     celebrated = solved(puz, b.grid)     # don't throw confetti again on reload
     confetti.innerHTML = ""
     banner.innerHTML = cstring(&"<b>Bravo!</b><span>{b.moves} " & L("moves", "mosse") & &" · {clock()}</span>")
-    var html = ""
-    for i, (gc, title) in games:
-      let on = if gc == c and not tutorial: " on" else: ""
-      let name = if title == "": L("from the link", "dal link") else: title
-      html.add &"""<button class="btn num{on}" data-i="{i}" aria-label="{L("puzzle", "puzzle")} {i + 1}: {name}">{name}</button>"""   # named by its three words
-    pickerEl.innerHTML = cstring(html)
+    renderPicker()
     stage.setState(b)
     history = @[]
     last = stage.state
@@ -1427,19 +1456,75 @@ nbJsFromCode:
 
 
   proc dataI(ev: Event): cstring {.importjs: "(#.target.closest('[data-i]')?.dataset.i ?? null)".}
+  let againBtn = document.getElementById("again")
+  proc openList(o: bool) =
+    if o:
+      pickerEl.classList.add("open")
+      againBtn.setAttr("aria-expanded", "true")
+      clearTimer(hideTimer)
+    else:
+      pickerEl.classList.remove("open")
+      againBtn.setAttr("aria-expanded", "false")
+  againBtn.addEventListener("click", proc (ev: Event) =
+    openList(not pickerEl.classList.contains("open")))
   pickerEl.addEventListener("click", proc (ev: Event) =
     let i = dataI(ev)
     if not i.isNil:
+      openList(false)
+      endUndoCb()
       if not playEl.isNil: setMode("focus")
       tutorial = false
       lsSet(cstring("parloku:" & games[parseInt($i)][0]), "")   # picking a puzzle always starts it afresh
       load(games[parseInt($i)][0])
       pushQuery(cstring("p=" & code)))
 
+  # ---- restart right away, no "sure?": for a few seconds, until the next move, the button offers to undo it
   let resetBtn = document.getElementById("reset")
-  resetBtn.addEventListener("click", proc (ev: Event) =   # restart right away: no "sure?"
+  proc resetLabel() =
+    if undoable: resetBtn.innerHTML = cstring(L("↶ undo restart", "↶ annullo rifaccio"))
+    else: resetBtn.innerHTML = cstring(L("↺ restart", "↺ rifaccio"))
+  proc endUndo() =
+    if not undoable: return
+    undoable = false
+    clearTimer(undoTimer)
+    resetLabel()
+    if document.body.classList.contains("chrome"): armHide()
+  endUndoCb = endUndo
+  resetLabel()
+  resetBtn.addEventListener("click", proc (ev: Event) =
+    if undoable:                        # put back the board as it was before the restart
+      undoable = false
+      clearTimer(undoTimer)
+      quiet = true
+      stage.setState(before)
+      quiet = false
+      history = beforeHistory
+      last = stage.state
+      started = beforeStarted
+      wonAt = beforeWon
+      celebrated = solved(puz, stage.state.grid)
+      undoBtn.setDisabled(history.len == 0)
+      save()
+      refresh()
+      resetLabel()
+      armHide()
+      return
+    var had = false                     # nothing to undo on an untouched board
+    for c in 0 ..< 36:
+      if stage.state.cells[c] >= 0 and not isGiven(c): had = true
+    before = stage.state
+    beforeHistory = history
+    beforeStarted = started
+    beforeWon = wonAt
     lsSet(storeKey(), "")
-    load(code))
+    quiet = true
+    load(code)
+    quiet = false
+    if had:
+      undoable = true
+      resetLabel()
+      clearTimer(hideTimer)             # keep the menu up while undo is on offer
+      undoTimer = setTimer(proc () = endUndo(), 8000))
 
   undoBtn.addEventListener("click", proc (ev: Event) =
     if history.len == 0: return
