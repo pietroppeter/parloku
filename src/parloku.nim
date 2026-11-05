@@ -682,11 +682,23 @@ nbCodeAnd(nbJsFromCode):
   var coachTint: seq[int]        # tutorial: cells to tint (the reason for a step)
   var coachTarget = -1           # tutorial: the cell to fill (or empty)
   var coachStacks: seq[int]      # tutorial: letter stacks to make glow
+  var classicGrid = true         # a classic grid (plain, lines only); ?grid=rounded for rounded cells and shaded boxes
 
   proc backdrop(b: Board): string =
     let g = b.grid
     result = &"""<rect class="frame" x="{bx - 9}" y="{by - 9}" width="{cell * 6 + 18}" height="{cell * 6 + 18}" rx="14"/>"""
+    if classicGrid:
+      # a classic mini sudoku: one plain square, thin lines between cells, thick lines round the boxes and the edge
+      result.add &"""<rect class="cell ca" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
+      for c in coachTint:
+        let p = cellPos(c)
+        result.add &"""<rect class="cell tint" x="{p.x - cell/2}" y="{p.y - cell/2}" width="{cell}" height="{cell}"/>"""
+      for i in 1 .. 5:
+        result.add &"""<line class="thin" x1="{bx}" y1="{by + i.float * cell}" x2="{bx + cell * 6}" y2="{by + i.float * cell}"/>"""
+        result.add &"""<line class="thin" x1="{bx + i.float * cell}" y1="{by}" x2="{bx + i.float * cell}" y2="{by + cell * 6}"/>"""
+      result.add &"""<rect class="edge" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
     for c in 0 ..< 36:
+      if classicGrid: break
       let p = cellPos(c)
       let (r, col) = (c div 6, c mod 6)
       let base = if (r div 2 + col div 3) mod 2 == 0: "ca" else: "cb"
@@ -1016,6 +1028,7 @@ nbJsFromCode:
   var code = games[0][0]
   var tutorial = false                 # the 🎓 tutorial runs on the first puzzle, with its own saved board
   let fromUrl = $search()
+  if fromUrl.contains("grid=rounded"): classicGrid = false
   if fromUrl.contains("p=") and decode(fromUrl).valid:
     code = decode(fromUrl).encode
     if games.allIt(it[0] != code): games.add (code, "")

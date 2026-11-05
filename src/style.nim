@@ -138,6 +138,9 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .dragging .cell.bad.ca{fill:var(--ca)} .dragging .cell.bad.cb{fill:var(--cb)} .dragging .cell.bad.tint{fill:var(--hl)} .dragging .badline{display:none}
 @media (prefers-reduced-motion: reduce){.shake{animation:none} .shake .tile rect,.shake .tile circle,.shake .tile path{stroke:var(--bad-line)}}
 .boxline{fill:var(--boxline)}
+.thin{stroke:color-mix(in srgb,var(--boxline) 35%,transparent);stroke-width:1.5}
+.edge{fill:none;stroke:var(--boxline);stroke-width:5}
+
 .lbl{fill:var(--muted);display:none} .tutoring .lbl{display:inline}
 .glow{fill:var(--hl);stroke:var(--c0);stroke-width:3}
 .empty{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 5} .done{fill:var(--c4)}
