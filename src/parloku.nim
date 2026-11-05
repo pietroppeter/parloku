@@ -620,7 +620,9 @@ nbCodeAnd(nbJsFromCode):
     var futures: seq[Board]
     for c in 0 ..< 36:                     # only empty cells: a tile never pushes out a letter already placed
       if not isGiven(c) and (b.cells[c] < 0 or c == src): futures.add b.place(id, c)
-    closest(futures).within(cell * 0.6).orElse(closest(@[b.home(id)]))
+    var fallback = b.home(id)              # a tile from below goes back to its letter
+    if src >= 0: fallback = b              # a tile lifted off the board stays in its cell
+    closest(futures).within(cell * 0.6).orElse(closest(@[fallback]))
 
 nbText: "Driving it by hand at build time: grab the first letter's tile and hover between two cells of the top row."
 
@@ -644,6 +646,7 @@ finished board at build time:
 
 nbCodeAnd(nbJsFromCode):
   var focusClue = -1             # the clue chip under the mouse, drawn bolder
+  var wiggleClue = -1            # a tapped clue: its ring or outline on the board wiggles for a moment
   var maskTag = "wm"             # ids of the word-outline masks (the build-time spoiler uses its own)
   var coachTint: seq[int]        # tutorial: cells to tint (the reason for a step)
   var coachTarget = -1           # tutorial: the cell to fill (or empty)
@@ -692,6 +695,13 @@ nbCodeAnd(nbJsFromCode):
       let ink = &"w{i mod 3}"
       let t = if focusClue == i: 8.0 else: 5.0
       let rr = cell * 0.47
+      if wiggleClue == i:
+        var (sx, sy) = (0.0, 0.0)
+        let cells = if path.len > 0: path else: @[idx(clue.pos)]
+        for c in cells:
+          sx += cellPos(c).x
+          sy += cellPos(c).y
+        result.add &"""<g class="wig" style="transform-origin:{sx / cells.len.float:.1f}px {sy / cells.len.float:.1f}px">"""
       if path.len <= 1:
         let p = cellPos(idx(clue.pos))
         result.add &"""<circle class="wo {ink}" cx="{p.x}" cy="{p.y}" r="{rr + t / 2:.1f}" stroke-width="{t}"/>"""
@@ -722,6 +732,7 @@ nbCodeAnd(nbJsFromCode):
           &"""<path d="{d}" class="wm" stroke="#fff" stroke-width="{2 * wOut:.1f}"/><path d="{fillOut}" fill="#fff"/>""" &
           &"""<path d="{d}" class="wm" stroke="#000" stroke-width="{2 * wIn:.1f}"/><path d="{fillIn}" fill="#000"/></mask>""" &
           &"""<rect class="wf {ink}" x="0" y="0" width="600" height="650" mask="url(#{m})"/>"""
+      if wiggleClue == i: result.add "</g>"
     if coachTarget >= 0:
       let p = cellPos(coachTarget)
       result.add &"""<rect class="aim pulse" x="{p.x - 37}" y="{p.y - 37}" width="74" height="74" rx="12"/>"""
@@ -759,6 +770,9 @@ nbCodeDisplay(nbJsFromCode):
   proc setStyle(e: Element, k, v: cstring) {.importjs: "#.style.setProperty(#, #)".}
   proc checked(e: Element): bool {.importjs: "#.checked".}
   proc clientXY(ev: Event): Vec {.importjs: "(e => ({x: e.clientX, y: e.clientY}))(#)".}
+  proc setTimer(cb: proc (), ms: int): int {.importjs: "setTimeout(#, #)".}
+  proc clearTimer(t: int) {.importjs: "clearTimeout(#)".}
+  proc buzz() {.importjs: "(navigator.vibrate && navigator.vibrate(12))".}
   proc rectOf(e: Element): (float, float, float, float) {.importjs:
     "(() => { const r = #.getBoundingClientRect(); return {Field0: r.left, Field1: r.top, Field2: r.width, Field3: r.height}; })()".}
 
@@ -780,6 +794,7 @@ nbCodeDisplay(nbJsFromCode):
     redirect: proc (s: S, key: string): string   # grabbing `key` may lift another item instead ("" = nothing)
     origin: Vec                   # where the held item was grabbed
     redirected: bool
+    holdMs: int                   # how long a press on a redirected item waits before lifting the item itself
 
   proc tr(p: Vec): cstring = cstring(&"translate({p.x:.2f}px, {p.y:.2f}px)")
 
@@ -825,9 +840,9 @@ nbCodeDisplay(nbJsFromCode):
     st.draw(shown)
     if not st.onMove.isNil: st.onMove()
 
-  proc start[S](st: Stage[S], grabbed: string, p: Vec) =
+  proc start[S](st: Stage[S], grabbed: string, p: Vec, redirect = true) =
     var key = grabbed
-    if not st.redirect.isNil: key = st.redirect(st.state, grabbed)
+    if redirect and not st.redirect.isNil: key = st.redirect(st.state, grabbed)
     if key.len == 0: return
     let behavior = st.spec(st.state, key)
     if behavior.isNil: return
@@ -869,7 +884,7 @@ nbCodeDisplay(nbJsFromCode):
     host.innerHTML = cstring(&"""<svg class="d2" viewBox="{x0} 0 {w} {h}"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs><g class="bg"></g>""" &
       """<g class="fg"></g><g class="overlay"></g><g class="ghosts"></g></svg>""" &
       """<label class="ghost-toggle"><input type="checkbox"> <span data-it="mostra il meccanismo">show machinery</span></label>""")
-    let st = Stage[S](state: init, render: render, spec: spec, backdrop: backdrop, overlay: overlay)
+    let st = Stage[S](state: init, render: render, spec: spec, backdrop: backdrop, overlay: overlay, holdMs: 320)
     st.svg = host.querySelector("svg")
     st.bg = host.querySelector(".bg")
     st.fg = host.querySelector(".fg")
@@ -879,16 +894,43 @@ nbCodeDisplay(nbJsFromCode):
       let (l, t, rw, rh) = rectOf(st.svg)
       let c = clientXY(ev)
       vec(x0 + (c.x - l) * w / rw, (c.y - t) * h / rh)
+    # an item that a grab redirects (a letter on the board) waits a moment: moving at once pulls the redirected one
+    # (a copy); holding still lifts the item itself, to move it
+    var pendKey = ""
+    var pendAt = vec(0, 0)
+    var pendTimer = 0
     st.svg.addEventListener("pointerdown", proc (ev: Event) =
       let k = keyAt(ev)
       if k.isNil: return
       ev.preventDefault()
       capture(st.svg, ev)
-      st.start($k, toLocal(ev)))
+      let p = toLocal(ev)
+      if st.redirect.isNil or st.redirect(st.state, $k) == $k or st.spec(st.state, $k).isNil:
+        st.start($k, p)
+        return
+      pendKey = $k
+      pendAt = p
+      pendTimer = setTimer(proc () =
+        if pendKey.len > 0:
+          let key = pendKey
+          pendKey = ""
+          buzz()
+          st.start(key, pendAt, redirect = false), st.holdMs))
     st.svg.addEventListener("pointermove", proc (ev: Event) =
-      if st.dragKey.len > 0: st.move(toLocal(ev)))
-    st.svg.addEventListener("pointerup", proc (ev: Event) = st.finish())
-    st.svg.addEventListener("pointercancel", proc (ev: Event) = st.finish())
+      let p = toLocal(ev)
+      if pendKey.len > 0 and norm(p - pendAt) > 6:
+        clearTimer(pendTimer)
+        let key = pendKey
+        pendKey = ""
+        st.start(key, pendAt)
+      if st.dragKey.len > 0: st.move(p))
+    let up = proc (ev: Event) =
+      if pendKey.len > 0:
+        clearTimer(pendTimer)
+        pendKey = ""
+      st.finish()
+    st.svg.addEventListener("pointerup", up)
+    st.svg.addEventListener("pointercancel", up)
     let box = host.querySelector(".ghost-toggle input")
     box.addEventListener("change", proc (ev: Event) =
       st.showGhosts = box.checked
@@ -1035,7 +1077,7 @@ nbJsFromCode:
     if d.len > 0: necks.innerHTML = cstring(&"""<path class="neck g{li}" d="{d}"/>""")
     else: necks.innerHTML = ""
 
-  # ---- a double tap on a tile on the board sends it back to its letter below
+  # ---- a double tap on a tile on the board sends it back to its letter below; on an empty cell with only one possible letter (a start ring, or the last gap of a row, column or box), it fills that letter in
   var tapKey = ""
   var tapAt = 0.0
   var downAt = vec(0, 0)
@@ -1046,8 +1088,53 @@ nbJsFromCode:
   stage.svg.addEventListener("pointerup", proc (ev: Event) =
     let k = downKey
     let up = clientXY(ev)
-    if k.isNil or norm(up - downAt) > 8:   # a drag, not a tap
+    if norm(up - downAt) > 8:              # a drag, not a tap
       tapKey = ""
+      return
+    if k.isNil:
+      # a double tap on an empty start cell puts the word's first letter there
+      let (l, t0, rw, rh) = rectOf(stage.svg)
+      let x = 50 + (up.x - l) * 500 / rw
+      let y = (up.y - t0) * 664 / rh
+      let (col, row) = (int(floor((x - bx) / cell)), int(floor((y - by) / cell)))
+      if col notin 0 .. 5 or row notin 0 .. 5:
+        tapKey = ""
+        return
+      let c = row * 6 + col
+      # the only letter that can go there: a start ring's first letter, or the one missing from a row,
+      # column or box that already has the other five, all different
+      var forced = '.'
+      for clue in puz.clues:
+        if idx(clue.pos) == c: forced = clue.word[0]
+      if forced == '.':
+        let g = stage.state.grid
+        var units: seq[seq[int]]
+        units.add toSeq(0 .. 5).mapIt(row * 6 + it)
+        units.add toSeq(0 .. 5).mapIt(it * 6 + col)
+        let (r0, c0) = (row div 2 * 2, col div 3 * 3)
+        units.add toSeq(0 .. 5).mapIt((r0 + it div 3) * 6 + c0 + it mod 3)
+        for u in units:
+          var seen: seq[char]
+          for cc in u:
+            if cc != c and g[cc] != '.' and g[cc] notin seen: seen.add g[cc]
+          if seen.len == 5:
+            for ch in puz.letters:
+              if ch notin seen: forced = ch
+            break
+      if forced == '.' or stage.state.cells[c] >= 0:
+        tapKey = ""
+        return
+      let t = now()
+      if tapKey == &"c{c}" and t - tapAt < 400:
+        tapKey = ""
+        let li = puz.letters.find(forced)
+        for j in 0 .. 5:
+          if stage.state.cells.find(li * 6 + j) < 0:
+            stage.setState(stage.state.place(li * 6 + j, c))
+            break
+      else:
+        tapKey = &"c{c}"
+        tapAt = t
       return
     let id = parseInt(($k)[1 .. ^1])
     let at = stage.state.cells.find(id)
@@ -1065,8 +1152,6 @@ nbJsFromCode:
     "!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')".}
   proc scrollTop() {.importjs: "window.scrollTo(0, 0)".}
   proc inPlay(ev: Event): bool {.importjs: "!!#.target.closest('.play')".}
-  proc setTimer(cb: proc (), ms: int): int {.importjs: "setTimeout(#, #)".}
-  proc clearTimer(t: int) {.importjs: "clearTimeout(#)".}
   var hideTimer = 0
   proc setMode(m: string)
   proc armHide() =
@@ -1265,6 +1350,16 @@ nbJsFromCode:
     for c in 0 ..< 36:
       if solution[c] != '.' and g[c] != solution[c]: wrong.add c
     if wrong.len > 0: placeCorrect(wrong[int(rnd() * wrong.len.float) mod wrong.len]))
+
+  # ---- tap a clue word: its start ring (or its outline so far) wiggles on the board, to show where it is
+  cluesEl.addEventListener("click", proc (ev: Event) =
+    let i = hoverIndex(ev)
+    if i.isNil: return
+    wiggleClue = parseInt($i)
+    stage.top.innerHTML = cstring(overlay(stage.state))
+    discard setTimer(proc () =
+      wiggleClue = -1
+      if stage.dragKey.len == 0: stage.top.innerHTML = cstring(overlay(stage.state)), 700))
 
   # ---- the 🎓 tutorial: a coach above the board that asks the logical path for the next move after every drop
 

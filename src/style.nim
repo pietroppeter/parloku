@@ -105,7 +105,7 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
 .clue.done{border-color:var(--ink)}
 .clue .ok{font-size:18px;width:18px;text-align:center;color:var(--c4);font-weight:700}
 .stage{position:relative;background:var(--card);border:var(--border) solid var(--line);border-radius:calc(var(--radius) + 4px);box-shadow:var(--shadow);padding:6px;overflow:hidden}
-.stage svg.d2{display:block;overflow:visible;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.stage svg.d2{display:block;overflow:visible;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .stage svg text{font-family:var(--font-body)}
 svg .glyph{font-family:var(--font-glyph);font-weight:var(--glyph-weight)}
 svg .mono{font-family:"JetBrains Mono",monospace}
@@ -179,6 +179,10 @@ body.focus .picker,body.focus .status{display:none}
 body.focus .game,body.chrome .game{margin:0}
 body.chrome .play>.skins{display:none}
 .clue .ok:empty{display:none}
+/* a tapped clue's ring or outline wiggles on the board */
+.wig{animation:wig .65s ease-in-out}
+@keyframes wig{0%,100%{transform:none}15%{transform:rotate(-5deg) scale(1.04)}35%{transform:rotate(4deg) scale(1.04)}55%{transform:rotate(-3deg)}75%{transform:rotate(2deg)}}
+@media (prefers-reduced-motion: reduce){.wig{animation:none}}
 @media (max-width:440px){body.chrome .status .tx{display:none} body.chrome .status .btn{min-width:48px}}
 body.chrome .picker,body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
   padding:10px 16px;background:color-mix(in srgb,var(--bg) 94%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
