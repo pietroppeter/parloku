@@ -18,6 +18,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .opt{fill:none;stroke-width:4;stroke-dasharray:7 6;animation:optp 1s ease-in-out infinite alternate}
 .opt.w0{stroke:var(--w0)} .opt.w1{stroke:var(--w1)} .opt.w2{stroke:var(--w2)}
 @keyframes optp{from{opacity:.45}to{opacity:1}}
+.bld .stage,.bld .clues{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .jig.j0{animation:jig0 .28s ease-in-out infinite alternate} .jig.j1{animation:jig1 .28s ease-in-out infinite alternate}
 .jig.lift{filter:drop-shadow(0 8px 8px rgba(0,0,0,.25))}
 @keyframes jig0{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}

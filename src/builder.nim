@@ -44,7 +44,7 @@ nbRawHtml: """
 <p><b>Lettere forzate.</b> Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.</p>
 <p><b>Togliere.</b> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
 <p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
-<p><b>Ordine delle lettere.</b> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un tocco le rimette a posto.</p>
+<p><b>Ordine delle lettere.</b> Doppio tocco su una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un altro doppio tocco le rimette a posto.</p>
 <p><b>Icone.</b> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.</p>
 <p><b>Annotazioni.</b> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><b>Indizi.</b> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
@@ -1248,8 +1248,7 @@ nbJsFromCode:
     for p in wpath.mitems: p.setLen(0)
     stage.setState(emptyBoard()))
 
-  # ---- hold a letter below: the six letters wiggle and can be reordered (drag one onto another to swap them);
-  # a tap puts them back to rest
+  # ---- double tap a letter below: the six letters wiggle and can be reordered (drag one onto another to swap them)
   proc addClass(e: Element, c: cstring) {.importjs: "#.classList.add(#)".}
   proc dropClass(e: Element, c: cstring) {.importjs: "#.classList.remove(#)".}
   proc inHost(ev: Event): bool {.importjs: "(e => e.target instanceof Node && document.getElementById('board').contains(e.target))(#)".}
@@ -1301,7 +1300,7 @@ nbJsFromCode:
     jigStyle.innerHTML = cstring(css)
     stage.svg.addClass("jiggling")
     buzz2()
-    say "Trascina una lettera su un'altra per scambiarle. Tocca una lettera per finire."
+    say "Trascina una lettera su un'altra per scambiarle. Doppio tocco su una lettera per finire."
     drawJig()
   proc stopJiggle() =
     jiggling = false
@@ -1329,47 +1328,49 @@ nbJsFromCode:
     if keep:
       jiggling = false
       startJiggle()
+  # a double tap on a letter below starts the wiggling, another double tap ends it
+  var stackTap = -1
+  var stackTapAt = 0.0
+  var downStack = -1
+  proc doubleTap(li: int): bool =
+    let t = now()
+    if li >= 0 and stackTap == li and t - stackTapAt < 400:
+      stackTap = -1
+      return true
+    stackTap = li
+    stackTapAt = t
   document.addEventListener("pointerdown", proc (ev: Event) =
-    if not jiggling:
-      if not inHost(ev): return
-      let li = stackUnder(localOf(ev))
-      if li < 0: return
-      pressAt = clientXY(ev)
-      pressTimer = setTimer(proc () =
-        pressTimer = 0
-        pressStarted = true
-        startJiggle(), 550)
-      return
-    if not inHost(ev):
-      stopJiggle()
-      return
+    downStack = -1
+    if not inHost(ev): return
+    let li = stackUnder(localOf(ev))
+    pressAt = clientXY(ev)
+    downStack = li
+    if not jiggling: return
     stopIt(ev)
     ev.preventDefault()
     capture2(host, ev)
-    jigHeld = stackUnder(localOf(ev))
+    jigHeld = li
     jigDown = clientXY(ev)
     jigMoved = false, true)
   document.addEventListener("pointermove", proc (ev: Event) =
-    if pressTimer != 0 and norm(clientXY(ev) - pressAt) > 6:
-      clearTimer(pressTimer)
-      pressTimer = 0
     if not jiggling or jigHeld < 0: return
     if norm(clientXY(ev) - jigDown) > 6: jigMoved = true
     if jigMoved: drawJig(localOf(ev)), true)
   document.addEventListener("pointerup", proc (ev: Event) =
-    if pressTimer != 0:
-      clearTimer(pressTimer)
-      pressTimer = 0
-    if not jiggling: return
-    if pressStarted:
-      pressStarted = false
-      stopIt(ev)
+    let li = downStack
+    downStack = -1
+    let tap = norm(clientXY(ev) - pressAt) <= 8
+    if not jiggling:
+      if tap and doubleTap(li): startJiggle()
       return
+    stopIt(ev)
     let held = jigHeld
     jigHeld = -1
     if not jigMoved:
-      stopJiggle()               # a tap: back to playing
+      if doubleTap(li): stopJiggle()
+      else: drawJig()
       return
+    stackTap = -1
     let t = stackUnder(localOf(ev))
     if held >= 0 and t >= 0 and t != held:
       buzz2()
