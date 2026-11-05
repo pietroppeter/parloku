@@ -975,7 +975,7 @@ nbJsFromCode:
 
   # ---- on the game page, only the game: tap an empty spot to show the rest, and again to hide it
   proc interactive(ev: Event): bool {.importjs:
-    "!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.splash')".}
+    "!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')".}
   proc scrollTop() {.importjs: "window.scrollTo(0, 0)".}
   proc inPlay(ev: Event): bool {.importjs: "!!#.target.closest('.play')".}
   proc setMode(m: string) =

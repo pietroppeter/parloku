@@ -144,7 +144,7 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 @keyframes ripple{from{transform:scale(.95);opacity:.9}to{transform:scale(1.5);opacity:0}}
 /* the game page: only the game (focus); tap empty space for the rest (chrome); "more" opens the whole page (explain) */
 body.focus>header,body.focus footer,body.chrome>header,body.chrome footer,
-body.focus main>:not(.play),body.chrome main>:not(.play){display:none}
+body.focus main>:not(.play):not(.sp),body.chrome main>:not(.play):not(.sp){display:none}
 body.focus,body.chrome{padding-bottom:0}
 body.focus .play,body.chrome .play{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:8px 0}
 body.focus .play>h1,body.focus .play>.lede,body.focus .play>.rules,body.focus .play>.skins,
@@ -9414,7 +9414,7 @@ var Temporary24;
 
 function HEX3Aanonymous__js95file95nb67ode84o74s950_u7885(ev_p0) {
   BeforeRet: {
-    if (!!ev_p0.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.splash')) {
+    if (!!ev_p0.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')) {
     break BeforeRet;
     }
     
@@ -10933,7 +10933,7 @@ nbJsFromCode:
 
   <span class="hljs-comment"># ---- on the game page, only the game: tap an empty spot to show the rest, and again to hide it</span>
   <span class="hljs-keyword">proc</span> interactive(ev: <span class="hljs-type">Event</span>): <span class="hljs-built_in">bool</span> {.importjs:
-    <span class="hljs-string">&quot;!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.splash')&quot;</span>.}
+    <span class="hljs-string">&quot;!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')&quot;</span>.}
   <span class="hljs-keyword">proc</span> scrollTop() {.importjs: <span class="hljs-string">&quot;window.scrollTo(0, 0)&quot;</span>.}
   <span class="hljs-keyword">proc</span> inPlay(ev: <span class="hljs-type">Event</span>): <span class="hljs-built_in">bool</span> {.importjs: <span class="hljs-string">&quot;!!#.target.closest('.play')&quot;</span>.}
   <span class="hljs-keyword">proc</span> setMode(m: <span class="hljs-built_in">string</span>) =
