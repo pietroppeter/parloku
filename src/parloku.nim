@@ -1077,7 +1077,7 @@ nbJsFromCode:
     if d.len > 0: necks.innerHTML = cstring(&"""<path class="neck g{li}" d="{d}"/>""")
     else: necks.innerHTML = ""
 
-  # ---- a double tap on a tile on the board sends it back to its letter below; on an empty start cell, it fills in the first letter
+  # ---- a double tap on a tile on the board sends it back to its letter below; on an empty cell with only one possible letter (a start ring, or the last gap of a row, column or box), it fills that letter in
   var tapKey = ""
   var tapAt = 0.0
   var downAt = vec(0, 0)
@@ -1101,16 +1101,33 @@ nbJsFromCode:
         tapKey = ""
         return
       let c = row * 6 + col
-      var word = -1
-      for i, clue in puz.clues:
-        if idx(clue.pos) == c: word = i
-      if word < 0 or stage.state.cells[c] >= 0:
+      # the only letter that can go there: a start ring's first letter, or the one missing from a row,
+      # column or box that already has the other five, all different
+      var forced = '.'
+      for clue in puz.clues:
+        if idx(clue.pos) == c: forced = clue.word[0]
+      if forced == '.':
+        let g = stage.state.grid
+        var units: seq[seq[int]]
+        units.add toSeq(0 .. 5).mapIt(row * 6 + it)
+        units.add toSeq(0 .. 5).mapIt(it * 6 + col)
+        let (r0, c0) = (row div 2 * 2, col div 3 * 3)
+        units.add toSeq(0 .. 5).mapIt((r0 + it div 3) * 6 + c0 + it mod 3)
+        for u in units:
+          var seen: seq[char]
+          for cc in u:
+            if cc != c and g[cc] != '.' and g[cc] notin seen: seen.add g[cc]
+          if seen.len == 5:
+            for ch in puz.letters:
+              if ch notin seen: forced = ch
+            break
+      if forced == '.' or stage.state.cells[c] >= 0:
         tapKey = ""
         return
       let t = now()
       if tapKey == &"c{c}" and t - tapAt < 400:
         tapKey = ""
-        let li = puz.letters.find(puz.clues[word].word[0])
+        let li = puz.letters.find(forced)
         for j in 0 .. 5:
           if stage.state.cells.find(li * 6 + j) < 0:
             stage.setState(stage.state.place(li * 6 + j, c))
