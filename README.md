@@ -53,4 +53,4 @@ nim c -r -d:release src/devlog_basics.nim         # writes devlog/basics/index.h
 
 Any puzzle can be played from a link: `?p=LETTERS_GIVENS_WORDS`, the same code format as puzzlepaw.
 Givens are `<row><col><letter>` and words `<row><col><word>`, 0-based and separated by dots. For example
-[`?p=AILPST_01S.33L.54P_50ITALIA.30PASTA.10ALPI`](https://pietroppeter.github.io/parloku/?p=AILPST_01S.33L.54P_50ITALIA.30PASTA.10ALPI).
+[`?p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI`](https://pietroppeter.github.io/parloku/?p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI).

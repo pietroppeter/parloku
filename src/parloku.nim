@@ -1429,7 +1429,7 @@ nbJsFromCode:
 
 nbText: """
 That's the game. Puzzles live in [`data/`](https://github.com/pietroppeter/parloku/tree/main/data) as puzzlepaw JSON,
-and any puzzle can be played from a link such as `?p=AILPST_01S.33L.54P_50ITALIA.30PASTA.10ALPI`
+and any puzzle can be played from a link such as `?p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI`
 (the 🔗 button copies it). Progress is kept in your browser, per puzzle.
 The game speaks English and Italian (EN / IT at the top, or `?lang=it`), and `?tutorial` opens the 🎓 tutorial directly.
 
