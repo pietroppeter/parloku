@@ -61,10 +61,11 @@ Givens are `<row><col><letter>` and words `<row><col><word>`, 0-based and separa
 
 ## Builder
 
-`builder.html` ([src/builder.nim](src/builder.nim)) makes new puzzles: pick a set of three words, lay each one
-on the grid by dragging across the cells, and drag letters from below the grid to add clues. Every empty cell
-shows the letters some complete grid can still put there, a cell with none turns red, and a panel counts the
-solutions of the puzzle a player would get (word starts and clues only), with a link to play it.
+`builder.html` ([src/builder.nim](src/builder.nim)) makes new puzzles with the same gestures as the game: pick a set
+of three words, then drag the six letters onto the grid. A word is outlined as soon as its first letters are spelled
+from any cell. Every empty cell shows in pencil the letters some complete grid can still put there, and a cell with
+none turns red. To fix a clue, drag the pin onto a placed letter; hold a pinned letter to unpin it. A panel counts the
+solutions of the puzzle a player would get (word starts and pinned letters only), with a link to play it.
 The solver is [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)'s `parloku/solver`, fetched by `deps.sh`
 and compiled to JavaScript. Build with `nim c -r -d:release src/builder.nim`.
 
