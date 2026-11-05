@@ -15,7 +15,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .clue .wring{flex:none;width:22px;height:22px;border-radius:50%;border:4px solid var(--wc);background:var(--card);cursor:grab;touch-action:none;margin-right:2px}
 .clue .wring.on{background:color-mix(in srgb,var(--wc) 25%,var(--card))}
 .ringghost{position:fixed;left:0;top:0;width:48px;height:48px;box-sizing:border-box;border-radius:50%;border:6px solid var(--wc);pointer-events:none;z-index:60}
-.opt{fill:none;stroke-width:4;stroke-dasharray:7 6;animation:optp 1s ease-in-out infinite alternate}
+.opt{fill:none;stroke-width:4;animation:optp 1s ease-in-out infinite alternate}
 .opt.w0{stroke:var(--w0)} .opt.w1{stroke:var(--w1)} .opt.w2{stroke:var(--w2)}
 @keyframes optp{from{opacity:.45}to{opacity:1}}
 .bld,.bld *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
@@ -103,5 +103,10 @@ pre > code{font-size:12.5px!important}
 .bld ~ *, footer, body > hr{display:none}
 body:has(.bld) main{padding-top:6px!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important}
 body:has(.bld){padding-top:0!important;padding-bottom:0!important}
+/* no dashed lines in the builder */
+.bld .clue .l{border-style:solid;border-color:color-mix(in srgb,var(--ink) 14%,transparent)}
+.bld .empty,.bld .ghosts .target,.bld .ghosts .tether{stroke-dasharray:none}
+.bld details{border-style:solid}
+.jt .jig{pointer-events:none}
 </style>
 """
