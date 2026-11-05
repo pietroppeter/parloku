@@ -1358,12 +1358,12 @@ nbJsFromCode:
   let skinsEl = document.getElementById("skins")
   proc applySkin(name: string) =
     document.body.setSkin(cstring(name))
-    lsSet("parloku:skin", cstring(name))
+    lsSet("parloku:look", cstring(name))
     for b in skinsEl.querySelectorAll("button"):
       if $b.attr("data-skin") == name: b.classList.add("on")
       else: b.classList.remove("on")
   var skin = "niki"
-  let savedSkin = lsGet("parloku:skin")
+  let savedSkin = lsGet("parloku:look")
   if not savedSkin.isNil and ($savedSkin).len > 0: skin = $savedSkin
   let si = fromUrl.find("skin=")
   if si >= 0: skin = fromUrl[si + 5 .. ^1].split('&')[0]

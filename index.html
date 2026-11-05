@@ -9530,7 +9530,7 @@ function applyLang__js95file95nb67ode84o74s950_u9983() {
 
 function applySkin__js95file95nb67ode84o74s950_u10031(name_p0) {
     document.body.dataset.skin = toJSStr(name_p0);
-    ((k, v) => { try { localStorage.setItem(k, v) } catch (e) {} })("parloku:skin", toJSStr(name_p0));
+    ((k, v) => { try { localStorage.setItem(k, v) } catch (e) {} })("parloku:look", toJSStr(name_p0));
     Label1: {
       var b_536880948 = null;
       var colontmp__536882283 = [];
@@ -10148,7 +10148,7 @@ Temporary37 = HEX3Aanonymous__js95file95nb67ode84o74s950_u10024.bind(null); Temp
 langsEl_536880894.addEventListener("click", Temporary37, false);
 var skinsEl_536880942 = document.getElementById("skins");
 var skin_536880949 = [[110,105,107,105]];
-var savedSkin_536880950 = (k => { try { return localStorage.getItem(k) } catch (e) { return null } })("parloku:skin");
+var savedSkin_536880950 = (k => { try { return localStorage.getItem(k) } catch (e) { return null } })("parloku:look");
 if ((!((savedSkin_536880950 == null)) && (0 < (cstrToNimstr(savedSkin_536880950)).length))) {
 skin_536880949[0] = nimCopy(null, cstrToNimstr(savedSkin_536880950), NTI33554449);
 }
@@ -11538,12 +11538,12 @@ nbJsFromCode:
   <span class="hljs-keyword">let</span> skinsEl = document.getElementById(<span class="hljs-string">&quot;skins&quot;</span>)
   <span class="hljs-keyword">proc</span> applySkin(name: <span class="hljs-built_in">string</span>) =
     document.body.setSkin(<span class="hljs-built_in">cstring</span>(name))
-    lsSet(<span class="hljs-string">&quot;parloku:skin&quot;</span>, <span class="hljs-built_in">cstring</span>(name))
+    lsSet(<span class="hljs-string">&quot;parloku:look&quot;</span>, <span class="hljs-built_in">cstring</span>(name))
     <span class="hljs-keyword">for</span> b <span class="hljs-keyword">in</span> skinsEl.querySelectorAll(<span class="hljs-string">&quot;button&quot;</span>):
       <span class="hljs-keyword">if</span> $b.attr(<span class="hljs-string">&quot;data-skin&quot;</span>) == name: b.classList.add(<span class="hljs-string">&quot;on&quot;</span>)
       <span class="hljs-keyword">else</span>: b.classList.remove(<span class="hljs-string">&quot;on&quot;</span>)
   <span class="hljs-keyword">var</span> skin = <span class="hljs-string">&quot;niki&quot;</span>
-  <span class="hljs-keyword">let</span> savedSkin = lsGet(<span class="hljs-string">&quot;parloku:skin&quot;</span>)
+  <span class="hljs-keyword">let</span> savedSkin = lsGet(<span class="hljs-string">&quot;parloku:look&quot;</span>)
   <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> savedSkin.isNil <span class="hljs-keyword">and</span> ($savedSkin).len &gt; <span class="hljs-number">0</span>: skin = $savedSkin
   <span class="hljs-keyword">let</span> si = fromUrl.find(<span class="hljs-string">&quot;skin=&quot;</span>)
   <span class="hljs-keyword">if</span> si &gt;= <span class="hljs-number">0</span>: skin = fromUrl[si + <span class="hljs-number">5</span> .. ^<span class="hljs-number">1</span>].split('&amp;<span class="hljs-string">')[0]</span>
