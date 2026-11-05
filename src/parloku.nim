@@ -1,6 +1,6 @@
 import std/[json, os, algorithm, sequtils]
 import nimib
-import style
+import style, splash
 
 nbInit
 # write the page at the repo root (served by GitHub Pages), wherever the build is run from
@@ -1411,6 +1411,13 @@ nbJsFromCode:
     tutorial = true
     code = games[0][0]
   applyLang()
+
+# ---------------------------------------------------------------- the daily splash and the first lesson (src/splash.nim)
+block:
+  let p = decode(builtin[0][1])
+  var sol = ""
+  for ch in answerKeys[0]: sol.add ch
+  nbRawHtml: splashHtml(p.letters, sol, p.givens.mapIt(idx(it.pos)), p.clues.mapIt((it.word, it.pos.row, it.pos.col)))
 
 nbText: """
 That's the game. Puzzles live in [`data/`](https://github.com/pietroppeter/parloku/tree/main/data) as puzzlepaw JSON,
