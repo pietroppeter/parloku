@@ -1064,6 +1064,8 @@ nbJsFromCode:
   proc interactive(ev: Event): bool {.importjs:
     "!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')".}
   proc scrollTop() {.importjs: "window.scrollTo(0, 0)".}
+  proc hasSplash(): bool {.importjs: "(!!window.parlokuSplash)".}
+  proc showSplash() {.importjs: "window.parlokuSplash.splash(false)".}
   proc inPlay(ev: Event): bool {.importjs: "!!#.target.closest('.play')".}
   proc setTimer(cb: proc (), ms: int): int {.importjs: "setTimeout(#, #)".}
   proc clearTimer(t: int) {.importjs: "clearTimeout(#)".}
@@ -1078,13 +1080,27 @@ nbJsFromCode:
     for k in ["focus", "chrome", "explain"]:
       if k == m: document.body.classList.add(cstring(k))
       else: document.body.classList.remove(cstring(k))
-    if m == "chrome": armHide()
+    if m == "chrome":
+      armHide()
+      let hi = document.getElementById("hello")
+      if not hi.isNil: hi.setHidden(not hasSplash())   # the splash script may load after this one
   let playEl = document.getElementById("play")
   if not playEl.isNil:
     setMode("focus")
     # one menu bar, at the top only: the puzzles and restart
     let bar = document.querySelector(".picker")
     bar.appendChild(document.getElementById("reset"))
+    # 👋 says hello again: back to the splash, when the page has one
+    let hi = document.createElement("button")
+    hi.className = "btn"
+    hi.id = "hello"
+    hi.setAttr("aria-label", "splash")
+    hi.innerHTML = "👋"
+    hi.setHidden(not hasSplash())
+    bar.appendChild(hi)
+    hi.addEventListener("click", proc (e: Event) =
+      setMode("focus")
+      showSplash())
     for ev in ["pointerdown", "scroll"]:
       bar.addEventListener(cstring(ev), proc (e: Event) = armHide())
     document.addEventListener("click", proc (ev: Event) =
@@ -1220,24 +1236,14 @@ nbJsFromCode:
     if not i.isNil:
       if not playEl.isNil: setMode("focus")
       tutorial = false
+      lsSet(cstring("parloku:" & games[parseInt($i)][0]), "")   # picking a puzzle always starts it afresh
       load(games[parseInt($i)][0])
       pushQuery(cstring("p=" & code)))
 
   let resetBtn = document.getElementById("reset")
-  var armed = 0.0                      # reset wipes the board: the first tap only asks "sure?"
-  resetBtn.addEventListener("click", proc (ev: Event) =
-    if stage.state.cells.allIt(it < 0) or (armed > 0 and now() - armed < 3000):
-      armed = 0
-      resetBtn.innerHTML = cstring(L("↺<span class='tx'> reset</span>", "↺<span class='tx'> ricomincia</span>"))
-      lsSet(storeKey(), "")
-      load(code)
-    else:
-      armed = now()
-      resetBtn.innerHTML = cstring(L("↺ sure?", "↺ sicuro?")))
-  every(proc () =
-    if armed > 0 and now() - armed >= 3000:
-      armed = 0
-      resetBtn.innerHTML = cstring(L("↺<span class='tx'> reset</span>", "↺<span class='tx'> ricomincia</span>")), 500)
+  resetBtn.addEventListener("click", proc (ev: Event) =   # restart right away: no "sure?"
+    lsSet(storeKey(), "")
+    load(code))
 
   undoBtn.addEventListener("click", proc (ev: Event) =
     if history.len == 0: return
