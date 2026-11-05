@@ -222,5 +222,68 @@
   "file": "バウハウス (27206157503).jpg",
   "credit": "chinnian",
   "license": "CC BY-SA 2.0"
+ },
+ "munari/Cubo ashtray": {
+  "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cf/Posacenere_Cubo%2C_Bruno_Munari_1957-01.png/500px-Posacenere_Cubo%2C_Bruno_Munari_1957-01.png",
+  "page": "https://commons.wikimedia.org/wiki/File:Posacenere_Cubo,_Bruno_Munari_1957-01.png",
+  "file": "Posacenere Cubo, Bruno Munari 1957-01.png",
+  "credit": "Albertozanardo",
+  "license": "CC BY-SA 4.0"
+ },
+ "miro/Pla de l'Os mosaic": {
+  "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e6/JuanMiroMosaic.jpg/500px-JuanMiroMosaic.jpg",
+  "page": "https://commons.wikimedia.org/wiki/File:JuanMiroMosaic.jpg",
+  "file": "JuanMiroMosaic.jpg",
+  "credit": "Edal Anton Lefterov",
+  "license": "CC BY-SA 3.0"
+ },
+ "miro/Dona i Ocell": {
+  "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/cb/Dona_i_Ocell.JPG/500px-Dona_i_Ocell.JPG",
+  "page": "https://commons.wikimedia.org/wiki/File:Dona_i_Ocell.JPG",
+  "file": "Dona i Ocell.JPG",
+  "credit": "",
+  "license": "CC BY-SA 3.0"
+ },
+ "wagashi/Sakura mochi": {
+  "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Sakuramochi.jpg/500px-Sakuramochi.jpg",
+  "page": "https://commons.wikimedia.org/wiki/File:Sakuramochi.jpg",
+  "file": "Sakuramochi.jpg",
+  "credit": "",
+  "license": "Public domain"
+ },
+ "wagashi/Yōkan": {
+  "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/%E5%90%84%E7%A8%AE%E3%82%88%E3%81%86%E3%81%8B%E3%82%93.jpg/500px-%E5%90%84%E7%A8%AE%E3%82%88%E3%81%86%E3%81%8B%E3%82%93.jpg",
+  "page": "https://commons.wikimedia.org/wiki/File:%E5%90%84%E7%A8%AE%E3%82%88%E3%81%86%E3%81%8B%E3%82%93.jpg",
+  "file": "各種ようかん.jpg",
+  "credit": "Kyu3a",
+  "license": "CC BY-SA 4.0"
+ },
+ "wagashi/Nerikiri": {
+  "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d4/Wagashi_closeup_14.jpg/500px-Wagashi_closeup_14.jpg",
+  "page": "https://commons.wikimedia.org/wiki/File:Wagashi_closeup_14.jpg",
+  "file": "Wagashi closeup 14.jpg",
+  "credit": "Douglas Perkins",
+  "license": "CC0"
+ },
+ "delaunay/Matra 530": {
+  "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b8/MatraM530_SoniaDelaunay.JPG/500px-MatraM530_SoniaDelaunay.JPG",
+  "page": "https://commons.wikimedia.org/wiki/File:MatraM530_SoniaDelaunay.JPG",
+  "file": "MatraM530 SoniaDelaunay.JPG",
+  "credit": "Ton1~commonswiki",
+  "license": "CC BY-SA 3.0"
+ },
+ "matisse/Chapelle du Rosaire, Vence": {
+  "src": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/ea/Vence_-_Matisse_chapel_cropped.jpg/500px-Vence_-_Matisse_chapel_cropped.jpg",
+  "page": "https://commons.wikimedia.org/wiki/File:Vence_-_Matisse_chapel_cropped.jpg",
+  "file": "Vence - Matisse chapel cropped.jpg",
+  "credit": "Vence_-_Matisse_chapel.jpg: MhairiT derivative work: Hic et ",
+  "license": "CC BY-SA 2.0"
+ },
+ "isola/Unikko": {
+  "src": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Marimekko_Unikko.jpg",
+  "page": "https://commons.wikimedia.org/wiki/File:Marimekko_Unikko.jpg",
+  "file": "Marimekko Unikko.jpg",
+  "credit": "Mangan02",
+  "license": "CC BY-SA 4.0"
  }
 }

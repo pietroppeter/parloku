@@ -14,6 +14,9 @@ type
     id*, name*, life*, place*, flag*, role*: string
     g*: array[6, string]
     ink*: string
+    inks*: seq[string]         ## per-tile letter colours, when they differ (empty: all `ink`)
+    outlineW*: float           ## tile outline width, 0 means 2
+    round1*: bool              ## from the first round of skins (2026-11-04)
     w*: array[3, string]
     bg*, card*, ca*, cb*, boxline*, muted*: string
     shape*: Shape
@@ -27,7 +30,27 @@ type
 
 func wiki*(page: string, lang = "en"): string = "https://" & lang & ".wikipedia.org/wiki/" & page
 
-const styles* = [
+const styles* = @[
+  Style(id: "niki", name: "Niki de Saint Phalle", life: "1930–2002", place: "Paris, Tuscany and California", flag: "🇫🇷",
+    role: "sculptor and garden builder",
+    g: ["#ffb3c6", "#ffe066", "#8fd2ff", "#b5f0a0", "#ffb98a", "#d9b5ff"], ink: "#1e1e1e",
+    w: ["#1b3f9e", "#c01c3a", "#0a7552"],
+    bg: "#fff8ef", card: "#ffffff", ca: "#ffffff", cb: "#fff1e0", boxline: "#1e1e1e", muted: "#5b5348",
+    shape: shBlob, font: "Baloo 2", weight: "800", outline: "#1e1e1e",
+    who: "Niki de Saint Phalle made the <i>Nanas</i>, huge round dancing women in bright paint, and then spent twenty years " &
+      "building the <i>Tarot Garden</i> (Giardino dei Tarocchi) at Capalbio in Tuscany: giant sculptures you can walk into, " &
+      "covered in mirror and ceramic mosaic. With Jean Tinguely she made the Stravinsky Fountain next to the Centre Pompidou (1983).",
+    took: "Plump, bulging shapes. The tiles are soft blobs that are never quite circles, with a black contour, in sweet " &
+      "candy colours on cream, and the letters are round and heavy.",
+    why: "Her garden is an adult's idea of a playground, and children run straight into it.",
+    links: @[Link(label: "Wikipedia", url: wiki("Niki_de_Saint_Phalle")),
+             Link(label: "Tarot Garden", url: wiki("Tarot_Garden")),
+             Link(label: "Stravinsky Fountain", url: wiki("Stravinsky_Fountain"))],
+    works: @[Work(title: "Giardino dei Tarocchi", year: "1979–98", note: "a sculpture garden near Capalbio", motif: "mosaic", url: wiki("Tarot_Garden")),
+             Work(title: "Nanas", year: "1965–", note: "dancing figures in polyester and paint", motif: "blobs"),
+             Work(title: "Stravinsky Fountain", year: "1983", note: "with Jean Tinguely, Paris", motif: "fountain", url: wiki("Stravinsky_Fountain")),
+             Work(title: "Queen Califia's Magical Circle", year: "2003", note: "a garden in Escondido, California", motif: "snake")]),
+
   Style(id: "mari", name: "Enzo Mari", life: "1932–2020", place: "Novara and Milan", flag: "🇮🇹",
     role: "designer of objects, furniture and games",
     g: ["#f5b4a4", "#f6dc86", "#a7c8ea", "#b6dbae", "#e8c39c", "#cfbde8"], ink: "#1f1f1f",
@@ -149,26 +172,6 @@ const styles* = [
              Work(title: "Anno's Counting Book", year: "1975", note: "a village grows from 0 to 12", motif: "counting"),
              Work(title: "Anno's Magic Seeds", year: "1992", note: "doubling, told as a farming tale", motif: "seeds"),
              Work(title: "Topsy-Turvies", year: "1968", note: "impossible buildings, like Escher for children", motif: "stairs")]),
-
-  Style(id: "niki", name: "Niki de Saint Phalle", life: "1930–2002", place: "Paris, Tuscany and California", flag: "🇫🇷",
-    role: "sculptor and garden builder",
-    g: ["#ffb3c6", "#ffe066", "#8fd2ff", "#b5f0a0", "#ffb98a", "#d9b5ff"], ink: "#1e1e1e",
-    w: ["#1b3f9e", "#c01c3a", "#0a7552"],
-    bg: "#fff8ef", card: "#ffffff", ca: "#ffffff", cb: "#fff1e0", boxline: "#1e1e1e", muted: "#5b5348",
-    shape: shBlob, font: "Baloo 2", weight: "800", outline: "#1e1e1e",
-    who: "Niki de Saint Phalle made the <i>Nanas</i>, huge round dancing women in bright paint, and then spent twenty years " &
-      "building the <i>Tarot Garden</i> (Giardino dei Tarocchi) at Capalbio in Tuscany: giant sculptures you can walk into, " &
-      "covered in mirror and ceramic mosaic. With Jean Tinguely she made the Stravinsky Fountain next to the Centre Pompidou (1983).",
-    took: "Plump, bulging shapes. The tiles are soft blobs that are never quite circles, with a black contour, in sweet " &
-      "candy colours on cream, and the letters are round and heavy.",
-    why: "Her garden is an adult's idea of a playground, and children run straight into it.",
-    links: @[Link(label: "Wikipedia", url: wiki("Niki_de_Saint_Phalle")),
-             Link(label: "Tarot Garden", url: wiki("Tarot_Garden")),
-             Link(label: "Stravinsky Fountain", url: wiki("Stravinsky_Fountain"))],
-    works: @[Work(title: "Giardino dei Tarocchi", year: "1979–98", note: "a sculpture garden near Capalbio", motif: "mosaic", url: wiki("Tarot_Garden")),
-             Work(title: "Nanas", year: "1965–", note: "dancing figures in polyester and paint", motif: "blobs"),
-             Work(title: "Stravinsky Fountain", year: "1983", note: "with Jean Tinguely, Paris", motif: "fountain", url: wiki("Stravinsky_Fountain")),
-             Work(title: "Queen Califia's Magical Circle", year: "2003", note: "a garden in Escondido, California", motif: "snake")]),
 
   Style(id: "burlemarx", name: "Roberto Burle Marx", life: "1909–1994", place: "São Paulo and Rio de Janeiro", flag: "🇧🇷",
     role: "landscape architect and painter",
@@ -426,5 +429,169 @@ const styles* = [
     works: @[Work(title: "The London Jungle Book", year: "2004", note: "London as a Gond forest", motif: "gond"),
              Work(title: "The Night Life of Trees", year: "2006", note: "with Durga Bai and Ram Singh Urveti", motif: "tree"),
              Work(title: "Creation", year: "", note: "the Gond creation myth", motif: "gond2"),
-             Work(title: "Signature birds and fish", year: "", note: "patterns of dots and dashes", motif: "fish")])
+             Work(title: "Signature birds and fish", year: "", note: "patterns of dots and dashes", motif: "fish")]),
+  # ---------------------------------------------------------------- the first round (devlog 01), back for comparison
+  Style(id: "munari", name: "Bruno Munari", life: "1907–1998", place: "Milan", flag: "🇮🇹", round1: true,
+    role: "designer, artist, maker of books for children",
+    g: ["#f4a6a6", "#f9e29c", "#a7c7e7", "#f8c291", "#b8e0b0", "#cdb4db"], ink: "#2b2b2b",
+    w: ["#c0392b", "#3a6db0", "#2f7a4d"],
+    bg: "#fbfaf6", card: "#ffffff", ca: "#ffffff", cb: "#f3f1ea", boxline: "#2b2b2b", muted: "#6b665c",
+    shape: shAlt, font: "Space Grotesk", weight: "700", outline: "",
+    who: "Designer, artist and maker of books for children who taught that <i>complicating is easy, simplifying is hard</i>. " &
+      "His little books <i>Il quadrato</i>, <i>Il cerchio</i> and <i>Il triangolo</i> treat basic shapes as characters, and his " &
+      "children's workshops at the Brera gallery in Milan let children learn by playing.",
+    took: "White space, no outlines, and the square and the circle taking turns: odd letters are discs, even letters are " &
+      "squares. Soft primary and secondary colours with dark letters.",
+    why: "The calmest of the first ten. The alternating shapes add play without adding anything to read.",
+    links: @[Link(label: "Wikipedia", url: wiki("Bruno_Munari")), Link(label: "Wikipedia (it)", url: wiki("Bruno_Munari", "it"))],
+    works: @[Work(title: "Libri illeggibili", year: "1949–", note: "books with no words, only paper and holes", motif: "slots"),
+             Work(title: "Nella nebbia di Milano", year: "1968", note: "a picture book printed on tracing paper", motif: "pale"),
+             Work(title: "Cubo ashtray", year: "1957", note: "a folded steel cube, for Danese", motif: "nested"),
+             Work(title: "Il quadrato", year: "1960", note: "a whole book about the square", motif: "nested")]),
+
+  Style(id: "tullet", name: "Hervé Tullet", life: "born 1958", place: "France", flag: "🇫🇷", round1: true,
+    role: "picture-book maker",
+    g: ["#ff8a80", "#ffd86b", "#7fb3ff", "#ffb26b", "#8fd694", "#c29bea"], ink: "#1f1f1f",
+    w: ["#d0353a", "#1f63c4", "#7a45c9"],
+    bg: "#ffffff", card: "#ffffff", ca: "#ffffff", cb: "#ffffff", boxline: "#1f1f1f", muted: "#555555",
+    shape: shCircle, font: "Fredoka", weight: "600", outline: "",
+    who: "Author of <i>Un livre</i> (<i>Press Here</i>, 2010): a book of red, yellow and blue dots that you press, shake and tilt. " &
+      "In <i>Say Zoop!</i> the dots and lines make sounds. He calls himself an illustrator of the reader's imagination.",
+    took: "Everything is a big round dot on white, led by red, yellow and blue, with a single black frame. A rounded, friendly typeface.",
+    why: "Probably the most child-friendly of the first ten: it looks like a page from his books waiting to be pressed.",
+    links: @[Link(label: "Wikipedia", url: wiki("Hervé_Tullet")), Link(label: "Wikipedia (fr)", url: wiki("Hervé_Tullet", "fr"))],
+    works: @[Work(title: "Un livre (Press Here)", year: "2010", note: "press the dot and turn the page", motif: "dots"),
+             Work(title: "Say Zoop!", year: "2017", note: "dots that make sounds", motif: "blobs"),
+             Work(title: "Mix It Up!", year: "2014", note: "colours that mix on the page", motif: "rings"),
+             Work(title: "Art workshops", year: "", note: "giant paintings made by many children", motif: "bands")]),
+
+  Style(id: "lionni", name: "Leo Lionni", life: "1910–1999", place: "Amsterdam, Genoa, New York, Tuscany", flag: "🇮🇹", round1: true,
+    role: "illustrator and art director",
+    g: ["#8fb8de", "#f6d55c", "#9ccc65", "#ef9a9a", "#e8c39e", "#80cbc4"], ink: "#3b362e",
+    inks: @["#24384d", "#4d3d0b", "#2d4a14", "#5a2525", "#5a3f22", "#1f4a46"],
+    w: ["#c0392b", "#2f6aa3", "#7a5aa6"],
+    bg: "#f4efe6", card: "#fffdf8", ca: "#fffdf8", cb: "#f7f1e4", boxline: "#8a8070", muted: "#6e665a",
+    shape: shRounded, font: "Patrick Hand", weight: "400", outline: "", rough: true,
+    who: "Born in Amsterdam, he lived and worked in Italy and America. <i>Little Blue and Little Yellow</i> (1959) began as " &
+      "torn paper on a train with his grandchildren; <i>Swimmy</i> and <i>Frederick</i> followed.",
+    took: "Tiles with torn-paper edges (an SVG turbulence filter), soft blues, yellows and greens, a handwritten face, and pale lines that recede.",
+    why: "Warm and handmade. The rough edges are the one trick, so the board stays quiet.",
+    links: @[Link(label: "Wikipedia", url: wiki("Leo_Lionni")), Link(label: "Wikipedia (it)", url: wiki("Leo_Lionni", "it"))],
+    works: @[Work(title: "Little Blue and Little Yellow", year: "1959", note: "torn paper, two friends who mix into green", motif: "blobs"),
+             Work(title: "Swimmy", year: "1963", note: "small red fish swimming as one big fish", motif: "fish"),
+             Work(title: "Frederick", year: "1967", note: "the mouse who gathers colours for winter", motif: "seeds"),
+             Work(title: "Fortune magazine", year: "1949–60", note: "his years as art director", motif: "blocks")]),
+
+  Style(id: "miro", name: "Joan Miró", life: "1893–1983", place: "Barcelona and Mallorca", flag: "🇪🇸", round1: true,
+    role: "painter, sculptor, ceramicist",
+    g: ["#e9786f", "#f6cf57", "#6f9ed8", "#7fbf7f", "#2a2a2a", "#f2a65a"], ink: "#1a1a1a",
+    inks: @["#1a1a1a", "#1a1a1a", "#1a1a1a", "#1a1a1a", "#f6cf57", "#1a1a1a"],
+    w: ["#c23a2f", "#2d6cc0", "#7d4fb0"],
+    bg: "#f6f0e1", card: "#fbf7ec", ca: "#fbf7ec", cb: "#f3ecda", boxline: "#1a1a1a", muted: "#6a6150",
+    shape: shAlt, font: "Fredoka", weight: "700", outline: "#1a1a1a", outlineW: 3,
+    who: "The Catalan painter of black lines, stars and floating spots of pure colour. Children recognise his world instantly, " &
+      "and he said he wanted to paint like a child.",
+    took: "A cream ground, a black contour on every tile, discs and rounded squares taking turns, and one black tile with a " &
+      "yellow letter like a Miró spot.",
+    why: "The boldest of the first ten. The black tile is a deliberate accent, and the one place the palette stops being pastel.",
+    links: @[Link(label: "Wikipedia", url: wiki("Joan_Miró")), Link(label: "Wikipedia (ca)", url: wiki("Joan_Miró", "ca"))],
+    works: @[Work(title: "Constellations", year: "1940–41", note: "stars, eyes and birds on a starry ground", motif: "constellation"),
+             Work(title: "Harlequin's Carnival", year: "1924–25", note: "a crowd of little creatures", motif: "blobs"),
+             Work(title: "Pla de l'Os mosaic", year: "1976", note: "a pavement on La Rambla, Barcelona", motif: "rings"),
+             Work(title: "Dona i Ocell", year: "1983", note: "a tiled sculpture in Barcelona", motif: "dots")]),
+
+  Style(id: "gomi", name: "Taro Gomi", life: "born 1945", place: "Tokyo", flag: "🇯🇵", round1: true,
+    role: "picture-book maker",
+    g: ["#ffb38a", "#9ad0f5", "#b5e48c", "#ffadc6", "#ffe08a", "#c3b1e1"], ink: "#4a3b32",
+    w: ["#c4471f", "#2a73b0", "#a8437f"],
+    bg: "#fff7ee", card: "#fffdf9", ca: "#fffdf9", cb: "#fff3e4", boxline: "#4a3b32", muted: "#7a6a5c",
+    shape: shRounded, font: "Fredoka", weight: "600", outline: "#4a3b32", outlineW: 2.5, rough: true,
+    who: "Author of hundreds of picture books, from <i>Everyone Poops</i> to his doodle books that leave half the page for the " &
+      "child to finish. His line is loose, warm and never ruled.",
+    took: "Wobbly brown outlines (the same filter as Lionni, applied to the line instead of the paper), sunny colours, a round face.",
+    why: "Playful, but the most decorated of the first ten.",
+    links: @[Link(label: "Wikipedia", url: wiki("Taro_Gomi")), Link(label: "Wikipedia (ja)", url: wiki("五味太郎", "ja"))],
+    works: @[Work(title: "Everyone Poops", year: "1977", note: "the book every child laughs at", motif: "blobs"),
+             Work(title: "Doodle books", year: "", note: "half a drawing, the rest is yours", motif: "hatch"),
+             Work(title: "Picture books for toddlers", year: "", note: "bright shapes and loose lines", motif: "dots")]),
+
+  Style(id: "wagashi", name: "Wagashi", life: "a tradition", place: "Japan", flag: "🇯🇵", round1: true,
+    role: "Japanese seasonal sweets",
+    g: ["#f7c6d0", "#b7d3a8", "#f6e3a1", "#d9b38c", "#b8d8e8", "#cdbfe3"], ink: "#5a4a42",
+    inks: @["#5a4a42", "#3f5233", "#5c4c16", "#5a3a34", "#2f4e5c", "#4b3d63"],
+    w: ["#b84a68", "#4a7a3c", "#6f5aa0"],
+    bg: "#f8f4ec", card: "#fffcf6", ca: "#fffcf6", cb: "#f6efe3", boxline: "#a89a86", muted: "#7a6c62",
+    shape: shRounded, font: "Zen Maru Gothic", weight: "700", outline: "",
+    who: "Not an artist but Japanese confectionery, where colours follow the season: sakura pink in spring, matcha green, yuzu " &
+      "yellow, chestnut in autumn.",
+    took: "Muted pastels with coloured letters instead of black, rounded squares with no outline, and Zen Maru Gothic, a rounded Japanese typeface.",
+    why: "The quietest of the first ten, for grown-ups who want calm. Less exciting for a child.",
+    links: @[Link(label: "Wikipedia", url: wiki("Wagashi"))],
+    works: @[Work(title: "Nerikiri", year: "", note: "sweet bean paste shaped like flowers", motif: "flowers"),
+             Work(title: "Sakura mochi", year: "", note: "pink rice cakes for spring", motif: "blobs"),
+             Work(title: "Yōkan", year: "", note: "translucent bars of bean jelly", motif: "bands")]),
+
+  Style(id: "delaunay", name: "Sonia Delaunay", life: "1885–1979", place: "Paris", flag: "🇫🇷", round1: true,
+    role: "painter and designer",
+    g: ["#ff9f9a", "#ffd6a5", "#a0c4ff", "#84dcc6", "#bdb2ff", "#ffc6ff"], ink: "#263238",
+    w: ["#c9284f", "#0b6a8a", "#6243e0"],
+    bg: "#fdfbf7", card: "#ffffff", ca: "#ffffff", cb: "#f6f3ff", boxline: "#263238", muted: "#5a6066",
+    shape: shRings, font: "Josefin Sans", weight: "700", outline: "",
+    who: "Born in Ukraine, she worked in Paris with Robert Delaunay on <i>simultanism</i>: colours set side by side so they " &
+      "vibrate. Her discs of concentric colour ran through paintings, fabrics, costumes and even cars.",
+    took: "Round tiles with an inner ring, bright pastels from peach to lilac, a geometric typeface.",
+    why: "Lively without lines. The ring reads like a sweet or a target, which children like.",
+    links: @[Link(label: "Wikipedia", url: wiki("Sonia_Delaunay"))],
+    works: @[Work(title: "Prismes électriques", year: "1914", note: "street lights as rings of colour", motif: "rings"),
+             Work(title: "Rythme", year: "1938", note: "big discs of colour, side by side", motif: "rings"),
+             Work(title: "Simultaneous dresses", year: "1913–", note: "patchwork fabric in colour blocks", motif: "patch"),
+             Work(title: "Matra 530", year: "1967", note: "a car painted in her squares", motif: "grid")]),
+
+  Style(id: "bruna", name: "Dick Bruna", life: "1927–2017", place: "Utrecht", flag: "🇳🇱", round1: true,
+    role: "illustrator and graphic designer",
+    g: ["#f28482", "#f9d56e", "#84a9e8", "#8cc084", "#f5a65b", "#c9a27e"], ink: "#111111",
+    w: ["#c62834", "#1d6fd8", "#6a4c93"],
+    bg: "#ffffff", card: "#ffffff", ca: "#ffffff", cb: "#ffffff", boxline: "#111111", muted: "#555555",
+    shape: shSquare, font: "Fredoka", weight: "600", outline: "#111111", outlineW: 4,
+    who: "The Utrecht designer behind more than a hundred small square books. He drew with a handful of flat colours, always " &
+      "inside a thick black line, and removed everything else.",
+    took: "Flat colour, a thick black outline on every tile, square tiles. Nothing else.",
+    why: "The clearest board of the first ten, and the strongest outline.",
+    links: @[Link(label: "Wikipedia", url: wiki("Dick_Bruna")), Link(label: "Wikipedia (nl)", url: wiki("Dick_Bruna", "nl"))],
+    works: @[Work(title: "Small square picture books", year: "1955–", note: "flat colour inside a black line", motif: "blocks"),
+             Work(title: "Zwarte Beertjes covers", year: "1950s–70s", note: "paperback covers for his family's publishing house", motif: "walls"),
+             Work(title: "Posters", year: "", note: "a few shapes, a lot of white", motif: "nested")]),
+
+  Style(id: "matisse", name: "Henri Matisse", life: "1869–1954", place: "Paris and Nice", flag: "🇫🇷", round1: true,
+    role: "painter",
+    g: ["#3f63b0", "#f4a78f", "#9ccfa0", "#f5d77a", "#f2b8c6", "#22324d"], ink: "#22324d",
+    inks: @["#ffffff", "#22324d", "#22324d", "#22324d", "#22324d", "#f5d77a"],
+    w: ["#bf4527", "#3456a8", "#a8475f"],
+    bg: "#fbf7f0", card: "#fffdf8", ca: "#fffdf8", cb: "#f8f0e3", boxline: "#22324d", muted: "#666b78",
+    shape: shRounded, font: "DM Serif Display", weight: "400", outline: "", rough: true,
+    who: "In his last years, unable to paint standing, he cut shapes from paper he had painted with gouache: <i>Jazz</i>, " &
+      "<i>The Snail</i>, the blue nudes. He called it drawing with scissors.",
+    took: "Cobalt, coral, leaf green and lemon on warm white, tiles with scissor-cut edges, a serif face.",
+    why: "The most grown-up of the first ten.",
+    links: @[Link(label: "Wikipedia", url: wiki("Henri_Matisse"))],
+    works: @[Work(title: "The Snail", year: "1953", note: "a spiral of painted paper", motif: "spiral"),
+             Work(title: "Jazz", year: "1947", note: "a book of cut-outs", motif: "blobs"),
+             Work(title: "Blue Nude II", year: "1952", note: "cut from paper painted blue", motif: "leaves"),
+             Work(title: "Chapelle du Rosaire, Vence", year: "1951", note: "windows of yellow, green and blue", motif: "bands")]),
+
+  Style(id: "isola", name: "Maija Isola", life: "1927–2001", place: "Helsinki", flag: "🇫🇮", round1: true,
+    role: "textile designer",
+    g: ["#f7a1a1", "#ffe27a", "#a6d8f5", "#a8e6cf", "#ffc8a2", "#d5c6f0"], ink: "#151515",
+    w: ["#c8323d", "#156fb0", "#8857c8"],
+    bg: "#ffffff", card: "#ffffff", ca: "#ffffff", cb: "#f6f6f6", boxline: "#151515", muted: "#555555",
+    shape: shCircle, font: "Space Grotesk", weight: "700", outline: "#151515", outlineW: 3,
+    who: "Designer of many of Marimekko's prints, including the giant <i>Unikko</i> poppy of 1964, drawn when the company said " &
+      "it would never print flowers.",
+    took: "Big round tiles with a black outline, fresh pastels, a modern grotesque typeface, white everywhere else.",
+    why: "Bold and clean. With Tullet, the one I'd have shown a child first.",
+    links: @[Link(label: "Wikipedia", url: wiki("Maija_Isola")), Link(label: "Unikko", url: wiki("Unikko"))],
+    works: @[Work(title: "Unikko", year: "1964", note: "the giant poppy", motif: "flowers", url: wiki("Unikko")),
+             Work(title: "Kivet", year: "1956", note: "stones, side by side", motif: "blobs"),
+             Work(title: "Lokki", year: "1961", note: "waves like seagulls", motif: "waves"),
+             Work(title: "Melooni", year: "1963", note: "slices of melon", motif: "arch")])
 ]

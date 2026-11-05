@@ -64,10 +64,12 @@ proc deltaE(a, b: string): float =
 
 type Audit = object
   ink, tiles, words, wordsOnCard, tileOnCell: float
+func inkOf(st: Style, i: int): string = (if st.inks.len == 6: st.inks[i] else: st.ink)
+
 proc audit(st: Style): Audit =
   result = Audit(ink: 99, tiles: 999, words: 999, wordsOnCard: 99, tileOnCell: 999)
   for i in 0..5:
-    result.ink = min(result.ink, contrast(st.ink, st.g[i]))
+    result.ink = min(result.ink, contrast(st.inkOf(i), st.g[i]))
     result.tileOnCell = min(result.tileOnCell, min(deltaE(st.g[i], st.ca), deltaE(st.g[i], st.cb)))
     for j in i + 1 .. 5: result.tiles = min(result.tiles, deltaE(st.g[i], st.g[j]))
   for i in 0..2:
@@ -111,7 +113,8 @@ proc shapeSvg(st: Style, cx, cy, s: float, i: int, fill: string, extraAttr = "")
 
 proc tileSvg(st: Style, cx, cy, s: float, i: int, letter: char): string =
   let g = st.g[i]
-  let ol = if st.outline != "": &""" stroke="{st.outline}" stroke-width="2"""" else: ""
+  let ow = if st.outlineW > 0: st.outlineW else: 2.0
+  let ol = if st.outline != "": &""" stroke="{st.outline}" stroke-width="{f1(ow)}"""" else: ""
   var body = ""
   var lx = cx
   var ly = cy
@@ -146,7 +149,7 @@ proc tileSvg(st: Style, cx, cy, s: float, i: int, letter: char): string =
   if st.shape == shArch and i mod 2 == 1: ly = cy + s * 0.12
   let fs = s * (if st.shape == shTilt: 1.3 else: 1.12)
   let filt = if st.rough: &""" filter="url(#rough-{st.id})"""" else: ""
-  &"""<g{filt}>{body}</g><text class="glyph" x="{f1(lx)}" y="{f1(ly)}" font-size="{f1(fs)}" fill="{st.ink}"{rot}>{letter}</text>"""
+  &"""<g{filt}>{body}</g><text class="glyph" x="{f1(lx)}" y="{f1(ly)}" font-size="{f1(fs)}" fill="{st.inkOf(i)}"{rot}>{letter}</text>"""
 
 proc neckPath(c1: (float, float), r1: float, c2: (float, float), r2: float, hw: float): string =
   ## a pinched neck joining two round bodies, waist half-width hw (a simple version of the garden devlog's)
@@ -255,7 +258,7 @@ proc cluesHtml(st: Style): string =
     result &= &"""<div class="clue" style="--wk:{st.w[k]}">"""
     for i, ch in w:
       if i < spelled[k]:
-        result &= &"""<span class="l on" style="background:{st.g[idx(ch)]};color:{st.ink}">{ch}</span>"""
+        result &= &"""<span class="l on" style="background:{st.g[idx(ch)]};color:{st.inkOf(idx(ch))}">{ch}</span>"""
       else:
         result &= &"""<span class="l">{ch}</span>"""
     result &= "</div>"
@@ -381,11 +384,11 @@ proc skinCss(st: Style): string =
   var v = &"[data-skin={st.id}]{{\n  --bg:{st.bg}; --card:{st.card}; --ink:{st.ink}; --muted:{st.muted}; --ca:{st.ca}; --cb:{st.cb}; --boxline:{st.boxline};\n "
   for i in 0..5: v &= &" --g{i}:{st.g[i]};"
   v &= "\n "
-  for i in 0..5: v &= &" --i{i}:{st.ink};"
+  for i in 0..5: v &= &" --i{i}:{st.inkOf(i)};"
   v &= "\n "
   for i in 0..2: v &= &" --w{i}:{st.w[i]};"
   v &= &"\n  --font-glyph:\"{st.font}\",system-ui,sans-serif; --glyph-weight:{st.weight};"
-  let (ts, tw) = (if st.outline == "": ("none", "0") else: (st.outline, "2"))
+  let (ts, tw) = (if st.outline == "": ("none", "0") else: (st.outline, (if st.outlineW > 0: $st.outlineW else: "2")))
   v &= &" --tstroke:{ts}; --tsw:{tw};\n}}"
   v
 
@@ -394,7 +397,8 @@ const fontFamilies = ["Nunito:wght@400;700;800", "Space+Grotesk:wght@500;700", "
   "Archivo:wght@800", "Lexend:wght@700", "Kalam:wght@700", "Outfit:wght@700", "Fraunces:wght@600",
   "M+PLUS+Rounded+1c:wght@800", "Baloo+2:wght@800", "Comfortaa:wght@700", "Bungee", "Jost:wght@600",
   "Sniglet:wght@800", "Archivo+Black", "Caveat+Brush", "EB+Garamond:wght@700", "Shrikhand", "Rubik:wght@800",
-  "DM+Serif+Display", "Unbounded:wght@700", "Spectral:wght@600", "Yatra+One"]
+  "DM+Serif+Display", "Unbounded:wght@700", "Spectral:wght@600", "Yatra+One", "Fredoka:wght@600;700", "Patrick+Hand",
+  "Zen+Maru+Gothic:wght@700", "Josefin+Sans:wght@700"]
 
 proc pageCss(): string =
   result = """
@@ -422,6 +426,7 @@ code{font:13.5px "JetBrains Mono",monospace;background:#f0ede5;padding:1px 5px;b
 .strip a{flex:none;display:flex;align-items:center;gap:5px;font:700 12px/1 Nunito,sans-serif;text-decoration:none;color:var(--text);
   background:#fff;border:1.5px solid var(--rule);border-radius:999px;padding:4px 9px 4px 5px;white-space:nowrap}
 .strip a i{width:14px;height:14px;border-radius:50%;background:conic-gradient(var(--d0) 0 33%,var(--d1) 0 66%,var(--d2) 0)}
+.strip .sep{flex:none;align-self:center;font:600 10.5px "JetBrains Mono",monospace;color:var(--soft);padding:0 2px 0 6px;text-transform:uppercase;letter-spacing:.06em}
 .strip a.on{background:var(--c);border-color:var(--c);color:#fff}
 .cols{display:flex;align-items:flex-start;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;
   width:100vw;margin-left:calc(50% - 50vw);scrollbar-width:thin}
@@ -452,7 +457,7 @@ svg.board{display:block;width:100%;height:auto}
 .gallery figure{margin:0;background:var(--card);border-radius:14px;overflow:hidden;border:1px solid color-mix(in srgb,var(--ink) 10%,transparent)}
 .gallery .pic{display:block;position:relative}
 .gallery svg{display:block;width:100%;height:auto}
-.gallery .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--card)}
+.gallery .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .gallery .credit{display:block;margin-top:4px;font-size:10.5px;line-height:1.3;color:var(--muted)}
 .gallery .credit a{color:var(--muted)}
 .gallery .noimg .credit{display:none}
@@ -470,7 +475,7 @@ details.css pre{overflow-x:auto;background:var(--card);border-radius:10px;paddin
 
 nbInit
 nb.doc.filename = root / "devlog" / "styles" / "index.html"
-nb.doc.context["title"] = %"Parloku devlog · twenty styles"
+nb.doc.context["title"] = %"Parloku devlog · thirty styles"
 nb.doc.context["stylesheet"] = %pageCss()
 nb.doc.context["highlight"] = %""
 nb.doc.context["disableHighlightJs"] = %true
@@ -480,15 +485,18 @@ nb.backend.partials["header"] = pageHeader
 
 nbRawHtml: """
 <p class="kicker">DEVLOG · STYLES</p>
-<h1>Twenty styles for Parloku</h1>
-<p class="lede">Twenty artists and designers, none of them from the first round of skins. Swipe left and right to change
+<h1>Thirty styles for Parloku</h1>
+<p class="lede">Twenty new artists and designers, then the ten skins from the first round. Niki de Saint Phalle comes first:
+she is the default for now. Swipe left and right to change
 artist, or tap a name on the strip. Scroll down to read who they are, what I borrowed, and to see their work.</p>
 """
 
 const shortNames = {"mari": "Mari", "kusama": "Kusama", "dufy": "Dufy", "albers": "Albers", "morandi": "Morandi",
   "anno": "Anno", "niki": "Saint Phalle", "burlemarx": "Burle Marx", "depero": "Depero", "tanaka": "Tanaka",
   "gree": "Grée", "mahlangu": "Mahlangu", "luzzati": "Luzzati", "afklint": "af Klint", "corita": "Corita",
-  "memphis": "Memphis", "barragan": "Barragán", "buscher": "Buscher", "martin": "Martin", "shyam": "Shyam"}.toTable
+  "memphis": "Memphis", "barragan": "Barragán", "buscher": "Buscher", "martin": "Martin", "shyam": "Shyam",
+  "munari": "Munari", "tullet": "Tullet", "lionni": "Lionni", "miro": "Miró", "gomi": "Gomi", "wagashi": "Wagashi",
+  "delaunay": "Delaunay", "bruna": "Bruna", "matisse": "Matisse", "isola": "Isola"}.toTable
 
 var problems: seq[string]
 var strip = """<nav class="strip" aria-label="artists">"""
@@ -502,10 +510,12 @@ for i, st in styles:
   var links = """<ul class="links">"""
   for l in st.links: links &= &"""<li><a href="{l.url}" target="_blank" rel="noopener">{l.label} ↗</a></li>"""
   links &= "</ul>"
+  if st.round1 and not styles[i - 1].round1: strip &= """<span class="sep">first round</span>"""
   strip &= &"""<a href="#{st.id}" data-id="{st.id}" style="--c:{st.w[0]};--d0:{st.g[0]};--d1:{st.g[2]};--d2:{st.g[4]}"><i></i>{shortNames[st.id]}</a>"""
+  let tag = if i == 0: " · default for now" elif st.round1: " · first round" else: ""
   cols &= &"""
 <section class="st" id="{st.id}" data-skin="{st.id}">
-<h2><span class="n">{i + 1:02} / 20 · {st.flag} {st.place}</span>{st.name}</h2>
+<h2><span class="n">{i + 1:02} / {styles.len} · {st.flag} {st.place}{tag}</span>{st.name}</h2>
 <p class="sub">{st.role} · {st.life}</p>
 <div class="play">{cluesHtml(st)}{playSvg(st)}</div>
 <p class="checks">letters {a.ink:.1f}:1 · tiles ΔE ≥ {int(a.tiles)} · words ΔE ≥ {int(a.words)}, {a.wordsOnCard:.1f}:1 · {st.font}</p>
