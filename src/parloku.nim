@@ -1077,7 +1077,7 @@ nbJsFromCode:
     if d.len > 0: necks.innerHTML = cstring(&"""<path class="neck g{li}" d="{d}"/>""")
     else: necks.innerHTML = ""
 
-  # ---- a double tap on a tile on the board sends it back to its letter below
+  # ---- a double tap on a tile on the board sends it back to its letter below; on an empty start cell, it fills in the first letter
   var tapKey = ""
   var tapAt = 0.0
   var downAt = vec(0, 0)
@@ -1088,8 +1088,36 @@ nbJsFromCode:
   stage.svg.addEventListener("pointerup", proc (ev: Event) =
     let k = downKey
     let up = clientXY(ev)
-    if k.isNil or norm(up - downAt) > 8:   # a drag, not a tap
+    if norm(up - downAt) > 8:              # a drag, not a tap
       tapKey = ""
+      return
+    if k.isNil:
+      # a double tap on an empty start cell puts the word's first letter there
+      let (l, t0, rw, rh) = rectOf(stage.svg)
+      let x = 50 + (up.x - l) * 500 / rw
+      let y = (up.y - t0) * 664 / rh
+      let (col, row) = (int(floor((x - bx) / cell)), int(floor((y - by) / cell)))
+      if col notin 0 .. 5 or row notin 0 .. 5:
+        tapKey = ""
+        return
+      let c = row * 6 + col
+      var word = -1
+      for i, clue in puz.clues:
+        if idx(clue.pos) == c: word = i
+      if word < 0 or stage.state.cells[c] >= 0:
+        tapKey = ""
+        return
+      let t = now()
+      if tapKey == &"c{c}" and t - tapAt < 400:
+        tapKey = ""
+        let li = puz.letters.find(puz.clues[word].word[0])
+        for j in 0 .. 5:
+          if stage.state.cells.find(li * 6 + j) < 0:
+            stage.setState(stage.state.place(li * 6 + j, c))
+            break
+      else:
+        tapKey = &"c{c}"
+        tapAt = t
       return
     let id = parseInt(($k)[1 .. ^1])
     let at = stage.state.cells.find(id)
