@@ -11,19 +11,18 @@
 ##   end:                           # the board after release
 ##     ...
 ##   outline MAGIA: r1c6 r2c6 r3c6 r4c6 r4c5   # cells the word's outline covers
-##   grab: refused                  # instead of end: nothing may be picked up there
+##   grab: refused                  # nothing may be picked up there
 ##   ```
+## Waypoints are cells (`r2c6`), a letter's stack below the board (`stack A`) or `off`; `double-tap: r3c6` taps
+## a cell twice.
 ##
-## Waypoints are cells (`r2c6`), a letter's stack below the board (`stack A`) or `off` (far from every cell).
-##
-## The game is a nimib notebook, so its code is not a module. This tool takes the blocks of `src/parloku.nim`
-## that run both natively and in the browser (`nbCodeAnd(nbJsFromCode)`), plus the stage's grab redirect from the
-## browser wiring, writes them with a small harness into one program, compiles it natively and runs it.
-## The harness drives a drag the way the browser stage does: redirect the grab, ask `tileSpec` for a behaviour,
-## call `pick` along the pointer path, commit the last pick on release.
+## This tool collects the scenarios; `tools/specdrag.js` plays them on the built page (`index.html`, so build
+## `src/parloku.nim` first) in headless Chromium on an iPhone 13, with real pointer events, the way
+## `tests/gestures/` does. The start board is handed to the page as saved progress, and the end board and the word
+## outlines are read back from what the page draws. So a scenario checks what a player gets, whatever code does it.
 ##
 ## Usage:
-##   nim r tools/specdrag.nim [--game:src/parloku.nim] [--json:out.json] [capability ...]
+##   nim r tools/specdrag.nim [--page:index.html] [--json:out.json] [capability or change ...]
 ##
 ## With `--json` it also writes every frame of every drag (tile positions, outlines) for the spec viewer
 ## (tools/specview.nim), which plays them as small animations.
@@ -70,6 +69,9 @@ proc parseDragBlock*(body: seq[string]): DragScenario =
     if content.startsWith("puzzle:"): result.puzzle = content[7 .. ^1].strip
     elif content == "start:": result.start = readGrid()
     elif content == "end:": result.finish = readGrid()
+    elif content.startsWith("double-tap:"):
+      result.gesture = "double-tap"
+      result.points = @[content[11 .. ^1].strip]
     elif content.startsWith("drag:") or content.startsWith("hold:"):
       if content[5 .. ^1].strip == "none":
         inc i
@@ -122,39 +124,14 @@ proc collect*(root: string, only: seq[string] = @[]): seq[DragScenario] =
       if only.len == 0 or cap in only or ch in only:
         result.add collectFile(dir / cap / "spec.md", cap, ch, "openspec/changes/" & ch & "/specs/" & cap & "/spec.md")
 
-proc gameCode*(gameSrc: string): string =
-  ## the shared (native + browser) blocks of the notebook, then its grab redirect as `grabKey`
-  let lines = readFile(gameSrc).splitLines
-  var i = 0
-  while i < lines.len:
-    if lines[i].startsWith("nbCodeAnd(nbJsFromCode):"):
-      inc i
-      while i < lines.len and (lines[i].len == 0 or lines[i].startsWith("  ")):
-        result.add (if lines[i].len >= 2: lines[i][2 .. ^1] else: "") & "\n"
-        inc i
-    else: inc i
-  const head = "stage.redirect = proc (b: Board, key: string): string ="
-  for k, l in lines:
-    if l.strip == head:
-      let ind = l.len - l.strip(trailing = false).len
-      result.add "\nproc grabKey(b: Board, key: string): string =\n"
-      var j = k + 1
-      while j < lines.len and (lines[j].strip.len == 0 or lines[j].len - lines[j].strip(trailing = false).len > ind):
-        if lines[j].strip.len > 0: result.add "  " & lines[j][ind + 2 .. ^1] & "\n"
-        inc j
-      return
-  result.add "\nproc grabKey(b: Board, key: string): string = key\n"
-
-const harness = staticRead("specdrag_harness.nim")
-
 when isMainModule:
-  var game = "src/parloku.nim"
+  var page = "index.html"
   var jsonOut = ""
   var only: seq[string]
   for kind, key, val in getopt():
     case kind
     of cmdLongOption, cmdShortOption:
-      if key == "game": game = val
+      if key == "page": page = val
       elif key == "json": jsonOut = val
     of cmdArgument: only.add key
     else: discard
@@ -164,15 +141,7 @@ when isMainModule:
   createDir work
   let input = work / "scenarios.json"
   writeFile(input, $(%scen))
-  let prog = work / "specdrag_run.nim"
-  writeFile(prog, "import std/[json, os, algorithm, tables]\n" & gameCode(if game.isAbsolute: game else: root / game) & "\n" & harness)
-  let (outp, code) = execCmdEx("nim c -d:release --hints:off --warnings:off --verbosity:0 -o:" &
-    quoteShell(work / "specdrag_run") & " " & quoteShell(prog))
-  if code != 0:
-    echo outp
-    quit "specdrag: the game code did not compile natively (generated program: " & prog & ")", 2
-  let dataDir = root / "data"
-  let (res, rc) = execCmdEx(quoteShell(work / "specdrag_run") & " " & quoteShell(input) & " " &
-    quoteShell(dataDir) & " " & quoteShell(if jsonOut.len > 0: jsonOut else: work / "frames.json"))
-  stdout.write res
+  if jsonOut.len == 0: jsonOut = work / "frames.json"
+  let rc = execCmd("node " & quoteShell(root / "tools" / "specdrag.js") & " " & quoteShell(input) & " " &
+    quoteShell(jsonOut) & " " & quoteShell(if page.isAbsolute: page else: root / page))
   quit(rc)

@@ -46,7 +46,8 @@ archived so its deltas merge into the specs. A playtest finding SHALL become a s
 
 ### Requirement: Scenarios that run
 A gameplay scenario SHALL be written as a ```drag block where it can be (a start board, a gesture, an end board or an
-outline), and `nim r tools/specdrag.nim` SHALL run every one of them against the game's own code. Scenarios in the
+outline), and `nim r tools/specdrag.nim` SHALL play every one of them on the built game page
+(headless Chromium, real pointer events). Scenarios in the
 specs SHALL pass before a PR is merged; scenarios in an open change MAY fail until it is built. The spec viewer
 (`specs/`) SHALL play each one as an animation with its result.
 

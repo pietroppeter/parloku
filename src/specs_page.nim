@@ -17,7 +17,7 @@ func pageHeader(blk: JsonNode, nb: Nb): string =
   """<header><span><a href="../">parloku</a> · specs</span><span>living page</span></header>"""
 nb.backend.partials["header"] = pageHeader
 
-let (frames, run) = runScenarios(root, getEnv("PARLOKU_GAME", "src/parloku.nim"))   # another game source, for previews
+let (frames, run) = runScenarios(root, getEnv("PARLOKU_PAGE", "index.html"))   # build src/parloku.nim first
 let report = loadReport(root, frames)
 
 nbRawHtml: svgDefs & """<script>document.body.dataset.skin = localStorage.getItem('parloku:look') || 'niki'</script>

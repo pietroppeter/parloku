@@ -28,7 +28,7 @@ The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
 Specs: [how Parloku behaves](specs/), written down with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in
-`openspec/`. The gameplay scenarios run against the game's code and play as small animations.
+`openspec/`. The gameplay scenarios are played on the built game and shown as small animations.
 
 Devlog:
 - [Specs that play](devlog/openspec/): adopting OpenSpec, and drag scenarios that are animations and tests at once.
@@ -48,8 +48,8 @@ Devlog:
   audited (contrast and colour distance computed at build time). Build `src/parloku.nim` first, the post embeds its game.
 - `openspec/`: the specs (`specs/`) and the open changes (`changes/`); `openspec/config.yaml` has the project's rules.
   `AGENTS.md` has the working rules.
-- `tools/specdrag.nim`: runs the ```` ```drag ```` scenarios of the specs against the game's code
-  (`nim r tools/specdrag.nim`); `tools/specview.nim` draws specs and changes for the pages below.
+- `tools/specdrag.nim`: collects the ```` ```drag ```` scenarios of the specs and `tools/specdrag.js` plays
+  them on the built `index.html` in headless Chromium (`nim r tools/specdrag.nim`, needs Node and Playwright); `tools/specview.nim` draws specs and changes for the pages below.
 - `src/specs_page.nim` → `specs/index.html`: the living spec page. `src/devlog_openspec.nim` →
   `devlog/openspec/index.html`: the post on adopting OpenSpec.
 - `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
