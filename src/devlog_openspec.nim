@@ -1,6 +1,8 @@
 ## Devlog post: adopting OpenSpec. Why Parloku now writes its behaviour down, what was set up, how a drag scenario is
 ## written and checked, what writing the specs turned up, and every spec and open change in the viewer.
-## The "before" animations come from src/devlog_openspec/before.json: tools/specdrag.nim run on main before PR #8.
+## The "before" animation comes from src/devlog_openspec/before.json: the scenario run on main before PR #8, recorded by
+## the first version of tools/specdrag.nim (which drove the drag engine natively; the snake gestures later moved to
+## the browser wiring, so it now plays the built page instead).
 import std/[json, os, strutils, strformat]
 import nimib
 import style
@@ -28,7 +30,7 @@ func pageHeader(blk: JsonNode, nb: Nb): string =
 nb.backend.partials["header"] = pageHeader
 
 # ---- the scenarios, run on the game as it is now, plus the "before" run kept from main before PR #8
-let (frames, run) = runScenarios(root, getEnv("PARLOKU_GAME", "src/parloku.nim"))
+let (frames, run) = runScenarios(root, getEnv("PARLOKU_PAGE", "index.html"))
 let before = parseFile(root / "src" / "devlog_openspec" / "before.json")
 block:   # append the before scenarios to the frames, with their strings moved after the current ones
   let off = frames["strings"].len
@@ -79,7 +81,7 @@ propose → build → archive, with the `/opsx:propose`, `/opsx:apply` and `/ops
 `openspec init` installed for Claude in `.claude/`.
 """
 
-nbRawHtml: """<h2><span class="num">02 · WHAT WAS SET UP</span>Eleven specs in five families</h2>"""
+nbRawHtml: """<h2><span class="num">02 · WHAT WAS SET UP</span>Twelve specs in five families</h2>"""
 
 nbText: """
 The specs follow the topics we went through together, grouped the way they are used:
@@ -89,7 +91,7 @@ The specs follow the topics we went through together, grouped the way they are u
 | The puzzle | `game-rules`, `puzzle-format` | sudoku in six letters, words step by step, givens, one solution, word sets; JSON files and `?p=` codes |
 | Playing | `tiles-and-dragging`, `word-snakes`, `player`, `logical-path` | stacks that divide, drops, copies and moves, double taps; outlines and the head gestures; the page around the board; the tutorial's method |
 | Looking | `first-principles`, `play-screen`, `theming` | the ten design steps from "Back to basics"; the screen piece by piece; skins |
-| Making | `solver`, `builder` | build-time checks and counting; the builder (still a change: PR #6) |
+| Making | `solver`, `builder` | build-time checks and counting; the builder page |
 | Working | `way-of-working` | explainers, devlog and garden, previews first, specs and scenarios |
 
 Next to them:
@@ -125,11 +127,13 @@ nbText: """
 `drag:` pulls straight away, `hold:` holds first (to move a letter), and a waypoint is a cell, `stack A` or `off`.
 `outline` checks the cells a word's outline covers, and `grab: refused` says nothing may be picked up.
 
-`nim r tools/specdrag.nim` takes the game's shared code out of `src/parloku.nim` (the blocks that run both at build
-time and in the browser), compiles it natively with a small harness, and drives each gesture the way the browser does:
-grab, ask the drag spec for the reachable boards, `pick` along the finger's path, commit on release. Nothing in the game
-had to change for it. Every frame is recorded, and the viewer plays them with the game's own drawing of tiles and
-outlines. So the animation is not an illustration: it is what the code did.
+`nim r tools/specdrag.nim` plays every scenario on the built game page, in headless Chromium on an iPhone 13, the
+way `tests/gestures/` already did for the snake fixes. It hands the start board to the page as saved progress, does
+the gesture with real pointer events, and reads the end board and each word's outline back from what the page draws.
+So it checks what a player gets, whichever part of the code does it (the declarative drag spec, or the snake gestures
+that are written by hand in the browser wiring). Nothing in the game had to change for it. Every frame is recorded,
+and the viewer replays it with the page's own drawing of tiles and outlines: the animation is not an illustration,
+it is what the game did.
 
 Here is Pietro's first playtest case, run on `main` as it was before PR #8, and on the game now:
 """
@@ -147,14 +151,17 @@ nbText: """
 Before, the A is copied, exactly as in the screenshot from the playtest. Now it moves. The scenario stays in the spec,
 so the day a change copies it again, `tools/specdrag.nim` fails and says which scenario broke, with both boards.
 
-Scenarios in the specs must pass. Scenarios in an open change may fail ("to do") until the change is built: the
-two cases still open from the playtest (going on with a snake without lifting the finger, and backing a snake up) are
-in the change `drag-a-snake-in-one-go`, with their animations showing what the game does today.
+Scenarios in the specs must pass. Scenarios in an open change may fail ("to do") until the change is built. The
+whole loop has already run once: going on with a snake without lifting the finger, and backing a snake up, started as
+the change `drag-a-snake-in-one-go` with failing scenarios. PR #8 made them pass, and `openspec archive` merged them
+into `word-snakes`. The builder went the same way (`add-builder`, archived when PR #6 merged), and the double tap that
+sends a whole snake back (PR #10) went straight into the specs.
 
 **Where zogyn fits.** The game still carries its own copy of the drag engine that [zogyn](https://github.com/pietroppeter/zogyn)
-packages, and `tools/specdrag.nim` drives that copy. The day the game imports zogyn, the runner can call zogyn's
-`dragTo` directly, and each scenario in the viewer can become a small zogyn stage you drag yourself, starting from the
-scenario's board. I left that for a later change, so this one doesn't touch the game.
+packages. The day the game imports zogyn, each scenario in the viewer can become a small zogyn stage you drag
+yourself, starting from the scenario's board, and the declarative part of the gestures can be checked natively with
+zogyn's `dragTo`, in milliseconds instead of a browser run. I left that for a later change, so this one doesn't touch
+the game.
 """
 
 nbRawHtml: """<h2><span class="num">04 · WHAT WRITING THEM TURNED UP</span>Four things to look at</h2>"""
@@ -170,11 +177,12 @@ the change <code>settle-word-overlaps</code> lists the three questions.</p>
 bring the board back after a reset. The <code>first-principles</code> spec keeps the rule (mistakes are cheap: the one
 action that wipes the board is undoable or asks first), so either reset gets undo or the rule changes.</p>
 <h4>3 · Givens give copies</h4>
-<p>A given can't be moved or sent back, but a quick drag on it pulls a copy of its letter, like any letter on the
+<p>A given can't be moved or sent back, but a drag on it, quick or after holding, pulls a copy of its letter, like any letter on the
 board. I wrote that down as it is; say if givens should give nothing.</p>
-<h4>4 · The builder is a change, not a spec yet</h4>
-<p>PR #6 isn't merged, so the builder's requirements live in the change <code>add-builder</code>. When the PR merges,
-archiving the change makes them the <code>builder</code> spec.</p>
+<h4>4 · Two kinds of gesture tests</h4>
+<p><code>tests/gestures/*.js</code> (from PR #8 and #10) check the snake cases with console output you read by eye.
+The same cases are now drag scenarios that pass or fail on their own. I'd keep <code>tests/gestures</code> for now and
+retire it once you trust the specs.</p>
 </div>"""
 
 nbRawHtml: """<h2><span class="num">05 · HOW WE WORK FROM NOW</span>Five habits</h2>"""
@@ -194,10 +202,10 @@ nbText: """
 """
 
 nbRawHtml: """<div class="ask"><b>For Pietro to check</b><ul>
-<li>The five families and eleven names: do they match how you think about Parloku?</li>
+<li>The five families and twelve names: do they match how you think about Parloku?</li>
 <li>Devlog and garden: is my reading right?</li>
 <li>Words and their own cells (<code>settle-word-overlaps</code>), and reset.</li>
-<li>The snake cases in <code>drag-a-snake-in-one-go</code>: do the end boards say what you meant, especially backing up?</li>
+<li>Givens giving copies, and retiring <code>tests/gestures</code> later.</li>
 </ul></div>"""
 
 nbRawHtml: """<h2><span class="num">06 · THE SPECS</span>All of them, as they are</h2>""" & summary(report)

@@ -325,7 +325,7 @@ proc playerJs*(r: Report): string =
         nodes[key].style.transform = `translate(${p[0]}px, ${p[1]}px)`
       }
       finger.setAttribute('cx', f.p[0]); finger.setAttribute('cy', f.p[1])
-      finger.style.opacity = f.k ? 1 : 0
+      finger.style.opacity = f.p[0] > -50 ? 1 : 0
     }
     const step = () => {
       show(sc.frames[i])
@@ -347,9 +347,9 @@ proc playerJs*(r: Report): string =
 
 const svgDefs* = """<svg width="0" height="0" style="position:absolute"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs></svg>"""
 
-proc runScenarios*(root: string, game = "src/parloku.nim"): (JsonNode, string) =
-  ## runs tools/specdrag.nim on `game` and returns its frames and its report
+proc runScenarios*(root: string, page = "index.html"): (JsonNode, string) =
+  ## runs tools/specdrag.nim on the built game `page` and returns its frames and its report
   let tmp = getTempDir() / "parloku-specframes.json"
-  let (outp, _) = execCmdEx("nim r --hints:off " & quoteShell(root / "tools" / "specdrag.nim") & " --game:" &
-    quoteShell(game) & " --json:" & quoteShell(tmp), workingDir = root)
+  let (outp, _) = execCmdEx("nim r --hints:off " & quoteShell(root / "tools" / "specdrag.nim") & " --page:" &
+    quoteShell(page) & " --json:" & quoteShell(tmp), workingDir = root)
   (parseFile(tmp), outp.strip)

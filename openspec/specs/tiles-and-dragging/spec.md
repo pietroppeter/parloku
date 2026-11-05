@@ -93,12 +93,12 @@ end:
 ```
 
 ### Requirement: Givens stay put
-A given letter SHALL NOT be moved or sent back. Like any letter on the board, it SHALL give a copy when dragged
-straight away.
+A given letter SHALL NOT be moved or sent back. Dragging it, straight away or after holding it, SHALL pull a copy of
+its letter and leave the given where it is.
 
 #### Scenario: Holding a given
-- **WHEN** the player holds the given I at r5c2 and then drags it
-- **THEN** nothing moves
+- **WHEN** the player holds the given I at r5c2 and then drags it up one cell
+- **THEN** a copy of I lands on r4c2 and the given stays on r5c2
 
 ```drag
 puzzle: 2
@@ -110,7 +110,13 @@ start:
   . I O . . .
   . . . . I O
 hold: r5c2 -> r4c2
-grab: refused
+end:
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . I . . . .
+  . I O . . .
+  . . . . I O
 ```
 
 ### Requirement: Copying and moving a placed letter
@@ -167,7 +173,8 @@ end:
 ### Requirement: Double taps
 A double tap on an empty start cell SHALL fill in its word's first letter. A double tap on an empty cell that is the
 last gap of a row, column or box whose other five letters are all different SHALL fill in the missing letter. A
-double tap on a placed letter that is not a given SHALL send it back to its stack.
+double tap on a placed letter that is not a given SHALL send it back to its stack; if the letter is in a word's
+outline, the whole word SHALL go back (see `word-snakes`).
 
 #### Scenario: The start of MAGIA
 - **WHEN** r1c6 is empty and the player double taps it
