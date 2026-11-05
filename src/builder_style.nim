@@ -33,6 +33,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .pm.on{font-weight:800;font-size:17px}
 .pm.on.w0{fill:var(--w0)} .pm.on.w1{fill:var(--w1)} .pm.on.w2{fill:var(--w2)}
 .status .acts{align-items:center}
+.nou{font:600 13px var(--font-body);color:var(--muted);margin-left:8px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .tool.dice{width:38px;height:38px;font-size:18px;margin-left:6px}
 .tool:disabled{opacity:.35;cursor:default}
 /* words on the left, four round tools in a square on the right */
@@ -55,7 +56,7 @@ svg.pin circle.hi{fill:rgba(255,255,255,.65);stroke:none}
 .wig{animation:wig .65s ease-in-out}
 @keyframes wig{0%,100%{transform:none}15%{transform:rotate(-5deg) scale(1.04)}35%{transform:rotate(4deg) scale(1.04)}55%{transform:rotate(-3deg)}75%{transform:rotate(2deg)}}
 @media (prefers-reduced-motion: reduce){.wig{animation:none}}
-.sol{font:600 14px var(--font-body);color:var(--muted);margin-left:10px}
+.sol{font:600 13px var(--font-body);color:var(--muted);margin-left:8px}
 .sol b{font:800 20px var(--font-head);color:var(--ink);margin-right:4px;vertical-align:-2px}
 .sol.zero,.sol.zero b{color:var(--w0)}
 .panel{margin:16px 0;padding:12px 14px;border:var(--border) solid var(--ink);border-radius:var(--radius);background:var(--card)}
@@ -70,5 +71,37 @@ svg.pin circle.hi{fill:rgba(255,255,255,.65);stroke:none}
 .how{font-size:15px}
 .how p{margin:8px 0}
 pre > code{font-size:12.5px!important}
+/* one compact screen: the bar of word sets, the words and tools, the board, one status line */
+.bld{max-width:520px;margin:0 auto}
+.bld .bar{display:flex;align-items:center;gap:6px;margin:2px 0 4px}
+.bld .logo{flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font:800 20px var(--font-head);background:var(--c0,#7dc4ff);color:var(--ink);border:2px solid var(--ink)}
+.bld .sets{flex:1;min-width:0;margin:0;padding:2px 0}
+.bld .sets .btn{padding:4px 10px;font-size:12px}
+.tool.sm{width:32px;height:32px;font-size:15px;text-decoration:none}
+.bld .row.custom{margin:0 0 4px}
+.bld .say{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:70;max-width:min(92vw,480px);background:var(--ink);color:var(--card);
+  font:600 13px/1.35 var(--font-body);padding:7px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.2);min-height:0;margin:0}
+.bld .game{margin:0}
+.bld .clues{gap:4px;margin:0}
+.bld .clue{padding:2px 8px 2px 3px;gap:3px;border-width:2.5px}
+.bld .clue .l{width:19px;height:23px;font-size:14px;border-radius:5px}
+.bld .clue .wring{width:18px;height:18px;border-width:3.5px}
+.bld .top{gap:6px}
+.bld .tools{grid-template-columns:repeat(2,38px);gap:6px}
+.bld .tool{width:38px;height:38px;font-size:17px}
+.bld .stage{margin:4px auto 0;max-width:min(100%,calc((100svh - 272px) * 500 / 664));min-width:250px}
+.bld .status{margin:2px 0 0;padding:0}
+.bld .status .acts{gap:4px;flex-wrap:nowrap;justify-content:center}
+.bld .status .btn{padding:4px 10px;font-size:13px}
+.bld .tool.dice{width:32px;height:32px;font-size:16px;margin-left:2px}
+.bld .panel{margin:6px 0 0;padding:6px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:13px}
+.bld .panel .verdict{font:600 13px var(--font-body)}
+.bld .panel .verdict b{font:800 20px var(--font-head);margin-right:3px;vertical-align:-2px}
+.bld .panel .note{margin:0;font-size:12px}
+.bld .panel .warn{margin:0;font-size:12px;flex-basis:100%}
+.bld .btn.sm{padding:3px 10px;font-size:12px;text-decoration:none}
+.bld ~ *, footer, body > hr{display:none}
+body:has(.bld) main{padding-top:6px!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important}
+body:has(.bld){padding-top:0!important;padding-bottom:0!important}
 </style>
 """

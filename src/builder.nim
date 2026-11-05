@@ -2,6 +2,7 @@
 ## Pick three words, drag each word's ring onto the board and lengthen it letter by letter, play on, and pin some letters as clues. The pencil marks and the solution count come from
 ## puzzlepaw's `parloku/solver`, compiled to JS with the page.
 ##
+## The explanations live in builder_howto.nim (builder-howto.html), so this page stays compact.
 ## The model, rules, drag engine, view and runtime blocks are copied from `parloku.nim` (the game), so the
 ## builder looks and feels the same; only the builder wiring at the end is new. Writes builder.html.
 import std/[json, os, strformat, strutils]
@@ -21,9 +22,10 @@ nb.backend.partials["header"] = pageHeader
 const pinIcon = """<svg class="pin" viewBox="-14 -20 28 40"><line x1="0" y1="0" x2="0" y2="18"/><circle cx="0" cy="-6" r="10"/><circle class="hi" cx="-3" cy="-9" r="3"/></svg>"""
 nbRawHtml: """
 <div class="bld" id="bld">
-<h1><span class="tile">P</span>arloku <span class="sub">builder</span></h1>
-<div class="sets" id="sets"></div>
-<div class="row custom"><input id="custom" spellcheck="false" autocomplete="off" placeholder="tre parole, es. NERO ROSA ORO" aria-label="tre parole"><button class="btn" id="use">usa</button></div>
+<div class="bar"><span class="logo" title="Parloku builder">P</span><div class="sets" id="sets"></div>
+<button class="tool sm" id="edit" title="scrivi tre parole" aria-label="scrivi tre parole">✎</button>
+<a class="tool sm" href="builder-howto.html" title="come funziona" aria-label="come funziona">?</a></div>
+<div class="row custom" id="customrow" hidden><input id="custom" spellcheck="false" autocomplete="off" placeholder="tre parole, es. NERO ROSA ORO" aria-label="tre parole"><button class="btn" id="use">usa</button></div>
 <div class="say" id="say"></div>
 <div class="game">
   <div class="top"><div class="clues" id="clues"></div>
@@ -37,47 +39,13 @@ nbRawHtml: """
   <div class="status"><span class="acts">
     <button class="btn" id="undo" disabled>↶ annulla</button>
     <span class="sol" id="sol" title="griglie complete con queste lettere e tutte e tre le parole"></span>
+    <label class="nou" title="scarta le parole che girano a U su se stesse"><input type="checkbox" id="nou" checked> niente U</label>
     <button class="tool dice" id="dice" title="un'altra soluzione" aria-label="un'altra soluzione">🎲</button>
   </span></div>
 </div>
 <div class="panel" id="panel"></div>
-<details class="how"><summary>come funziona</summary>
-<p><b>Parole.</b> Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Se trascini l'ultima lettera più lontano, ne fai una copia come nel gioco.</p>
-<p><b>Lettere forzate.</b> Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.</p>
-<p><b>Togliere.</b> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
-<p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
-<p><b>Ordine delle lettere.</b> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.</p>
-<p><b>Icone.</b> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.</p>
-<p><b>Soluzioni.</b> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.</p>
-<p><b>Annotazioni.</b> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
-<p><b>Indizi.</b> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
-</details>
 </div>
 """
-
-nbText: """
-The builder is a [nimib](https://github.com/pietroppeter/nimib) notebook. Board, tiles and gestures are the game's;
-the pencil marks and the solution count come from [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)'s
-`parloku/solver`, compiled to JavaScript with the page. The word sets are checked natively while the page is built:
-"""
-
-nbCode:
-  const wordSets = [
-    "ITALIA PASTA ALPI", "AMICA GIOCO MAGIA", "IMPARA PRIMA MATITA", "PAROLE PERLE OPERA",
-    "LOGICA GIOCA CALCOLI", "ALBA LUNA NUBE", "CENA PANE PERA", "ESTATE MARE SERATA",
-    "CANE PESCE APE", "NERO ROSA ORO", "CANTO NOTE TONO", "PROVA TROVA PORTA"]
-  proc lettersOf(words: seq[string]): string =
-    for w in words:
-      for ch in w:
-        if ch notin result: result.add ch
-  for s in wordSets:
-    let ws = s.split(' ')
-    var p: Problem
-    let ls = lettersOf(ws)
-    for i in 0 ..< min(6, ls.len): p.letters[i] = ls[i]
-    for w in ws: p.wordHints.add HintWord(pos: (row: 0, col: 0), word: w)
-    let issues = validate(p)
-    echo &"{s:<20} letters {ls.len}  ", (if ls.len == 6 and issues.len == 0: "ok" else: $issues)
 
 nbJsFromCode:
   import std/[math, strformat, strutils, sequtils]
@@ -666,6 +634,7 @@ nbJsFromCode:
   proc now(): float {.importjs: "Date.now()".}
   proc copyText(s: cstring) {.importjs: """(s => { const old = () => { const t = document.createElement('textarea'); t.value = s; document.body.appendChild(t); t.select(); try { document.execCommand('copy') } catch (e) {} t.remove() }; try { navigator.clipboard.writeText(s).catch(old) } catch (e) { old() } })(#)""".}
   proc setHidden(e: Element, h: bool) {.importjs: "#.hidden = #".}
+  proc isHidden(e: Element): bool {.importjs: "#.hidden".}
   proc setDisabled(e: Element, d: bool) {.importjs: "#.disabled = #".}
   proc dataOf(ev: Event, k: cstring): cstring {.importjs: "((e, k) => e.target.closest('[data-' + k + ']')?.getAttribute('data-' + k) ?? null)(#, #)".}
   proc hoverIndex(ev: Event): cstring {.importjs: "(#.target.closest('[data-clue]')?.dataset.clue ?? null)".}
@@ -691,7 +660,15 @@ nbJsFromCode:
   var count = 0                # solutions of the puzzle: word starts and pinned clues only
   var countDone = true
 
-  proc say(m: string) = sayEl.innerHTML = cstring(m)
+  var sayTimer = 0
+  proc say(m: string) =
+    ## messages float over the board for a moment, so they take no room
+    sayEl.innerHTML = cstring(m)
+    sayEl.setHidden(m.len == 0)
+    if sayTimer != 0: clearTimer(sayTimer)
+    if m.len > 0: sayTimer = setTimer(proc () =
+      sayTimer = 0
+      sayEl.setHidden(true), 3500)
 
   proc setPuzzle(words: seq[string]) =
     var ls = ""
@@ -732,27 +709,15 @@ nbJsFromCode:
   var fitList: seq[Fit]        # up to 10 different grids
   var fitCut = false           # the search hit its budget before deciding
   var fitShown = 0             # the one drawn on the board
+  var noUTurn = true           # for now: no word turns back on itself in a U (cells k and k+3 side by side)
+  proc hasUTurn(path: seq[int]): bool =
+    for k in 0 .. path.len - 4:
+      let (a, b) = (path[k], path[k + 3])
+      if abs(a div 6 - b div 6) + abs(a mod 6 - b mod 6) == 1: return true
   proc noShare(limit, keep: int): ps.SolveOptions =
     result = ps.defaultOptions(limit = limit, keep = keep)
     result.allowShared = false
     result.allowRevisit = false
-  proc findFits(p: pt.Problem, rest: seq[int], starts: var seq[int], found: var seq[Fit], budget: var int) =
-    if found.len >= 10 or budget <= 0: return
-    if rest.len == 0:
-      dec budget
-      let r = ps.solve(p, noShare(10, 10))
-      for g in r.solutions:
-        if found.len < 10 and not found.anyIt(it.grid == g): found.add Fit(grid: g, starts: starts)
-      return
-    let w = rest[0]
-    for cell in 0 ..< 36:
-      if found.len >= 10 or budget <= 0: return
-      let q = ps.withWord(p, (row: cell div 6, col: cell mod 6), puz.clues[w].word)
-      dec budget
-      if ps.solve(q, noShare(1, 0)).count == 0: continue
-      starts[w] = cell
-      findFits(q, rest[1 .. ^1], starts, found, budget)
-
   proc pathsOf(f: Fit): seq[seq[int]] =
     ## the three words in the grid: a path for each from its start, no two sharing a cell
     var options: seq[seq[seq[int]]]
@@ -761,6 +726,7 @@ nbJsFromCode:
       for path in ps.wordPaths(f.grid, pt.HintWord(pos: (row: f.starts[i] div 6, col: f.starts[i] mod 6), word: clue.word), allowRevisit = false):
         var cells: seq[int]
         for q in path: cells.add idx(q.row, q.col)
+        if noUTurn and cells.hasUTurn: continue
         # a path that follows the word's container on the board comes first
         if cells.len >= wpath[i].len and cells[0 ..< wpath[i].len] == wpath[i]: o.insert(cells, 0)
         else: o.add cells
@@ -774,6 +740,24 @@ nbJsFromCode:
           if rec(i + 1): return true
           discard pick.pop
     if rec(0): pick else: @[]
+
+  proc findFits(p: pt.Problem, rest: seq[int], starts: var seq[int], found: var seq[Fit], budget: var int) =
+    if found.len >= 10 or budget <= 0: return
+    if rest.len == 0:
+      dec budget
+      let r = ps.solve(p, noShare(300, 300))
+      for g in r.solutions:
+        let f = Fit(grid: g, starts: starts)
+        if found.len < 10 and not found.anyIt(it.grid == g) and f.pathsOf.len > 0: found.add f
+      return
+    let w = rest[0]
+    for cell in 0 ..< 36:
+      if found.len >= 10 or budget <= 0: return
+      let q = ps.withWord(p, (row: cell div 6, col: cell mod 6), puz.clues[w].word)
+      dec budget
+      if ps.solve(q, noShare(1, 0)).count == 0: continue
+      starts[w] = cell
+      findFits(q, rest[1 .. ^1], starts, found, budget)
 
   proc showFit() =
     for c in 0 ..< 36: solGrid[c] = '.'
@@ -867,7 +851,7 @@ nbJsFromCode:
     let cls = if fits == 0 and not fitsCut: "sol zero" else: "sol"
     solEl.className = cstring(cls)
     if fits > 0:
-      s.add &""" · questa è la {fitShown + 1}"""
+      s.add &""" · n° {fitShown + 1}"""
     solEl.innerHTML = cstring(s)
     diceBtn.setDisabled(fits < 2)
 
@@ -879,19 +863,16 @@ nbJsFromCode:
         inc found
         if wpath[i].len == clue.word.len: inc full
     if found == 0:
-      s.add """<div class="verdict"><b>·</b> trascina il cerchietto di una parola sulla griglia</div>"""
+      s.add """<span class="verdict">per chi gioca: trascina il cerchietto di una parola sulla griglia</span>"""
     else:
       let n = if countDone: $count else: "≥ " & $count
       let cls = if count == 1: "one" elif count == 0: "zero" else: "many"
-      let what = if count == 1: "soluzione: il puzzle è pronto" else: "soluzioni"
-      s.add &"""<div class="verdict {cls}"><b>{n}</b> {what}</div>"""
-      s.add &"""<p class="note">Partendo solo dalle caselle iniziali delle parole ({full}/{puz.clues.len} complete) e da {puz.givens.len} indizi fissati.</p>"""
-      let code = playCode()
-      s.add &"""<div class="code"><code>{code}</code></div>"""
-      s.add &"""<div class="acts"><a class="btn" href="{playUrl}{code}" target="_blank" rel="noopener">▶ gioca</a>"""
-      s.add """<button class="btn" id="copy">🔗 copia link</button></div>"""
+      let what = if count == 1: "soluzione per chi gioca: pronto!" else: "soluzioni per chi gioca"
+      s.add &"""<span class="verdict {cls}"><b>{n}</b> {what}</span>"""
+      s.add &"""<span class="note">{full}/{puz.clues.len} parole · {puz.givens.len} indizi</span>"""
+      s.add &"""<a class="btn sm" href="{playUrl}{playCode()}" target="_blank" rel="noopener">▶ gioca</a>"""
     if not complete:
-      s.add """<p class="warn">Nessuna griglia completa è compatibile con le lettere sulla griglia: c'è una casella senza possibilità o un conflitto.</p>"""
+      s.add """<span class="warn">nessuna griglia completa: c'è una casella senza possibilità o un conflitto</span>"""
     panelEl.innerHTML = cstring(s)
 
   proc freeTile(b: Board, ch: char): int =
@@ -929,7 +910,9 @@ nbJsFromCode:
     let (r, col) = (c div 6, c mod 6)
     for (dr, dc) in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
       let (rr, cc) = (r + dr, col + dc)
-      if rr in 0 .. 5 and cc in 0 .. 5 and b.canPut(idx(rr, cc), word[path.len]): result.add idx(rr, cc)
+      if rr in 0 .. 5 and cc in 0 .. 5 and b.canPut(idx(rr, cc), word[path.len]):
+        if noUTurn and (path & @[idx(rr, cc)]).hasUTurn: continue
+        result.add idx(rr, cc)
 
   setPuzzle(sets[0].split(' '))
   let stage = mount(host, 500, 664, emptyBoard(), renderBoard, tileSpec, backdrop, overlay, 50)
@@ -1582,6 +1565,9 @@ nbJsFromCode:
     if not i.isNil:
       document.getElementById("custom").setValue(cstring(sets[parseInt($i)]))
       discard loadSet(sets[parseInt($i)]))
+  document.getElementById("edit").addEventListener("click", proc (ev: Event) =
+    let row = document.getElementById("customrow")
+    row.setHidden(not row.isHidden))
   document.getElementById("use").addEventListener("click", proc (ev: Event) =
     discard loadSet($document.getElementById("custom").value))
 
@@ -1644,6 +1630,10 @@ nbJsFromCode:
     copyText(cstring(builderUrl()))
     copied(document.getElementById("save"), "Copiato il link al builder in questo stato."))
   proc randomInt(n: int): int {.importjs: "Math.floor(Math.random() * #)".}
+  let uBox = document.getElementById("nou")
+  uBox.addEventListener("change", proc (ev: Event) =
+    noUTurn = uBox.checked
+    refresh())
   diceBtn.addEventListener("click", proc (ev: Event) =
     if fitList.len < 2: return
     var k = randomInt(fitList.len - 1)

@@ -74,6 +74,8 @@ words, trying every start for the words not placed yet: it shows 0 when the word
 up to 9, or 10+. For now it only looks for solutions where no word overlaps another or itself. In the pencil marks, the letters of the three
 words in one of them take their word's colour; 🎲 shows another. A panel counts the solutions of
 the puzzle a player would get (word starts and pinned letters only), with a link to play it.
+The builder page is kept to one screen so pieces can be dragged without scrolling; its explanations are in
+`builder-howto.html` ([src/builder_howto.nim](src/builder_howto.nim)), linked from the ? button.
 The solver is [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)'s `parloku/solver`, fetched by `deps.sh`
 and compiled to JavaScript. Build with `nim c -r -d:release src/builder.nim`.
 
