@@ -100,7 +100,7 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
   border:var(--border) solid var(--line);box-shadow:var(--btn-shadow);cursor:default;transition:transform .2s}
 .clue .n{width:26px;height:26px;border-radius:50%;color:#fff;font:700 14px "JetBrains Mono",monospace;display:grid;place-items:center}
 .clue .l{width:26px;height:30px;border-radius:7px;display:grid;place-items:center;font:var(--glyph-weight) 18px var(--font-glyph);
-  border:1.5px dashed var(--line);color:var(--muted);transition:background .25s,color .25s}
+  border:1.5px solid var(--line);color:var(--muted);transition:background .25s,color .25s}
 /* a clue letter already on the board: bold, dark, with a thick dark edge; the ones still to place stay light */
 .clue.done{border-color:var(--ink)}
 .clue .ok{font-size:18px;width:18px;text-align:center;color:var(--c4);font-weight:700}
@@ -128,8 +128,13 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .cell{stroke:color-mix(in srgb,var(--ink) 16%,transparent);stroke-width:1.5} .cell.ca{fill:var(--ca)} .cell.cb{fill:var(--cb)} .cell.tint{fill:var(--hl)} .cell.bad{fill:var(--bad)}
 .badline{fill:none;stroke:var(--bad-line);stroke-width:3}
 /* no red while a tile is held: only once it is let go */
+/* two letters in conflict tremble, gently at first and more over a few seconds (no red); not while a tile is held */
 .dragging .cell.bad.ca{fill:var(--ca)} .dragging .cell.bad.cb{fill:var(--cb)} .dragging .cell.bad.tint{fill:var(--hl)} .dragging .badline{display:none}
+@media (prefers-reduced-motion: reduce){.shake .tile rect,.shake .tile circle,.shake .tile path{stroke:var(--bad-line)}}
 .boxline{fill:var(--boxline)}
+.thin{stroke:color-mix(in srgb,var(--boxline) 35%,transparent);stroke-width:1.5}
+.edge{fill:none;stroke:var(--boxline);stroke-width:5}
+
 .lbl{fill:var(--muted);display:none} .tutoring .lbl{display:inline}
 .glow{fill:var(--hl);stroke:var(--c0);stroke-width:3}
 .empty{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 5} .done{fill:var(--c4)}
@@ -193,6 +198,19 @@ body.chrome .picker::-webkit-scrollbar{display:none}
 body.chrome .picker>*{flex:none}
 body.chrome .picker .langs,body.chrome .status,body.chrome .picker .tut,body.chrome .play>.skins{display:none}
 body.chrome .status{bottom:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+/* the menu: three buttons (how to play, again! with its list of puzzles, restart); elsewhere only the puzzle list */
+.menu-only{display:none}
+body.chrome .picker .menu-only{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
+body.chrome .picker{justify-content:center;overflow:visible}
+body.chrome #picker{display:none}
+body.chrome #picker.open{display:flex;flex-direction:column;gap:8px;position:fixed;left:50%;transform:translateX(-50%);
+  top:calc(max(10px,env(safe-area-inset-top)) + 58px);width:min(340px,calc(100vw - 32px));padding:12px;z-index:30;
+  background:var(--card);border:var(--border) solid var(--ink);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+body.chrome #picker.open .btn{justify-content:flex-start;text-align:left;width:100%;display:flex;gap:8px;align-items:center}
+#picker .ck{display:inline-block;width:1.1em;color:var(--w1);font-weight:800}
+.picker > #picker .ck:empty{display:none}
+body.chrome #picker .ck:empty{display:inline-block}
+@media (max-width:400px){body.chrome .picker{gap:6px;padding-left:8px;padding-right:8px} body.chrome .picker .menu-only{padding:6px 11px;font-size:13px}}
 @media (prefers-reduced-motion: reduce){.ripple{animation:none;opacity:0}}
 .machinery-slot{margin:10px 0}
 .machinery-slot .ghost-toggle{position:static;font-size:14px}

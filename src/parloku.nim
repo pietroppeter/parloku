@@ -21,7 +21,7 @@ nbRawHtml: """
 <h1><span class="tile">P</span>arloku</h1>
 <p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste.">A mini sudoku spelled in letters, with words hidden in it.</p>
 <div class="game">
-  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><span id="picker"></span>
+  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><a class="btn menu-only" id="howto" href="istruzioni.html" data-it="istruzioni">how to play</a><button class="btn menu-only" id="again" aria-haspopup="true" aria-expanded="false" data-it="ancora! ▾">again! ▾</button><span id="picker"></span>
 <div class="langs" id="langs"><button class="btn" data-lang="en">EN</button><button class="btn" data-lang="it">IT</button></div>
   </div>
   <div class="coach" id="coach" hidden>
@@ -35,7 +35,7 @@ nbRawHtml: """
     <span class="acts">
       <button class="btn" id="undo" data-it="↶<span class='tx'> annulla</span>" aria-label="undo" disabled>↶<span class="tx"> undo</span></button>
       <button class="btn" id="hint" data-it="💡<span class='tx'> aiuto</span>" aria-label="hint">💡<span class="tx"> hint</span></button>
-      <button class="btn" id="reset" data-it="↺<span class='tx'> ricomincia</span>" aria-label="reset">↺<span class="tx"> reset</span></button>
+      <button class="btn" id="reset" aria-label="reset">↺ restart</button>
       <button class="btn" id="share" data-it="🔗<span class='tx'> link</span>" aria-label="link">🔗<span class="tx"> link</span></button>
       <button class="btn" id="more" data-it="📖<span class='tx'> altro</span>" aria-label="more" hidden>📖<span class="tx"> more</span></button>
     </span>
@@ -605,10 +605,13 @@ nbCodeAnd(nbJsFromCode):
     for id in 0 ..< 36: at[id] = -1
     for c, id in b.cells:
       if id >= 0: at[id] = c
+    let bad = b.grid.clashes             # letters in conflict tremble (CSS), more and more for a few seconds
     for id in 0 ..< 36:
       let c = at[id]
       let pos = if c >= 0: cellPos(c) else: stackPos(id div 6)
-      result.add Item(key: &"t{id}", pos: pos, svg: tileSvg(id div 6, c >= 0 and isGiven(c)))
+      var svg = tileSvg(id div 6, c >= 0 and isGiven(c))
+      if c >= 0 and c in bad: svg = """<g class="shake">""" & svg & "</g>"
+      result.add Item(key: &"t{id}", pos: pos, svg: svg)
 
 nbText: """
 And here is the entire interaction. Grabbing tile `id` lists one future per empty cell (a tile never replaces a letter already placed), snaps to the nearest within
@@ -679,21 +682,28 @@ nbCodeAnd(nbJsFromCode):
   var coachTint: seq[int]        # tutorial: cells to tint (the reason for a step)
   var coachTarget = -1           # tutorial: the cell to fill (or empty)
   var coachStacks: seq[int]      # tutorial: letter stacks to make glow
+  var classicGrid = true         # a classic grid (plain, lines only); ?grid=rounded for rounded cells and shaded boxes
 
   proc backdrop(b: Board): string =
     let g = b.grid
-    let bad = g.clashes
     result = &"""<rect class="frame" x="{bx - 9}" y="{by - 9}" width="{cell * 6 + 18}" height="{cell * 6 + 18}" rx="14"/>"""
+    if classicGrid:
+      # a classic mini sudoku: one plain square, thin lines between cells, thick lines round the boxes and the edge
+      result.add &"""<rect class="cell ca" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
+      for c in coachTint:
+        let p = cellPos(c)
+        result.add &"""<rect class="cell tint" x="{p.x - cell/2}" y="{p.y - cell/2}" width="{cell}" height="{cell}"/>"""
+      for i in 1 .. 5:
+        result.add &"""<line class="thin" x1="{bx}" y1="{by + i.float * cell}" x2="{bx + cell * 6}" y2="{by + i.float * cell}"/>"""
+        result.add &"""<line class="thin" x1="{bx + i.float * cell}" y1="{by}" x2="{bx + i.float * cell}" y2="{by + cell * 6}"/>"""
+      result.add &"""<rect class="edge" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
     for c in 0 ..< 36:
+      if classicGrid: break
       let p = cellPos(c)
       let (r, col) = (c div 6, c mod 6)
       let base = if (r div 2 + col div 3) mod 2 == 0: "ca" else: "cb"
       let tinted = if c in coachTint: "tint" else: base
-      var fill = tinted
-      if c in bad: fill = tinted & " bad"       # while a tile is held, the page's CSS hides the red
-      result.add &"""<rect class="cell {fill}" x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7"/>"""
-      if c in bad:
-        result.add &"""<rect x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7" class="badline"/>"""
+      result.add &"""<rect class="cell {tinted}" x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7"/>"""
     for i in 1 .. 2:
       let y = by + i.float * cell * 2
       result.add &"""<rect class="boxline" x="{bx}" y="{y - 2.5}" width="{cell * 6}" height="5"/>"""
@@ -721,8 +731,11 @@ nbCodeAnd(nbJsFromCode):
       # each word is an outline in its own dark colour: a ring on its start cell that grows around its letters
       let path = g.trace(clue)
       let ink = &"w{i mod 3}"
-      let t = if focusClue == i: 8.0 else: 5.0
-      let rr = cell * 0.47
+      var t = 4.0
+      if focusClue == i: t = 6.0
+      # the outline stays inside its cells (3 units from each edge), so two words in cells side by side never touch
+      let rr = cell / 2 - 3 - t
+      let corner = 14.0                    # outer corner radius of the outline: rounded squares, as the word boxes
       if wiggleClue == i:
         var (sx, sy) = (0.0, 0.0)
         let cells = if path.len > 0: path else: @[idx(clue.pos)]
@@ -732,7 +745,8 @@ nbCodeAnd(nbJsFromCode):
         result.add &"""<g class="wig" style="transform-origin:{sx / cells.len.float:.1f}px {sy / cells.len.float:.1f}px">"""
       if path.len <= 1:
         let p = cellPos(idx(clue.pos))
-        result.add &"""<circle class="wo {ink}" cx="{p.x}" cy="{p.y}" r="{rr + t / 2:.1f}" stroke-width="{t}"/>"""
+        let h = rr + t / 2                 # a rounded square, like the word's box above
+        result.add &"""<rect class="wo {ink}" x="{p.x - h:.1f}" y="{p.y - h:.1f}" width="{2 * h:.1f}" height="{2 * h:.1f}" rx="{corner - t / 2:.1f}" stroke-width="{t}"/>"""
       else:
         var d = ""
         for k, c in path:
@@ -742,7 +756,7 @@ nbCodeAnd(nbJsFromCode):
         # round stroke joins round the outer corners; the inner (concave) corners get a fillet each,
         # so the outline never has a sharp angle: one for the outer edge, a wider one for the inner edge
         var fillOut, fillIn = ""
-        let (wOut, wIn, f) = (rr + t, rr, 16.0)
+        let (wOut, wIn, f) = (rr + t, rr, 10.0)
         for k in 1 .. path.len - 2:
           let (p0, p1, p2) = (cellPos(path[k - 1]), cellPos(path[k]), cellPos(path[k + 1]))
           let a = vec((p1.x - p0.x) / cell, (p1.y - p0.y) / cell)
@@ -755,10 +769,22 @@ nbCodeAnd(nbJsFromCode):
             let piece = &"M{kx.x:.1f},{kx.y:.1f}L{s1.x:.1f},{s1.y:.1f}Q{kx.x:.1f},{kx.y:.1f} {s2.x:.1f},{s2.y:.1f}Z"
             if inner: fillIn.add piece
             else: fillOut.add piece
+        # the outline is the union of a rounded square per cell and a band between each two cells in a row,
+        # for the outer edge (white) and, cut out of it, for the inner edge (black)
+        proc squares(w, r: float, col: string): string =
+          for k, c in path:
+            let p = cellPos(c)
+            result.add &"""<rect x="{p.x - w:.1f}" y="{p.y - w:.1f}" width="{2 * w:.1f}" height="{2 * w:.1f}" rx="{r:.1f}" fill="{col}"/>"""
+            if k > 0:
+              let q = cellPos(path[k - 1])
+              let (x0, y0) = (min(p.x, q.x), min(p.y, q.y))
+              let (dx, dy) = (abs(p.x - q.x), abs(p.y - q.y))
+              if dx > dy: result.add &"""<rect x="{x0:.1f}" y="{y0 - w:.1f}" width="{dx:.1f}" height="{2 * w:.1f}" fill="{col}"/>"""
+              else: result.add &"""<rect x="{x0 - w:.1f}" y="{y0:.1f}" width="{2 * w:.1f}" height="{dy:.1f}" fill="{col}"/>"""
         let m = &"{maskTag}{i}"
         result.add &"""<mask id="{m}" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="650">""" &
-          &"""<path d="{d}" class="wm" stroke="#fff" stroke-width="{2 * wOut:.1f}"/><path d="{fillOut}" fill="#fff"/>""" &
-          &"""<path d="{d}" class="wm" stroke="#000" stroke-width="{2 * wIn:.1f}"/><path d="{fillIn}" fill="#000"/></mask>""" &
+          squares(wOut, corner, "#fff") & &"""<path d="{fillOut}" fill="#fff"/>""" &
+          squares(wIn, corner - t, "#000") & &"""<path d="{fillIn}" fill="#000"/></mask>""" &
           &"""<rect class="wf {ink}" x="0" y="0" width="600" height="650" mask="url(#{m})"/>"""
       if wiggleClue == i: result.add "</g>"
     if coachTarget >= 0:
@@ -823,6 +849,7 @@ nbCodeDisplay(nbJsFromCode):
     origin: Vec                   # where the held item was grabbed
     redirected: bool
     holdMs: int                   # how long a press on a redirected item waits before lifting the item itself
+    targetAt: proc (p: Vec): bool # whether a landing spot gets the drop-target outline (nil: always)
 
   proc tr(p: Vec): cstring = cstring(&"translate({p.x:.2f}px, {p.y:.2f}px)")
 
@@ -832,7 +859,7 @@ nbCodeDisplay(nbJsFromCode):
       if st.showGhosts:
         for l in st.picker.lands:
           if l.x == l.x: g.add &"""<circle class="land" cx="{l.x}" cy="{l.y}" r="6"/>"""
-      if st.choice.ok:
+      if st.choice.ok and (st.targetAt.isNil or st.targetAt(st.choice.land)):
         let c = st.choice.land
         g.add &"""<rect class="target" x="{c.x - 36}" y="{c.y - 36}" width="72" height="72" rx="13"/>"""
         if st.showGhosts:
@@ -1001,7 +1028,9 @@ nbJsFromCode:
   var games: seq[(string, string)]
   for o in options(): games.add ($o.attr("value"), $o.innerHTML)
   var code = games[0][0]
+  var tutorial = false                 # the 🎓 tutorial runs on the first puzzle, with its own saved board
   let fromUrl = $search()
+  if fromUrl.contains("grid=rounded"): classicGrid = false
   if fromUrl.contains("p=") and decode(fromUrl).valid:
     code = decode(fromUrl).encode
     if games.allIt(it[0] != code): games.add (code, "")
@@ -1021,6 +1050,7 @@ nbJsFromCode:
   puz = decode(code)
   let stage = mount(host, 500, 664, emptyBoard(), renderBoard, tileSpec, backdrop, overlay, 50)   # cropped to the board: bigger on a phone
   # letters on the board stay put: grabbing one pulls out a copy of it (a double tap sends it back)
+  stage.targetAt = proc (p: Vec): bool = p.y < by + 6 * cell   # only cells are targets: a letter going back below is not
   stage.redirect = proc (b: Board, key: string): string =
     let id = parseInt(key[1 .. ^1])
     let at = b.cells.find(id)
@@ -1273,6 +1303,29 @@ nbJsFromCode:
       tapKey = $k
       tapAt = t)
 
+  # ---- letters in conflict tremble like restless marbles: they roll a little left and right (turning as they go),
+  # gently at first and more for 3 seconds. An SVG transform set every frame, so it is the same in every browser
+  proc nextFrame(cb: proc (t: float)) {.importjs: "requestAnimationFrame(#)".}
+  proc shaking(): seq[Element] {.importjs: "Array.from(document.querySelectorAll('.shake'))".}
+  proc lessMotion(): bool {.importjs: "matchMedia('(prefers-reduced-motion: reduce)').matches".}
+  proc isHeld(e: Element): bool {.importjs: "!!#.closest('.dragging')".}
+  proc unset(e: Element, k: cstring) {.importjs: "#.removeAttribute(#)".}
+  const rollMax = 4.0                  # board units side to side at most (a tile's radius is 32)
+  const rollRamp = 3000.0              # ms to grow from a fifth to all of it
+  proc roll(t: float) =
+    for g in shaking():
+      if g.attr("data-t0").isNil: g.setAttr("data-t0", cstring($t))
+      if lessMotion() or g.isHeld:
+        g.unset("transform")
+        g.setAttr("data-t0", cstring($t))
+        continue
+      let k = min(1.0, 0.2 + 0.8 * (t - parseFloat($g.attr("data-t0"))) / rollRamp)
+      let dx = rollMax * k * sin(t / 1000 * 2 * PI * 2.2)
+      let turn = dx / 32 * 180 / PI       # rolling, not sliding: the turn matches the distance
+      g.setAttr("transform", cstring(&"translate({dx:.2f} 0) rotate({turn:.2f})"))
+    nextFrame(roll)
+  nextFrame(roll)
+
   # ---- on the game page, only the game: tap an empty spot to show the rest, and again to hide it
   proc interactive(ev: Event): bool {.importjs:
     "!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')".}
@@ -1284,13 +1337,15 @@ nbJsFromCode:
     ## the menu bar goes away by itself after a few idle seconds
     clearTimer(hideTimer)
     hideTimer = setTimer(proc () =
-      if document.body.classList.contains("chrome"): setMode("focus"), 4000)
+      if document.body.classList.contains("chrome") and not document.getElementById("picker").classList.contains("open"): setMode("focus"), 4000)
   proc setMode(m: string) =
     for k in ["focus", "chrome", "explain"]:
       if k == m: document.body.classList.add(cstring(k))
       else: document.body.classList.remove(cstring(k))
     if m == "chrome":
       armHide()
+    else:
+      document.getElementById("picker").classList.remove("open")
   let playEl = document.getElementById("play")
   if not playEl.isNil:
     setMode("focus")
@@ -1313,6 +1368,27 @@ nbJsFromCode:
   let confetti = document.createElement("div")
   confetti.className = "confetti"
   host.appendChild(confetti)
+
+  # ---- solved puzzles are remembered on this device, and ticked in the "again!" list
+  proc solvedCodes(): seq[string] =
+    let v = lsGet("parloku:solved")
+    if not v.isNil and ($v).len > 0: result = ($v).split(',')
+  proc markSolved(c: string) =
+    var cs = solvedCodes()
+    if c notin cs:
+      cs.add c
+      lsSet("parloku:solved", cstring(cs.join(",")))
+  proc renderPicker() =
+    let done = solvedCodes()
+    var html = ""
+    for i, (gc, title) in games:
+      var cls = ""
+      if gc == code and not tutorial: cls.add " on"
+      if gc in done: cls.add " done"
+      let name = if title == "": L("from the link", "dal link") else: title
+      let tick = if gc in done: "✓" else: ""
+      html.add &"""<button class="btn num{cls}" data-i="{i}" aria-label="{L("puzzle", "puzzle")} {i + 1}: {name}"><span class="ck">{tick}</span>{name}</button>"""   # named by its three words
+    pickerEl.innerHTML = cstring(html)
 
   proc clock(): string =
     let t0 = if wonAt > 0: wonAt else: now()
@@ -1339,7 +1415,6 @@ nbJsFromCode:
       html.add &"""<span class="ok">{tick}</span></div>"""
     cluesEl.innerHTML = cstring(html)
 
-  var tutorial = false                 # the 🎓 tutorial runs on the first puzzle, with its own saved board
   proc storeKey(): cstring =
     let prefix = if tutorial: "parloku:tutorial:" else: "parloku:"
     cstring(prefix & code)
@@ -1371,6 +1446,9 @@ nbJsFromCode:
     let g = stage.state.grid
     let won = solved(puz, g)
     if won and wonAt == 0: wonAt = now()
+    if won and not tutorial and code notin solvedCodes():
+      markSolved(code)
+      renderPicker()
     if won and not celebrated:
       celebrated = true
       banner.innerHTML = cstring(&"<b>Bravo!</b><span>{stage.state.moves} " & L("moves", "mosse") & &" · {clock()}</span>")
@@ -1384,8 +1462,16 @@ nbJsFromCode:
   var last = stage.state
   let undoBtn = document.getElementById("undo")
   proc setDisabled(e: Element, d: bool) {.importjs: "#.disabled = #".}
+  var undoable = false                  # the restart button reads "undo restart" (below)
+  var quiet = false                     # our own setState calls, which are not the player's moves
+  var before: Board                     # the board, its history and clock before the restart
+  var beforeHistory: seq[Board]
+  var beforeStarted, beforeWon = 0.0
+  var undoTimer = 0
+  var endUndoCb: proc ()                # set below, with the restart button
   stage.onCommit = proc () =
     if started == 0 and stage.state.moves > 0: started = now()
+    if undoable and not quiet and stage.state.cells != last.cells: endUndoCb()   # a move: no going back to before the restart
     if stage.state.cells != last.cells:
       history.add last
       last = stage.state
@@ -1414,12 +1500,7 @@ nbJsFromCode:
     celebrated = solved(puz, b.grid)     # don't throw confetti again on reload
     confetti.innerHTML = ""
     banner.innerHTML = cstring(&"<b>Bravo!</b><span>{b.moves} " & L("moves", "mosse") & &" · {clock()}</span>")
-    var html = ""
-    for i, (gc, title) in games:
-      let on = if gc == c and not tutorial: " on" else: ""
-      let name = if title == "": L("from the link", "dal link") else: title
-      html.add &"""<button class="btn num{on}" data-i="{i}" aria-label="{L("puzzle", "puzzle")} {i + 1}: {name}">{name}</button>"""   # named by its three words
-    pickerEl.innerHTML = cstring(html)
+    renderPicker()
     stage.setState(b)
     history = @[]
     last = stage.state
@@ -1427,19 +1508,75 @@ nbJsFromCode:
 
 
   proc dataI(ev: Event): cstring {.importjs: "(#.target.closest('[data-i]')?.dataset.i ?? null)".}
+  let againBtn = document.getElementById("again")
+  proc openList(o: bool) =
+    if o:
+      pickerEl.classList.add("open")
+      againBtn.setAttr("aria-expanded", "true")
+      clearTimer(hideTimer)
+    else:
+      pickerEl.classList.remove("open")
+      againBtn.setAttr("aria-expanded", "false")
+  againBtn.addEventListener("click", proc (ev: Event) =
+    openList(not pickerEl.classList.contains("open")))
   pickerEl.addEventListener("click", proc (ev: Event) =
     let i = dataI(ev)
     if not i.isNil:
+      openList(false)
+      endUndoCb()
       if not playEl.isNil: setMode("focus")
       tutorial = false
       lsSet(cstring("parloku:" & games[parseInt($i)][0]), "")   # picking a puzzle always starts it afresh
       load(games[parseInt($i)][0])
       pushQuery(cstring("p=" & code)))
 
+  # ---- restart right away, no "sure?": for a few seconds, until the next move, the button offers to undo it
   let resetBtn = document.getElementById("reset")
-  resetBtn.addEventListener("click", proc (ev: Event) =   # restart right away: no "sure?"
+  proc resetLabel() =
+    if undoable: resetBtn.innerHTML = cstring(L("↶ undo restart", "↶ annullo rifaccio"))
+    else: resetBtn.innerHTML = cstring(L("↺ restart", "↺ rifaccio"))
+  proc endUndo() =
+    if not undoable: return
+    undoable = false
+    clearTimer(undoTimer)
+    resetLabel()
+    if document.body.classList.contains("chrome"): armHide()
+  endUndoCb = endUndo
+  resetLabel()
+  resetBtn.addEventListener("click", proc (ev: Event) =
+    if undoable:                        # put back the board as it was before the restart
+      undoable = false
+      clearTimer(undoTimer)
+      quiet = true
+      stage.setState(before)
+      quiet = false
+      history = beforeHistory
+      last = stage.state
+      started = beforeStarted
+      wonAt = beforeWon
+      celebrated = solved(puz, stage.state.grid)
+      undoBtn.setDisabled(history.len == 0)
+      save()
+      refresh()
+      resetLabel()
+      armHide()
+      return
+    var had = false                     # nothing to undo on an untouched board
+    for c in 0 ..< 36:
+      if stage.state.cells[c] >= 0 and not isGiven(c): had = true
+    before = stage.state
+    beforeHistory = history
+    beforeStarted = started
+    beforeWon = wonAt
     lsSet(storeKey(), "")
-    load(code))
+    quiet = true
+    load(code)
+    quiet = false
+    if had:
+      undoable = true
+      resetLabel()
+      clearTimer(hideTimer)             # keep the menu up while undo is on offer
+      undoTimer = setTimer(proc () = endUndo(), 8000))
 
   undoBtn.addEventListener("click", proc (ev: Event) =
     if history.len == 0: return
