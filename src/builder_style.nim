@@ -79,13 +79,15 @@ pre > code{font-size:12.5px!important}
 .bld .sets .btn{padding:4px 10px;font-size:12px}
 .tool.sm{width:32px;height:32px;font-size:15px;text-decoration:none}
 .bld .row.custom{margin:0 0 4px}
-.bld .say{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:70;max-width:min(92vw,480px);background:var(--ink);color:var(--card);
+.bld .say{pointer-events:none;position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:70;max-width:min(92vw,480px);background:var(--ink);color:var(--card);
   font:600 13px/1.35 var(--font-body);padding:7px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.2);min-height:0;margin:0}
 .bld .game{margin:0}
 .bld .clues{gap:4px;margin:0}
-.bld .clue{padding:2px 8px 2px 3px;gap:3px;border-width:2.5px}
+.bld .clue{padding:2px 3px 2px 8px;gap:3px;border-width:2.5px}
 .bld .clue .l{width:19px;height:23px;font-size:14px;border-radius:5px}
-.bld .clue .wring{width:18px;height:18px;border-width:3.5px}
+.bld .clue .wring{width:20px;height:20px;border-width:3.5px;margin:0 0 0 2px;position:relative}
+.bld .clue .wring::after{content:'';position:absolute;inset:-11px -14px;border-radius:50%}
+.bld .clue .ok:empty{display:none}
 .bld .top{gap:6px}
 .bld .tools{grid-template-columns:repeat(2,38px);gap:6px}
 .bld .tool{width:38px;height:38px;font-size:17px}

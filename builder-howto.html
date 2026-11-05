@@ -94,7 +94,7 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
 .clue.done{border-color:var(--ink)}
 .clue .ok{font-size:18px;width:18px;text-align:center;color:var(--c4);font-weight:700}
 .stage{position:relative;background:var(--card);border:var(--border) solid var(--line);border-radius:calc(var(--radius) + 4px);box-shadow:var(--shadow);padding:6px;overflow:hidden}
-.stage svg.d2{display:block;overflow:visible;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+.stage svg.d2{display:block;overflow:visible;width:100%;height:auto;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .stage svg text{font-family:var(--font-body)}
 svg .glyph{font-family:var(--font-glyph);font-weight:var(--glyph-weight)}
 svg .mono{font-family:"JetBrains Mono",monospace}
@@ -168,6 +168,10 @@ body.focus .picker,body.focus .status{display:none}
 body.focus .game,body.chrome .game{margin:0}
 body.chrome .play>.skins{display:none}
 .clue .ok:empty{display:none}
+/* a tapped clue's ring or outline wiggles on the board */
+.wig{animation:wig .65s ease-in-out}
+@keyframes wig{0%,100%{transform:none}15%{transform:rotate(-5deg) scale(1.04)}35%{transform:rotate(4deg) scale(1.04)}55%{transform:rotate(-3deg)}75%{transform:rotate(2deg)}}
+@media (prefers-reduced-motion: reduce){.wig{animation:none}}
 @media (max-width:440px){body.chrome .status .tx{display:none} body.chrome .status .btn{min-width:48px}}
 body.chrome .picker,body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
   padding:10px 16px;background:color-mix(in srgb,var(--bg) 94%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
@@ -363,7 +367,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .clue .wring{flex:none;width:22px;height:22px;border-radius:50%;border:4px solid var(--wc);background:var(--card);cursor:grab;touch-action:none;margin-right:2px}
 .clue .wring.on{background:color-mix(in srgb,var(--wc) 25%,var(--card))}
 .ringghost{position:fixed;left:0;top:0;width:48px;height:48px;box-sizing:border-box;border-radius:50%;border:6px solid var(--wc);pointer-events:none;z-index:60}
-.opt{fill:none;stroke-width:4;stroke-dasharray:7 6;animation:optp 1s ease-in-out infinite alternate}
+.opt{fill:none;stroke-width:4;animation:optp 1s ease-in-out infinite alternate}
 .opt.w0{stroke:var(--w0)} .opt.w1{stroke:var(--w1)} .opt.w2{stroke:var(--w2)}
 @keyframes optp{from{opacity:.45}to{opacity:1}}
 .bld,.bld *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
@@ -427,13 +431,15 @@ pre > code{font-size:12.5px!important}
 .bld .sets .btn{padding:4px 10px;font-size:12px}
 .tool.sm{width:32px;height:32px;font-size:15px;text-decoration:none}
 .bld .row.custom{margin:0 0 4px}
-.bld .say{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:70;max-width:min(92vw,480px);background:var(--ink);color:var(--card);
+.bld .say{pointer-events:none;position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:70;max-width:min(92vw,480px);background:var(--ink);color:var(--card);
   font:600 13px/1.35 var(--font-body);padding:7px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.2);min-height:0;margin:0}
 .bld .game{margin:0}
 .bld .clues{gap:4px;margin:0}
-.bld .clue{padding:2px 8px 2px 3px;gap:3px;border-width:2.5px}
+.bld .clue{padding:2px 3px 2px 8px;gap:3px;border-width:2.5px}
 .bld .clue .l{width:19px;height:23px;font-size:14px;border-radius:5px}
-.bld .clue .wring{width:18px;height:18px;border-width:3.5px}
+.bld .clue .wring{width:20px;height:20px;border-width:3.5px;margin:0 0 0 2px;position:relative}
+.bld .clue .wring::after{content:'';position:absolute;inset:-11px -14px;border-radius:50%}
+.bld .clue .ok:empty{display:none}
 .bld .top{gap:6px}
 .bld .tools{grid-template-columns:repeat(2,38px);gap:6px}
 .bld .tool{width:38px;height:38px;font-size:17px}
@@ -451,6 +457,11 @@ pre > code{font-size:12.5px!important}
 .bld ~ *, footer, body > hr{display:none}
 body:has(.bld) main{padding-top:6px!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important}
 body:has(.bld){padding-top:0!important;padding-bottom:0!important}
+/* no dashed lines in the builder */
+.bld .clue .l{border-style:solid;border-color:color-mix(in srgb,var(--ink) 14%,transparent)}
+.bld .empty,.bld .ghosts .target,.bld .ghosts .tether{stroke-dasharray:none}
+.bld details{border-style:solid}
+.jt .jig{pointer-events:none}
 </style>
 
   
@@ -498,7 +509,7 @@ figcaption {
 <p><strong>Togliere.</strong> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
 <p><strong>Gioco.</strong> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
 <p><strong>Ordine delle lettere.</strong> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.</p>
-<p><strong>Icone.</strong> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.</p>
+<p><strong>Icone.</strong> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia il puzzle in JSON (lettere nell'ordine di sotto, indizi, inizi delle parole, soluzione, e sotto &quot;builder&quot; il link che riapre il builder esattamente in questo stato): incollalo in chat per aggiungerlo ai puzzle del gioco; 🔗 copia il link per giocare il puzzle.</p>
 <p><strong>Soluzioni.</strong> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Con «niente U» scarta anche le parole che girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra); una parola lunga può comunque toccarsi più avanti. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.</p>
 <p><strong>Annotazioni.</strong> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><strong>Indizi.</strong> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
@@ -574,7 +585,7 @@ nbText: <span class="hljs-string">&quot;&quot;&quot;
 
 **Ordine delle lettere.** Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.
 
-**Icone.** 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.
+**Icone.** 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia il puzzle in JSON (lettere nell'ordine di sotto, indizi, inizi delle parole, soluzione, e sotto &quot;builder&quot; il link che riapre il builder esattamente in questo stato): incollalo in chat per aggiungerlo ai puzzle del gioco; 🔗 copia il link per giocare il puzzle.
 
 **Soluzioni.** Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Con «niente U» scarta anche le parole che girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra); una parola lunga può comunque toccarsi più avanti. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.
 

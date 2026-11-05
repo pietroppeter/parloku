@@ -32,7 +32,7 @@ nbRawHtml: """
   <div class="tools">
     <span class="tool pinsrc" id="pinsrc" role="button" title="puntina: trascinala su una lettera per fissarla" aria-label="puntina">📌</span>
     <button class="tool" id="reset" title="ricomincia" aria-label="ricomincia">↺</button>
-    <button class="tool" id="save" title="salva: copia il link al builder in questo stato" aria-label="salva">💾</button>
+    <button class="tool" id="save" title="salva: copia il puzzle in JSON, con soluzione e stato del builder" aria-label="salva">💾</button>
     <button class="tool" id="link" title="copia il link per giocare" aria-label="link per giocare">🔗</button>
   </div></div>
   <div class="stage" id="board"></div>
@@ -851,7 +851,6 @@ nbJsFromCode:
       let cls = if full: " done" else: ""
       let on = if path.len > 0: " on" else: ""
       html.add &"""<div class="clue{cls}" data-clue="{i}" style="border-color:var(--w{i mod 3})">"""
-      html.add &"""<span class="wring{on}" data-ring="{i}" style="--wc:var(--w{i mod 3})"></span>"""
       for k, ch in clue.word:
         let li = puz.letters.find(ch)
         if k < path.len:
@@ -859,7 +858,9 @@ nbJsFromCode:
         else:
           html.add &"""<span class="l">{ch}</span>"""
       let tick = if full: "✓" else: ""
-      html.add &"""<span class="ok">{tick}</span></div>"""
+      html.add &"""<span class="ok">{tick}</span>"""
+      # the ring sits at the right end, where the thumb reaches it; its catch area is wider than it looks
+      html.add &"""<span class="wring{on}" data-ring="{i}" style="--wc:var(--w{i mod 3})"></span></div>"""
     cluesEl.innerHTML = cstring(html)
 
   let solEl = document.getElementById("sol")
@@ -1693,9 +1694,43 @@ nbJsFromCode:
     e.innerHTML = "✓"
     say what
     discard setTimer(proc () = e.innerHTML = old, 1200)
+  proc puzzleJson(): (string, int) =
+    ## the puzzle as puzzlepaw JSON (letters in the order below the board, pins, word starts), with its
+    ## solution and, under "builder", the link that reopens this exact state; also how many solutions it has
+    let lets = orderedLetters()
+    var p: pt.Problem
+    for i in 0 .. 5: p.letters[i] = lets[i]
+    for gv in puz.givens: p.letterHints.add pt.HintLetter(pos: gv.pos, letter: gv.letter)
+    for i, clue in puz.clues:
+      if wpath[i].len > 0: p.wordHints.add pt.HintWord(pos: clue.pos, word: clue.word)
+    let r = ps.solve(p, ps.defaultOptions(limit = 2, keep = 1))
+    proc sep(k: int): string =
+      if k > 0: result = ","
+    var j = "{\"problem\":{\"letters\":["
+    for i in 0 .. 5: j.add sep(i) & "\"" & lets[i] & "\""
+    j.add "],\"letterHints\":["
+    for k, h in p.letterHints:
+      j.add sep(k) & &"{{\"pos\":[{h.pos.row},{h.pos.col}],\"letter\":\"{h.letter}\"}}"
+    j.add "],\"wordHints\":["
+    for k, h in p.wordHints:
+      j.add sep(k) & &"{{\"pos\":[{h.pos.row},{h.pos.col}],\"word\":\"{h.word}\"}}"
+    j.add "]}"
+    if r.solutions.len > 0:
+      j.add ",\"solution\":["
+      for row in 0 .. 5:
+        j.add sep(row) & "["
+        for col in 0 .. 5: j.add sep(col) & "\"" & r.solutions[0][row][col] & "\""
+        j.add "]"
+      j.add "]"
+    j.add ",\"builder\":\"" & builderUrl() & "\"}"
+    (j, r.count)
   document.getElementById("save").addEventListener("click", proc (ev: Event) =
-    copyText(cstring(builderUrl()))
-    copied(document.getElementById("save"), "Copiato il link al builder in questo stato."))
+    let (j, n) = puzzleJson()
+    copyText(cstring(j))
+    var note = "Copiato il JSON, ma il puzzle ha più soluzioni: aggiungi indizi 📌 prima di metterlo nel gioco."
+    if n == 1: note = "Copiato il puzzle (JSON con soluzione e stato del builder). Incollalo in chat per aggiungerlo al gioco."
+    if n == 0: note = "Copiato il JSON, ma questo puzzle non ha soluzioni: non si può ancora giocare."
+    copied(document.getElementById("save"), note))
   proc randomInt(n: int): int {.importjs: "Math.floor(Math.random() * #)".}
   let uBox = document.getElementById("nou")
   uBox.addEventListener("change", proc (ev: Event) =
