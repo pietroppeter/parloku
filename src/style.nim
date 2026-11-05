@@ -138,6 +138,38 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .btn:disabled{opacity:.4;cursor:default;box-shadow:none}
 .btn:disabled:active{transform:none}
 .clue{cursor:pointer}
+/* words: three dark colours, apart from the six pastel letters; one word per line, left, centre, right */
+:root{--w0:#1f5aa6;--w1:#b34700;--w2:#a3195b}
+.clues{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:8px}
+.clue{align-self:flex-start;border-width:3px;padding:5px 10px}
+.clue:nth-child(3n+2){align-self:center} .clue:nth-child(3n){align-self:flex-end}
+.clue.focus{box-shadow:0 0 0 3px color-mix(in srgb,currentColor 0%,transparent),0 4px 12px rgba(0,0,0,.12)}
+.wo,.wl,.wm{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.wo.w0,.wl.w0{stroke:var(--w0)} .wo.w1,.wl.w1{stroke:var(--w1)} .wo.w2,.wl.w2{stroke:var(--w2)}
+.wo,.wl{transition:stroke-width .2s}
+/* tiles that divide */
+.neck{stroke:var(--tstroke);stroke-width:var(--tsw)}
+.necks,.fx{pointer-events:none}
+.ripple{fill:none;stroke-width:4;transform-box:fill-box;transform-origin:center;animation:ripple .45s ease-out forwards}
+.ripple.g0{stroke:var(--g0)} .ripple.g1{stroke:var(--g1)} .ripple.g2{stroke:var(--g2)} .ripple.g3{stroke:var(--g3)} .ripple.g4{stroke:var(--g4)} .ripple.g5{stroke:var(--g5)}
+@keyframes ripple{from{transform:scale(.95);opacity:.9}to{transform:scale(1.5);opacity:0}}
+/* the game page: only the game (focus); tap empty space for the rest (chrome); "more" opens the whole page (explain) */
+body.focus>header,body.focus footer,body.chrome>header,body.chrome footer,
+body.focus main>:not(.play),body.chrome main>:not(.play){display:none}
+body.focus,body.chrome{padding-bottom:0}
+body.focus .play,body.chrome .play{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:8px 0}
+body.focus .play>h1,body.focus .play>.lede,body.focus .play>.rules,body.focus .play>.skins,
+body.chrome .play>h1,body.chrome .play>.lede,body.chrome .play>.rules,
+body.focus .picker,body.focus .status{display:none}
+body.focus .game,body.chrome .game{margin:0}
+body.chrome .play>.skins{display:none}
+.clue .ok:empty{display:none}
+@media (max-width:440px){body.chrome .status .tx{display:none} body.chrome .status .btn{min-width:48px}}
+body.chrome .picker,body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
+  padding:10px 16px;background:color-mix(in srgb,var(--bg) 94%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+body.chrome .picker{top:0;padding-top:max(10px,env(safe-area-inset-top))}
+body.chrome .status{bottom:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+@media (prefers-reduced-motion: reduce){.ripple{animation:none;opacity:0}}
 .machinery-slot{margin:10px 0}
 .machinery-slot .ghost-toggle{position:static;font-size:14px}
 /* fingers are bigger than mouse pointers: 44px targets on touch screens */
