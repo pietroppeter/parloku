@@ -48,7 +48,7 @@ nbRawHtml: """
 <p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
 <p><b>Ordine delle lettere.</b> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.</p>
 <p><b>Icone.</b> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.</p>
-<p><b>Soluzioni.</b> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le tre parole non si sovrappongono. Una delle soluzioni è disegnata a matita nelle caselle vuote, con il percorso delle tre parole; 🎲 ne mostra un'altra.</p>
+<p><b>Soluzioni.</b> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le tre parole non si sovrappongono. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.</p>
 <p><b>Annotazioni.</b> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><b>Indizi.</b> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
 </details>
@@ -226,7 +226,10 @@ nbJsFromCode:
   var growOpts: seq[int]          # where its next letter can go
   var solGrid: array[36, char]    # the solution shown in the empty cells ('.' = none)
   var solPaths: seq[seq[int]]     # its three words, cell by cell
-  for c in 0 ..< 36: solGrid[c] = '.'
+  var solWord: array[36, int]     # the word whose path runs through each cell in that solution (-1 = none)
+  for c in 0 ..< 36:
+    solGrid[c] = '.'
+    solWord[c] = -1
 
   const pinSvg = """<svg class="pin" viewBox="-14 -20 28 40"><line x1="0" y1="0" x2="0" y2="18"/><circle cx="0" cy="-6" r="10"/><circle class="hi" cx="-3" cy="-9" r="3"/></svg>"""
 
@@ -386,26 +389,15 @@ nbJsFromCode:
       result.add &"""<rect class="cell {fill}" x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7"/>"""
       if c in bad or (noneCell[c] and b.cells[c] < 0):
         result.add &"""<rect x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7" class="badline"/>"""
-    # builder: the words of the solution shown, as thin lines along their cells
-    for wi, path in solPaths:
-      var d = ""
-      for k, c in path:
-        let p = cellPos(c)
-        let cmd = if k == 0: "M" else: "L"
-        d.add &"{cmd}{p.x:.1f},{p.y:.1f} "
-      if path.len > 0:
-        let p0 = cellPos(path[0])
-        result.add &"""<circle class="sp0" style="stroke:color-mix(in srgb,var(--w{wi mod 3}) 55%,transparent)" cx="{p0.x}" cy="{p0.y}" r="30"/><path class="sp" d="{d}"/>"""
-    # builder: in the empty cells, the letters of the solution shown, or else the pencil marks
+    # builder: pencil marks in the empty cells; the letters of the three words in the solution shown take their word's colour
     for c in 0 ..< 36:
       if b.cells[c] < 0 and not noneCell[c]:
         let p = cellPos(c)
-        if solGrid[c] != '.':
-          result.add &"""<text class="pm sl" x="{p.x}" y="{p.y + 11}" text-anchor="middle">{solGrid[c]}</text>"""
-        else:
-          for k, l in puz.letters:
-            if l in marks[c]:
-              result.add &"""<text class="pm" x="{p.x - 22 + float(k mod 3) * 22:.0f}" y="{p.y - 6 + float(k div 3) * 24:.0f}" text-anchor="middle">{l}</text>"""
+        for k, l in puz.letters:
+          if l in marks[c]:
+            var cls = "pm"
+            if solWord[c] >= 0 and solGrid[c] == l: cls = &"pm on w{solWord[c] mod 3}"
+            result.add &"""<text class="{cls}" x="{p.x - 22 + float(k mod 3) * 22:.0f}" y="{p.y - 6 + float(k div 3) * 24:.0f}" text-anchor="middle">{l}</text>"""
     for i in 1 .. 2:
       let y = by + i.float * cell * 2
       result.add &"""<rect class="boxline" x="{bx}" y="{y - 2.5}" width="{cell * 6}" height="5"/>"""
@@ -787,6 +779,9 @@ nbJsFromCode:
       let f = fitList[fitShown]
       for c in 0 ..< 36: solGrid[c] = f.grid[c div 6][c mod 6]
       solPaths = pathsOf(f)
+    for c in 0 ..< 36: solWord[c] = -1
+    for i, path in solPaths:
+      for c in path: solWord[c] = i
 
   proc analyze(b: Board) =
     let g = b.grid
