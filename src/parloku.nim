@@ -1763,4 +1763,26 @@ The game speaks English and Italian (EN / IT at the top, or `?lang=it`), and `?t
 Built with [nimib](https://github.com/pietroppeter/nimib). Hit *show source* below for the whole notebook.
 """
 
+nbRawHtml: """<script>
+// letters in conflict tremble: they shake side to side, gently at first and more for 3 seconds, then steady.
+// Driven from JavaScript (an SVG transform attribute each frame), so it looks the same in every browser
+(() => {
+  const still = matchMedia('(prefers-reduced-motion: reduce)');
+  const A = 6, ramp = 3000;                       // at most 6 board units (a cell is 78) side to side
+  function frame(t) {
+    for (const g of document.querySelectorAll('.shake')) {
+      if (!g.dataset.t0) g.dataset.t0 = t;
+      const held = g.closest('.dragging');
+      if (still.matches || held) { g.removeAttribute('transform'); if (held) g.dataset.t0 = t; continue; }
+      const k = Math.min(1, 0.2 + 0.8 * (t - g.dataset.t0) / ramp);
+      const dx = A * k * Math.sin(t / 1000 * 2 * Math.PI * 3.6);
+      const dy = 0.35 * A * k * Math.sin(t / 1000 * 2 * Math.PI * 2.7);
+      g.setAttribute('transform', `translate(${dx.toFixed(2)} ${dy.toFixed(2)})`);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>"""
+
 nbSave
