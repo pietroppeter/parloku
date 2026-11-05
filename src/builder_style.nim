@@ -15,7 +15,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .clue .wring{flex:none;width:22px;height:22px;border-radius:50%;border:4px solid var(--wc);background:var(--card);cursor:grab;touch-action:none;margin-right:2px}
 .clue .wring.on{background:color-mix(in srgb,var(--wc) 25%,var(--card))}
 .ringghost{position:fixed;left:0;top:0;width:48px;height:48px;box-sizing:border-box;border-radius:50%;border:6px solid var(--wc);pointer-events:none;z-index:60}
-.opt{fill:none;stroke-width:4;stroke-dasharray:7 6;animation:optp 1s ease-in-out infinite alternate}
+.opt{fill:none;stroke-width:4;animation:optp 1s ease-in-out infinite alternate}
 .opt.w0{stroke:var(--w0)} .opt.w1{stroke:var(--w1)} .opt.w2{stroke:var(--w2)}
 @keyframes optp{from{opacity:.45}to{opacity:1}}
 .bld,.bld *{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
@@ -79,13 +79,15 @@ pre > code{font-size:12.5px!important}
 .bld .sets .btn{padding:4px 10px;font-size:12px}
 .tool.sm{width:32px;height:32px;font-size:15px;text-decoration:none}
 .bld .row.custom{margin:0 0 4px}
-.bld .say{position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:70;max-width:min(92vw,480px);background:var(--ink);color:var(--card);
+.bld .say{pointer-events:none;position:fixed;left:50%;top:8px;transform:translateX(-50%);z-index:70;max-width:min(92vw,480px);background:var(--ink);color:var(--card);
   font:600 13px/1.35 var(--font-body);padding:7px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.2);min-height:0;margin:0}
 .bld .game{margin:0}
 .bld .clues{gap:4px;margin:0}
-.bld .clue{padding:2px 8px 2px 3px;gap:3px;border-width:2.5px}
+.bld .clue{padding:2px 3px 2px 8px;gap:3px;border-width:2.5px}
 .bld .clue .l{width:19px;height:23px;font-size:14px;border-radius:5px}
-.bld .clue .wring{width:18px;height:18px;border-width:3.5px}
+.bld .clue .wring{width:20px;height:20px;border-width:3.5px;margin:0 0 0 2px;position:relative}
+.bld .clue .wring::after{content:'';position:absolute;inset:-11px -14px;border-radius:50%}
+.bld .clue .ok:empty{display:none}
 .bld .top{gap:6px}
 .bld .tools{grid-template-columns:repeat(2,38px);gap:6px}
 .bld .tool{width:38px;height:38px;font-size:17px}
@@ -103,5 +105,10 @@ pre > code{font-size:12.5px!important}
 .bld ~ *, footer, body > hr{display:none}
 body:has(.bld) main{padding-top:6px!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important}
 body:has(.bld){padding-top:0!important;padding-bottom:0!important}
+/* no dashed lines in the builder */
+.bld .clue .l{border-style:solid;border-color:color-mix(in srgb,var(--ink) 14%,transparent)}
+.bld .empty,.bld .ghosts .target,.bld .ghosts .tether{stroke-dasharray:none}
+.bld details{border-style:solid}
+.jt .jig{pointer-events:none}
 </style>
 """

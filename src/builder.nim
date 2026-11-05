@@ -32,7 +32,7 @@ nbRawHtml: """
   <div class="tools">
     <span class="tool pinsrc" id="pinsrc" role="button" title="puntina: trascinala su una lettera per fissarla" aria-label="puntina">📌</span>
     <button class="tool" id="reset" title="ricomincia" aria-label="ricomincia">↺</button>
-    <button class="tool" id="save" title="salva: copia il link al builder in questo stato" aria-label="salva">💾</button>
+    <button class="tool" id="save" title="salva: copia il puzzle in JSON, con soluzione e stato del builder" aria-label="salva">💾</button>
     <button class="tool" id="link" title="copia il link per giocare" aria-label="link per giocare">🔗</button>
   </div></div>
   <div class="stage" id="board"></div>
@@ -192,6 +192,7 @@ nbJsFromCode:
   var noneCell: array[36, bool]   # an empty cell with no letter left
   var growWord = -1               # the word being lengthened (its last letter is held)
   var growOpts: seq[int]          # where its next letter can go
+  var slotOf = [0, 1, 2, 3, 4, 5]  # where each letter's stack sits below the board (reordered by the user)
   var solGrid: array[36, char]    # the solution shown in the empty cells ('.' = none)
   var solPaths: seq[seq[int]]     # its three words, cell by cell
   var solWord: array[36, int]     # the word whose path runs through each cell in that solution (-1 = none)
@@ -264,7 +265,8 @@ nbJsFromCode:
   const by = 16.0
 
   proc cellPos(c: int): Vec = vec(bx + float(c mod 6) * cell + cell / 2, by + float(c div 6) * cell + cell / 2)
-  proc stackPos(li: int): Vec = vec(150 + float(li mod 3) * 150, 546 + float(li div 3) * 74)   # two rows of three under the board
+  proc slotPos(i: int): Vec = vec(150 + float(i mod 3) * 150, 546 + float(i div 3) * 74)   # two rows of three under the board
+  proc stackPos(li: int): Vec = slotPos(slotOf[li])   # builder: the letters can be reordered
 
   proc blobPath(s: float, seed: int, amp: float): string =
     ## a soft closed blob around the origin: 8 points with varied radii, joined by Catmull-Rom curves
@@ -365,7 +367,8 @@ nbJsFromCode:
           if l in marks[c]:
             var cls = "pm"
             if solWord[c] >= 0 and solGrid[c] == l: cls = &"pm on w{solWord[c] mod 3}"
-            result.add &"""<text class="{cls}" x="{p.x - 22 + float(k mod 3) * 22:.0f}" y="{p.y - 6 + float(k div 3) * 24:.0f}" text-anchor="middle">{l}</text>"""
+            let s = slotOf[k]
+            result.add &"""<text class="{cls}" x="{p.x - 22 + float(s mod 3) * 22:.0f}" y="{p.y - 6 + float(s div 3) * 24:.0f}" text-anchor="middle">{l}</text>"""
     for i in 1 .. 2:
       let y = by + i.float * cell * 2
       result.add &"""<rect class="boxline" x="{bx}" y="{y - 2.5}" width="{cell * 6}" height="5"/>"""
@@ -678,6 +681,7 @@ nbJsFromCode:
     var sorted = ls
     sorted.sort()
     puz = Puzzle(letters: sorted)
+    for li in 0 .. 5: slotOf[li] = li
     for w in words: puz.clues.add Clue(pos: (row: 0, col: 0), word: w)
     wpath = newSeq[seq[int]](words.len)
 
@@ -694,70 +698,91 @@ nbJsFromCode:
     for i, clue in puz.clues:
       if wpath[i].len > 0: result.wordHints.add pt.HintWord(pos: clue.pos, word: clue.word)
 
+  proc orderedLetters(): string =
+    ## the six letters in the order they sit below the board
+    result = "      "
+    for li in 0 .. 5: result[slotOf[li]] = puz.letters[li]
   proc playCode(): string =
-    var p = Puzzle(letters: puz.letters, givens: puz.givens)
+    var p = Puzzle(letters: orderedLetters(), givens: puz.givens)
     for i, clue in puz.clues:
       if wpath[i].len > 0: p.clues.add clue
     p.encode
 
   # ---- the real solver: complete grids that keep every letter on the board and fit all three words,
   # trying every start for the words not on the board yet (up to 10 different grids)
-  # (for now the words never share a cell)
+  # The words are laid out cell by cell (a word never revisits a cell, two words never share one, and with
+  # "niente U" no word turns back in a U); each layout's letters then go to the sudoku solver.
   type Fit = object
     grid: pt.Grid
-    starts: seq[int]           # each word's start cell
+    paths: seq[seq[int]]       # each word's cells
   var fitList: seq[Fit]        # up to 10 different grids
   var fitCut = false           # the search hit its budget before deciding
   var fitShown = 0             # the one drawn on the board
+  var searchBudget = 60000
+  proc setBudget(n: int) {.exportc.} = searchBudget = n
   var noUTurn = true           # for now: no word turns back on itself in a U (cells k and k+3 side by side)
   proc hasUTurn(path: seq[int]): bool =
     for k in 0 .. path.len - 4:
       let (a, b) = (path[k], path[k + 3])
       if abs(a div 6 - b div 6) + abs(a mod 6 - b mod 6) == 1: return true
-  proc noShare(limit, keep: int): ps.SolveOptions =
-    result = ps.defaultOptions(limit = limit, keep = keep)
-    result.allowShared = false
-    result.allowRevisit = false
-  proc pathsOf(f: Fit): seq[seq[int]] =
-    ## the three words in the grid: a path for each from its start, no two sharing a cell
-    var options: seq[seq[seq[int]]]
-    for i, clue in puz.clues:
-      var o: seq[seq[int]]
-      for path in ps.wordPaths(f.grid, pt.HintWord(pos: (row: f.starts[i] div 6, col: f.starts[i] mod 6), word: clue.word), allowRevisit = false):
-        var cells: seq[int]
-        for q in path: cells.add idx(q.row, q.col)
-        if noUTurn and cells.hasUTurn: continue
-        # a path that follows the word's container on the board comes first
-        if cells.len >= wpath[i].len and cells[0 ..< wpath[i].len] == wpath[i]: o.insert(cells, 0)
-        else: o.add cells
-      options.add o
-    var pick: seq[seq[int]]
-    proc rec(i: int): bool =
-      if i == options.len: return true
-      for o in options[i]:
-        if pick.allIt(it.allIt(it notin o)):
-          pick.add o
-          if rec(i + 1): return true
-          discard pick.pop
-    if rec(0): pick else: @[]
+  proc lettersProblem(g: array[36, char]): pt.Problem =
+    for i in 0 .. 5: result.letters[i] = puz.letters[i]
+    for c in 0 ..< 36:
+      if g[c] != '.': result.letterHints.add pt.HintLetter(pos: (row: c div 6, col: c mod 6), letter: g[c])
+  proc fits(g: array[36, char], c: int, ch: char): bool =
+    if g[c] == ch: return true
+    g[c] == '.' and peersOf[c].allIt(g[it] != ch)
 
-  proc findFits(p: pt.Problem, rest: seq[int], starts: var seq[int], found: var seq[Fit], budget: var int) =
-    if found.len >= 10 or budget <= 0: return
-    if rest.len == 0:
-      dec budget
-      let r = ps.solve(p, noShare(300, 300))
-      for g in r.solutions:
-        let f = Fit(grid: g, starts: starts)
-        if found.len < 10 and not found.anyIt(it.grid == g) and f.pathsOf.len > 0: found.add f
+  var sG: array[36, char]       # the search state, kept here: Nim closures cannot capture var parameters
+  var sUsed: array[36, bool]
+  var sPaths: seq[seq[int]]
+  var sFound: seq[Fit]
+  var sBudget = 0
+  proc findFits(order: seq[int])
+  proc step(order: seq[int], path: var seq[int], c: int) =
+    # the next letter of word order[0] goes in cell c
+    if sFound.len >= 10 or sBudget <= 0: return
+    dec sBudget
+    let w = order[0]
+    let word = puz.clues[w].word
+    let k = path.len
+    if sUsed[c] or not sG.fits(c, word[k]): return
+    path.add c
+    if noUTurn and path.len >= 4 and path[^4 .. ^1].hasUTurn:
+      discard path.pop
       return
-    let w = rest[0]
-    for cell in 0 ..< 36:
-      if found.len >= 10 or budget <= 0: return
-      let q = ps.withWord(p, (row: cell div 6, col: cell mod 6), puz.clues[w].word)
-      dec budget
-      if ps.solve(q, noShare(1, 0)).count == 0: continue
-      starts[w] = cell
-      findFits(q, rest[1 .. ^1], starts, found, budget)
+    let old = sG[c]
+    sG[c] = word[k]
+    sUsed[c] = true
+    if path.len == word.len:
+      # a whole word: go on only if some sudoku still fits these letters
+      dec sBudget
+      if ps.solve(lettersProblem(sG), ps.defaultOptions(limit = 1, keep = 0)).count > 0:
+        sPaths[w] = path
+        findFits(order[1 .. ^1])
+        sPaths[w] = @[]
+    elif k + 1 < wpath[w].len:
+      step(order, path, wpath[w][k + 1])   # the word's container on the board fixes its first cells
+    else:
+      let (r, col) = (c div 6, c mod 6)
+      for (dr, dc) in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        if r + dr in 0 .. 5 and col + dc in 0 .. 5: step(order, path, idx(r + dr, col + dc))
+    sG[c] = old
+    sUsed[c] = false
+    discard path.pop
+  proc findFits(order: seq[int]) =
+    if sFound.len >= 10 or sBudget <= 0: return
+    if order.len == 0:
+      dec sBudget
+      let r = ps.solve(lettersProblem(sG), ps.defaultOptions(limit = 10 - sFound.len, keep = 10 - sFound.len))
+      for sg in r.solutions:
+        if sFound.len < 10 and not sFound.anyIt(it.grid == sg): sFound.add Fit(grid: sg, paths: sPaths)
+      return
+    let w = order[0]
+    var path: seq[int]
+    if wpath[w].len > 0: step(order, path, wpath[w][0])
+    else:
+      for c in 0 ..< 36: step(order, path, c)
 
   proc showFit() =
     for c in 0 ..< 36: solGrid[c] = '.'
@@ -765,7 +790,7 @@ nbJsFromCode:
     if fitShown < fitList.len:
       let f = fitList[fitShown]
       for c in 0 ..< 36: solGrid[c] = f.grid[c div 6][c mod 6]
-      solPaths = pathsOf(f)
+      solPaths = f.paths
     for c in 0 ..< 36: solWord[c] = -1
     for i, path in solPaths:
       for c in path: solWord[c] = i
@@ -797,16 +822,21 @@ nbJsFromCode:
         for ch in puz.letters:
           if peersOf[c].allIt(g[it] != ch): marks[c].add ch
     for c in 0 ..< 36: noneCell[c] = g[c] == '.' and marks[c].len == 0
-    var rest: seq[int]
-    var starts = newSeq[int](puz.clues.len)
-    for i in 0 ..< puz.clues.len:
-      if wpath[i].len == 0: rest.add i
-      else: starts[i] = wpath[i][0]
-    var found: seq[Fit]
-    var budget = 4000
-    if g.clashes.len == 0: findFits(p, rest, starts, found, budget)
-    fitList = found
-    fitCut = budget <= 0 and found.len < 10
+    # words on the board first, then the longest
+    var order: seq[int]
+    for i in 0 ..< puz.clues.len: order.add i
+    order.sort(proc (a, b: int): int =
+      result = cmp(wpath[b].len > 0, wpath[a].len > 0)
+      if result == 0: result = cmp(puz.clues[b].word.len, puz.clues[a].word.len))
+    for c in 0 ..< 36:
+      sG[c] = g[c]
+      sUsed[c] = false
+    sPaths = newSeq[seq[int]](puz.clues.len)
+    sFound = @[]
+    sBudget = searchBudget
+    if g.clashes.len == 0: findFits(order)
+    fitList = sFound
+    fitCut = sBudget <= 0 and sFound.len < 10
     fitShown = 0
     showFit()
     let r = ps.solve(toProblem(g, allTiles = false), ps.defaultOptions(limit = 1000, keep = 0))
@@ -821,7 +851,6 @@ nbJsFromCode:
       let cls = if full: " done" else: ""
       let on = if path.len > 0: " on" else: ""
       html.add &"""<div class="clue{cls}" data-clue="{i}" style="border-color:var(--w{i mod 3})">"""
-      html.add &"""<span class="wring{on}" data-ring="{i}" style="--wc:var(--w{i mod 3})"></span>"""
       for k, ch in clue.word:
         let li = puz.letters.find(ch)
         if k < path.len:
@@ -829,7 +858,9 @@ nbJsFromCode:
         else:
           html.add &"""<span class="l">{ch}</span>"""
       let tick = if full: "✓" else: ""
-      html.add &"""<span class="ok">{tick}</span></div>"""
+      html.add &"""<span class="ok">{tick}</span>"""
+      # the ring sits at the right end, where the thumb reaches it; its catch area is wider than it looks
+      html.add &"""<span class="wring{on}" data-ring="{i}" style="--wc:var(--w{i mod 3})"></span></div>"""
     cluesEl.innerHTML = cstring(html)
 
   let solEl = document.getElementById("sol")
@@ -841,7 +872,7 @@ nbJsFromCode:
     if fits == 0 and not fitsCut:
       s = """<b>0</b> soluzioni: così le parole non ci stanno"""
     elif fitsCut:
-      s = &"""<b>≥ {fits}</b> soluzioni (ricerca interrotta)"""
+      s = &"""<b>≥ {fits}</b> soluzioni…"""
     elif fits >= 10:
       s = """<b>10+</b> soluzioni"""
     elif fits == 1:
@@ -1399,19 +1430,43 @@ nbJsFromCode:
       let id = parseInt(it.key[1 .. ^1])
       if id div 6 == li and stage.state.cells.find(id) < 0: return it.svg
     tileSvg(li, false)
+  # while wiggling the six letters are drawn on top (the real stacks hidden). Dragging one works like the
+  # NIMBUS word of the declarative dragging explainer: the others make room live, by list insertion
+  let jigG = svgNode("g")
+  jigG.setAttribute("class", "jigs")
+  stage.svg.appendChild(jigG)
+  var jigN: seq[Element]
+  for li in 0 .. 5:
+    let n = svgNode("g")
+    jigG.appendChild(n)
+    jigN.add n
+  proc orderNow(): seq[int] =
+    result = newSeq[int](6)
+    for li in 0 .. 5: result[slotOf[li]] = li
+  proc moveTo(xs: seq[int], x, i: int): seq[int] =
+    result = xs
+    result.delete(xs.find(x))
+    result.insert(x, i)
+  proc nearestSlot(p: Vec): int =
+    var best = 1e9
+    for i in 0 .. 5:
+      let d = norm(slotPos(i) - p)
+      if d < best:
+        best = d
+        result = i
+  var jigPlan: seq[int]            # the order the held letter would make if let go now
   proc drawJig(at = vec(0, 0)) =
-    var g = ""
-    for li in 0 .. 5:
-      if li == jigHeld: continue
-      let s = stackPos(li)
-      g.add &"""<g transform="translate({s.x},{s.y})"><g class="jig j{li mod 2}">{tileLook(li)}</g></g>"""
-    if jigHeld >= 0:
-      let t = stackUnder(at)
-      if t >= 0 and t != jigHeld:
-        let q = stackPos(t)
-        g.add &"""<rect class="target" x="{q.x - 36}" y="{q.y - 36}" width="72" height="72" rx="13"/>"""
-      g.add &"""<g transform="translate({at.x:.1f},{at.y:.1f})"><g class="jig lift">{tileLook(jigHeld)}</g></g>"""
-    stage.ghosts.innerHTML = cstring(g)
+    jigPlan = orderNow()
+    if jigHeld >= 0: jigPlan = jigPlan.moveTo(jigHeld, nearestSlot(at))
+    for i, li in jigPlan:
+      let n = jigN[li]
+      if n.innerHTML.len == 0 or not jiggling:
+        n.innerHTML = cstring(&"""<g class="jig j{li mod 2}">{tileLook(li)}</g>""")
+      let held = li == jigHeld
+      n.setStyle("transition", if held: "none" else: "transform .2s ease")
+      n.setStyle("transform", tr(if held: at else: slotPos(i)))
+      n.setAttribute("class", if held: "jt lift" else: "jt")
+    if jigHeld >= 0: jigG.appendChild(jigN[jigHeld])     # the held one floats above
   proc startJiggle() =
     jiggling = true
     # the tile the press lifted goes back: the stacks are drawn wiggling on top, the real ones hidden
@@ -1428,35 +1483,24 @@ nbJsFromCode:
     if css.len > 0: css.add "{visibility:hidden}"
     jigStyle.innerHTML = cstring(css)
     stage.svg.addClass("jiggling")
+    for n in jigN: n.innerHTML = ""
+    jigG.setHidden(false)
     buzz2()
-    say "Trascina una lettera su un'altra per scambiarle. Doppio tocco su una lettera per finire."
+    say "Trascina una lettera dove vuoi: le altre si spostano. Doppio tocco su una lettera per finire."
     drawJig()
   proc stopJiggle() =
     jiggling = false
     jigHeld = -1
     jigStyle.innerHTML = ""
     stage.svg.dropClass("jiggling")
-    stage.ghosts.innerHTML = ""
+    jigG.setHidden(true)
     say ""
-  proc swapLetters(i, j: int) =
-    var ls = puz.letters
-    swap(ls[i], ls[j])
-    puz.letters = ls
-    var b = stage.state
-    for c in 0 ..< 36:
-      let id = b.cells[c]
-      if id >= 0:
-        if id div 6 == i: b.cells[c] = j * 6 + id mod 6
-        elif id div 6 == j: b.cells[c] = i * 6 + id mod 6
-    history = @[]                  # the tiles were renumbered: undo starts again from here
-    last = b
-    undoBtn.setDisabled(true)
-    stage.state = b
+  jigG.setHidden(true)
+  proc commitOrder(order: seq[int]) =
+    ## only the letters below move: the board, its colours and the words stay as they are
+    for i, li in order: slotOf[li] = i
+    stage.draw(stage.state)
     refresh()
-    let keep = jiggling
-    if keep:
-      jiggling = false
-      startJiggle()
   # holding a letter below starts the wiggling, a double tap on a letter ends it
   var stackTap = -1
   var stackTapAt = 0.0
@@ -1508,17 +1552,20 @@ nbJsFromCode:
       drawJig()
       return
     let held = jigHeld
-    jigHeld = -1
     if not jigMoved:
+      jigHeld = -1
       if doubleTap(li): stopJiggle()
       else: drawJig()
       return
     stackTap = -1
-    let t = stackUnder(localOf(ev))
-    if held >= 0 and t >= 0 and t != held:
-      buzz2()
-      swapLetters(held, t)
-    else: drawJig(), true)
+    if held >= 0:
+      drawJig(localOf(ev))
+      let plan = jigPlan
+      jigHeld = -1
+      if plan != orderNow():
+        buzz2()
+        commitOrder(plan)
+    drawJig(), true)
 
   document.addEventListener("pointercancel", proc (ev: Event) =
     pressStarted = false
@@ -1604,7 +1651,7 @@ nbJsFromCode:
     for gv in puz.givens: pins.add b36[idx(gv.pos)]
     var words: seq[string]
     for clue in puz.clues: words.add clue.word
-    puz.letters & "~" & words.join("-") & "~" & paths & "~" & board & "~" & pins
+    orderedLetters() & "~" & words.join("-") & "~" & paths & "~" & board & "~" & pins
   proc loadState(code: string): bool =
     let parts = code.split('~')
     if parts.len != 5 or parts[3].len != 36: return false
@@ -1647,9 +1694,43 @@ nbJsFromCode:
     e.innerHTML = "✓"
     say what
     discard setTimer(proc () = e.innerHTML = old, 1200)
+  proc puzzleJson(): (string, int) =
+    ## the puzzle as puzzlepaw JSON (letters in the order below the board, pins, word starts), with its
+    ## solution and, under "builder", the link that reopens this exact state; also how many solutions it has
+    let lets = orderedLetters()
+    var p: pt.Problem
+    for i in 0 .. 5: p.letters[i] = lets[i]
+    for gv in puz.givens: p.letterHints.add pt.HintLetter(pos: gv.pos, letter: gv.letter)
+    for i, clue in puz.clues:
+      if wpath[i].len > 0: p.wordHints.add pt.HintWord(pos: clue.pos, word: clue.word)
+    let r = ps.solve(p, ps.defaultOptions(limit = 2, keep = 1))
+    proc sep(k: int): string =
+      if k > 0: result = ","
+    var j = "{\"problem\":{\"letters\":["
+    for i in 0 .. 5: j.add sep(i) & "\"" & lets[i] & "\""
+    j.add "],\"letterHints\":["
+    for k, h in p.letterHints:
+      j.add sep(k) & &"{{\"pos\":[{h.pos.row},{h.pos.col}],\"letter\":\"{h.letter}\"}}"
+    j.add "],\"wordHints\":["
+    for k, h in p.wordHints:
+      j.add sep(k) & &"{{\"pos\":[{h.pos.row},{h.pos.col}],\"word\":\"{h.word}\"}}"
+    j.add "]}"
+    if r.solutions.len > 0:
+      j.add ",\"solution\":["
+      for row in 0 .. 5:
+        j.add sep(row) & "["
+        for col in 0 .. 5: j.add sep(col) & "\"" & r.solutions[0][row][col] & "\""
+        j.add "]"
+      j.add "]"
+    j.add ",\"builder\":\"" & builderUrl() & "\"}"
+    (j, r.count)
   document.getElementById("save").addEventListener("click", proc (ev: Event) =
-    copyText(cstring(builderUrl()))
-    copied(document.getElementById("save"), "Copiato il link al builder in questo stato."))
+    let (j, n) = puzzleJson()
+    copyText(cstring(j))
+    var note = "Copiato il JSON, ma il puzzle ha più soluzioni: aggiungi indizi 📌 prima di metterlo nel gioco."
+    if n == 1: note = "Copiato il puzzle (JSON con soluzione e stato del builder). Incollalo in chat per aggiungerlo al gioco."
+    if n == 0: note = "Copiato il JSON, ma questo puzzle non ha soluzioni: non si può ancora giocare."
+    copied(document.getElementById("save"), note))
   proc randomInt(n: int): int {.importjs: "Math.floor(Math.random() * #)".}
   let uBox = document.getElementById("nou")
   uBox.addEventListener("change", proc (ev: Event) =
