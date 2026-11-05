@@ -731,9 +731,11 @@ nbCodeAnd(nbJsFromCode):
       # each word is an outline in its own dark colour: a ring on its start cell that grows around its letters
       let path = g.trace(clue)
       let ink = &"w{i mod 3}"
-      let t = if focusClue == i: 8.0 else: 5.0
-      let rr = cell * 0.47
-      let corner = 18.0                    # outer corner radius of the outline: rounded squares, as the word boxes
+      var t = 4.0
+      if focusClue == i: t = 6.0
+      # the outline stays inside its cells (3 units from each edge), so two words in cells side by side never touch
+      let rr = cell / 2 - 3 - t
+      let corner = 14.0                    # outer corner radius of the outline: rounded squares, as the word boxes
       if wiggleClue == i:
         var (sx, sy) = (0.0, 0.0)
         let cells = if path.len > 0: path else: @[idx(clue.pos)]
@@ -754,7 +756,7 @@ nbCodeAnd(nbJsFromCode):
         # round stroke joins round the outer corners; the inner (concave) corners get a fillet each,
         # so the outline never has a sharp angle: one for the outer edge, a wider one for the inner edge
         var fillOut, fillIn = ""
-        let (wOut, wIn, f) = (rr + t, rr, 16.0)
+        let (wOut, wIn, f) = (rr + t, rr, 10.0)
         for k in 1 .. path.len - 2:
           let (p0, p1, p2) = (cellPos(path[k - 1]), cellPos(path[k]), cellPos(path[k + 1]))
           let a = vec((p1.x - p0.x) / cell, (p1.y - p0.y) / cell)
