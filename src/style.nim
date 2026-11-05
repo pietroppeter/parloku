@@ -122,8 +122,7 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .layer{filter:brightness(.88)}
 .tile .ring{fill:none;stroke:rgba(255,255,255,.6);stroke-width:5}
 .sh{fill:#fff;opacity:var(--shine)}
-.gv,.gvc{fill:none;stroke:var(--ink);stroke-opacity:.85;stroke-width:3.5}
-/* a given can't move: a solid dark ring inside, and a thicker outline */
+/* a given can't move: just a thicker dark outline */
 .tile.given rect,.tile.given circle,.tile.given path{stroke:var(--ink);stroke-width:4.5px}
 .tile.given .ring{stroke:rgba(255,255,255,.6)}
 .frame{fill:var(--frame)}

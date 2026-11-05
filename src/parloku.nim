@@ -579,8 +579,6 @@ nbCodeAnd(nbJsFromCode):
     if given: cls = "tile given"
     result = shapes(li, cls) & """<rect class="sh" x="-25" y="-26" width="50" height="20" rx="8"/>""" &
       &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{letter}</text>"""
-    if given:
-      result.add """<rect class="gv" x="-26" y="-26" width="52" height="52" rx="8"/><circle class="gvc" r="25"/>"""
 
   proc renderBoard(b: Board): seq[Item] =
     var at: array[36, int]
