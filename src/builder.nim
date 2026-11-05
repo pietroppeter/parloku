@@ -40,7 +40,7 @@ nbRawHtml: """
 </div>
 <div class="panel" id="panel"></div>
 <details class="how"><summary>come funziona</summary>
-<p><b>Parole.</b> Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta.</p>
+<p><b>Parole.</b> Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Se trascini l'ultima lettera più lontano, ne fai una copia come nel gioco.</p>
 <p><b>Lettere forzate.</b> Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.</p>
 <p><b>Togliere.</b> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
 <p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
@@ -1138,6 +1138,19 @@ nbJsFromCode:
       if growWord != growing: showOpts(growing)
     if growMoved:
       let p = localOf(ev)
+      let tail = wpath[growing][^1]
+      if norm(p - cellPos(tail)) > cell * 1.5:
+        # dragged farther than the next cells: an ordinary copy of the letter, as in the game
+        let key = &"t{stage.state.cells[tail]}"
+        growing = -1
+        if growTimer != 0:
+          clearTimer(growTimer)
+          growTimer = 0
+        clearOpts()
+        capture2(stage.svg, ev)
+        stage.start(key, cellPos(tail))
+        if stage.dragKey.len > 0: stage.move(p)
+        return
       let ch = puz.clues[growing].word[wpath[growing].len]
       let li = puz.letters.find(ch)
       let t = nearestOpt(p)

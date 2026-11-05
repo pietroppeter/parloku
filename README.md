@@ -63,7 +63,7 @@ Givens are `<row><col><letter>` and words `<row><col><word>`, 0-based and separa
 
 `builder.html` ([src/builder.nim](src/builder.nim)) makes new puzzles with the game's board and gestures. Pick a
 set of three words. Each word is listed with a ring: drag the ring onto a cell to start the word there with its first
-letter. Hold the word's last letter to see where the next one can go, then drag there (or tap one) to add it. A double
+letter. Hold the word's last letter to see where the next one can go, then drag there (or tap one) to add it; dragged farther away it makes a copy, as in the game. A double
 tap on a letter sends it back, together with the rest of its word after it; a double tap on the ring removes the word.
 Every empty cell shows in pencil the letters some complete grid can still put there, and a cell with none turns red.
 A double tap on an empty cell with a single pencil mark puts that letter there. Holding a letter below makes the six
