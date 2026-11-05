@@ -145,7 +145,7 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .clue:nth-child(3n+2){align-self:center} .clue:nth-child(3n){align-self:flex-end}
 .clue.focus{box-shadow:0 0 0 3px color-mix(in srgb,currentColor 0%,transparent),0 4px 12px rgba(0,0,0,.12)}
 .wo,.wl,.wm{fill:none;stroke-linecap:round;stroke-linejoin:round}
-.wo.w0,.wl.w0{stroke:var(--w0)} .wo.w1,.wl.w1{stroke:var(--w1)} .wo.w2,.wl.w2{stroke:var(--w2)}
+.wf.w0{fill:var(--w0)} .wf.w1{fill:var(--w1)} .wf.w2{fill:var(--w2)} .wo.w0,.wl.w0{stroke:var(--w0)} .wo.w1,.wl.w1{stroke:var(--w1)} .wo.w2,.wl.w2{stroke:var(--w2)}
 .wo,.wl{transition:stroke-width .2s}
 /* tiles that divide */
 .neck{stroke:var(--tstroke);stroke-width:var(--tsw)}

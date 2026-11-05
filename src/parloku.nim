@@ -682,11 +682,27 @@ nbCodeAnd(nbJsFromCode):
           let p = cellPos(c)
           let cmd = if k == 0: "M" else: "L"
           d.add &"{cmd}{p.x:.1f},{p.y:.1f} "
+        # round stroke joins round the outer corners; the inner (concave) corners get a fillet each,
+        # so the outline never has a sharp angle: one for the outer edge, a wider one for the inner edge
+        var fillOut, fillIn = ""
+        let (wOut, wIn, f) = (rr + t, rr, 16.0)
+        for k in 1 .. path.len - 2:
+          let (p0, p1, p2) = (cellPos(path[k - 1]), cellPos(path[k]), cellPos(path[k + 1]))
+          let a = vec((p1.x - p0.x) / cell, (p1.y - p0.y) / cell)
+          let b = vec((p2.x - p1.x) / cell, (p2.y - p1.y) / cell)
+          if abs(a.x * b.x + a.y * b.y) > 0.5: continue        # straight on: no corner
+          for (w, r, inner) in [(wOut, f, false), (wIn, f + t, true)]:
+            let kx = vec(p1.x + w * (b.x - a.x), p1.y + w * (b.y - a.y))   # the concave corner of this edge
+            let s1 = vec(kx.x - a.x * r, kx.y - a.y * r)
+            let s2 = vec(kx.x + b.x * r, kx.y + b.y * r)
+            let piece = &"M{kx.x:.1f},{kx.y:.1f}L{s1.x:.1f},{s1.y:.1f}Q{kx.x:.1f},{kx.y:.1f} {s2.x:.1f},{s2.y:.1f}Z"
+            if inner: fillIn.add piece
+            else: fillOut.add piece
         let m = &"{maskTag}{i}"
         result.add &"""<mask id="{m}" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="650">""" &
-          &"""<path d="{d}" class="wm" stroke="#fff" stroke-width="{2 * rr + 2 * t:.1f}"/>""" &
-          &"""<path d="{d}" class="wm" stroke="#000" stroke-width="{2 * rr:.1f}"/></mask>""" &
-          &"""<path d="{d}" class="wl {ink}" stroke-width="{2 * rr + 2 * t:.1f}" mask="url(#{m})"/>"""
+          &"""<path d="{d}" class="wm" stroke="#fff" stroke-width="{2 * wOut:.1f}"/><path d="{fillOut}" fill="#fff"/>""" &
+          &"""<path d="{d}" class="wm" stroke="#000" stroke-width="{2 * wIn:.1f}"/><path d="{fillIn}" fill="#000"/></mask>""" &
+          &"""<rect class="wf {ink}" x="0" y="0" width="600" height="650" mask="url(#{m})"/>"""
     if coachTarget >= 0:
       let p = cellPos(coachTarget)
       result.add &"""<rect class="aim pulse" x="{p.x - 37}" y="{p.y - 37}" width="74" height="74" rx="12"/>"""
