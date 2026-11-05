@@ -18,7 +18,7 @@ const gardenStyle = """
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 :root{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
-html{background:var(--paper)}
+html{background:var(--paper);-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0 auto;max-width:740px;padding:0 16px 60px;color:var(--ink);font:17px/1.62 Karla,system-ui,sans-serif;background:var(--paper)}
 body::before{content:"";display:block;height:22px;margin:0 -16px;border-bottom:2px solid var(--ink);
   background:radial-gradient(circle at 11px 11px,var(--moss) 0 6px,transparent 7px) 0 0/44px 22px,
@@ -37,7 +37,7 @@ a{color:var(--leaf);text-underline-offset:3px}
 .lede{font:italic 600 20px/1.45 Fraunces,Georgia,serif;color:#3b4d33;margin-top:4px}
 p code,li code,td code{font:14px "JetBrains Mono",monospace;background:#e6e4cc;padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
 pre{margin:14px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%;
-  padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;font:11.5px/1.55 "JetBrains Mono",monospace;tab-size:2}
+  padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;font:11px/1.5 "JetBrains Mono",monospace;tab-size:2;-webkit-text-size-adjust:100%;text-size-adjust:100%}
 pre,pre code{font-variant-ligatures:none;font-feature-settings:"calt" 0,"liga" 0}
 pre code{display:block;width:max-content;min-width:100%;padding:0;background:none;border:0;font:inherit;color:#22301d;white-space:pre}
 pre.nb-output{background:var(--ink);border-color:var(--ink);color:#eef0dc;white-space:pre}
