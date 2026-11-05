@@ -1064,8 +1064,6 @@ nbJsFromCode:
   proc interactive(ev: Event): bool {.importjs:
     "!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')".}
   proc scrollTop() {.importjs: "window.scrollTo(0, 0)".}
-  proc hasSplash(): bool {.importjs: "(!!window.parlokuSplash)".}
-  proc showSplash() {.importjs: "window.parlokuSplash.splash(false)".}
   proc inPlay(ev: Event): bool {.importjs: "!!#.target.closest('.play')".}
   proc setTimer(cb: proc (), ms: int): int {.importjs: "setTimeout(#, #)".}
   proc clearTimer(t: int) {.importjs: "clearTimeout(#)".}
@@ -1082,25 +1080,12 @@ nbJsFromCode:
       else: document.body.classList.remove(cstring(k))
     if m == "chrome":
       armHide()
-      let hi = document.getElementById("hello")
-      if not hi.isNil: hi.setHidden(not hasSplash())   # the splash script may load after this one
   let playEl = document.getElementById("play")
   if not playEl.isNil:
     setMode("focus")
     # one menu bar, at the top only: the puzzles and restart
     let bar = document.querySelector(".picker")
     bar.appendChild(document.getElementById("reset"))
-    # 👋 says hello again: back to the splash, when the page has one
-    let hi = document.createElement("button")
-    hi.className = "btn"
-    hi.id = "hello"
-    hi.setAttr("aria-label", "splash")
-    hi.innerHTML = "👋"
-    hi.setHidden(not hasSplash())
-    bar.appendChild(hi)
-    hi.addEventListener("click", proc (e: Event) =
-      setMode("focus")
-      showSplash())
     for ev in ["pointerdown", "scroll"]:
       bar.addEventListener(cstring(ev), proc (e: Event) = armHide())
     document.addEventListener("click", proc (ev: Event) =
@@ -1222,7 +1207,7 @@ nbJsFromCode:
     for i, (gc, title) in games:
       let on = if gc == c and not tutorial: " on" else: ""
       let name = if title == "": L("from the link", "dal link") else: title
-      html.add &"""<button class="btn num{on}" data-i="{i}" title="{name}" aria-label="{L("puzzle", "puzzle")} {i + 1}: {name}">{i + 1}</button>"""
+      html.add &"""<button class="btn num{on}" data-i="{i}" aria-label="{L("puzzle", "puzzle")} {i + 1}: {name}">{name}</button>"""   # named by its three words
     pickerEl.innerHTML = cstring(html)
     stage.setState(b)
     history = @[]
