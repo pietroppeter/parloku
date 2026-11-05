@@ -30,6 +30,12 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 /* pencil marks in the empty cells */
 .pm{font:700 15px "JetBrains Mono",monospace;fill:color-mix(in srgb,var(--ink) 50%,transparent);pointer-events:none}
 .dragging .pm{opacity:.5}
+.pm.sl{font:700 30px var(--font-glyph);fill:color-mix(in srgb,var(--ink) 38%,transparent)}
+.sp{fill:none;stroke:color-mix(in srgb,var(--ink) 35%,transparent);stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:.1 11}
+.sp0{fill:none;stroke-width:4}
+.status .acts{align-items:center}
+.tool.dice{width:38px;height:38px;font-size:18px;margin-left:6px}
+.tool:disabled{opacity:.35;cursor:default}
 /* words on the left, four round tools in a square on the right */
 .bld .top{display:flex;align-items:center;gap:10px}
 .bld .top .clues{flex:1;min-width:0}

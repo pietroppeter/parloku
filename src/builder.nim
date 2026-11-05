@@ -37,6 +37,7 @@ nbRawHtml: """
   <div class="status"><span class="acts">
     <button class="btn" id="undo" disabled>↶ annulla</button>
     <span class="sol" id="sol" title="griglie complete con queste lettere e tutte e tre le parole"></span>
+    <button class="tool dice" id="dice" title="un'altra soluzione" aria-label="un'altra soluzione">🎲</button>
   </span></div>
 </div>
 <div class="panel" id="panel"></div>
@@ -47,7 +48,7 @@ nbRawHtml: """
 <p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
 <p><b>Ordine delle lettere.</b> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.</p>
 <p><b>Icone.</b> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.</p>
-<p><b>Soluzioni.</b> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+.</p>
+<p><b>Soluzioni.</b> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le tre parole non si sovrappongono. Una delle soluzioni è disegnata a matita nelle caselle vuote, con il percorso delle tre parole; 🎲 ne mostra un'altra.</p>
 <p><b>Annotazioni.</b> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><b>Indizi.</b> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
 </details>
@@ -223,6 +224,9 @@ nbJsFromCode:
   var noneCell: array[36, bool]   # an empty cell with no letter left
   var growWord = -1               # the word being lengthened (its last letter is held)
   var growOpts: seq[int]          # where its next letter can go
+  var solGrid: array[36, char]    # the solution shown in the empty cells ('.' = none)
+  var solPaths: seq[seq[int]]     # its three words, cell by cell
+  for c in 0 ..< 36: solGrid[c] = '.'
 
   const pinSvg = """<svg class="pin" viewBox="-14 -20 28 40"><line x1="0" y1="0" x2="0" y2="18"/><circle cx="0" cy="-6" r="10"/><circle class="hi" cx="-3" cy="-9" r="3"/></svg>"""
 
@@ -382,13 +386,26 @@ nbJsFromCode:
       result.add &"""<rect class="cell {fill}" x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7"/>"""
       if c in bad or (noneCell[c] and b.cells[c] < 0):
         result.add &"""<rect x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7" class="badline"/>"""
-    # builder: pencil marks in the empty cells, the letters some complete grid can still put there
+    # builder: the words of the solution shown, as thin lines along their cells
+    for wi, path in solPaths:
+      var d = ""
+      for k, c in path:
+        let p = cellPos(c)
+        let cmd = if k == 0: "M" else: "L"
+        d.add &"{cmd}{p.x:.1f},{p.y:.1f} "
+      if path.len > 0:
+        let p0 = cellPos(path[0])
+        result.add &"""<circle class="sp0" style="stroke:color-mix(in srgb,var(--w{wi mod 3}) 55%,transparent)" cx="{p0.x}" cy="{p0.y}" r="30"/><path class="sp" d="{d}"/>"""
+    # builder: in the empty cells, the letters of the solution shown, or else the pencil marks
     for c in 0 ..< 36:
       if b.cells[c] < 0 and not noneCell[c]:
         let p = cellPos(c)
-        for k, l in puz.letters:
-          if l in marks[c]:
-            result.add &"""<text class="pm" x="{p.x - 22 + float(k mod 3) * 22:.0f}" y="{p.y - 6 + float(k div 3) * 24:.0f}" text-anchor="middle">{l}</text>"""
+        if solGrid[c] != '.':
+          result.add &"""<text class="pm sl" x="{p.x}" y="{p.y + 11}" text-anchor="middle">{solGrid[c]}</text>"""
+        else:
+          for k, l in puz.letters:
+            if l in marks[c]:
+              result.add &"""<text class="pm" x="{p.x - 22 + float(k mod 3) * 22:.0f}" y="{p.y - 6 + float(k div 3) * 24:.0f}" text-anchor="middle">{l}</text>"""
     for i in 1 .. 2:
       let y = by + i.float * cell * 2
       result.add &"""<rect class="boxline" x="{bx}" y="{y - 2.5}" width="{cell * 6}" height="5"/>"""
@@ -716,23 +733,60 @@ nbJsFromCode:
 
   # ---- the real solver: complete grids that keep every letter on the board and fit all three words,
   # trying every start for the words not on the board yet (up to 10 different grids)
-  var fits = 0                 # grids found (10 = 10 or more)
-  var fitsCut = false          # the search hit its budget before deciding
-  proc findFits(p: pt.Problem, rest: seq[string], found: var seq[pt.Grid], budget: var int) =
+  # (for now the words never share a cell)
+  type Fit = object
+    grid: pt.Grid
+    starts: seq[int]           # each word's start cell
+  var fitList: seq[Fit]        # up to 10 different grids
+  var fitCut = false           # the search hit its budget before deciding
+  var fitShown = 0             # the one drawn on the board
+  proc noShare(limit, keep: int): ps.SolveOptions =
+    result = ps.defaultOptions(limit = limit, keep = keep)
+    result.allowShared = false
+  proc findFits(p: pt.Problem, rest: seq[int], starts: var seq[int], found: var seq[Fit], budget: var int) =
     if found.len >= 10 or budget <= 0: return
     if rest.len == 0:
       dec budget
-      let r = ps.solve(p, ps.defaultOptions(limit = 10, keep = 10))
+      let r = ps.solve(p, noShare(10, 10))
       for g in r.solutions:
-        if g notin found and found.len < 10: found.add g
+        if found.len < 10 and not found.anyIt(it.grid == g): found.add Fit(grid: g, starts: starts)
       return
     let w = rest[0]
     for cell in 0 ..< 36:
       if found.len >= 10 or budget <= 0: return
-      let q = ps.withWord(p, (row: cell div 6, col: cell mod 6), w)
+      let q = ps.withWord(p, (row: cell div 6, col: cell mod 6), puz.clues[w].word)
       dec budget
-      if ps.solve(q, ps.defaultOptions(limit = 1, keep = 0)).count == 0: continue
-      findFits(q, rest[1 .. ^1], found, budget)
+      if ps.solve(q, noShare(1, 0)).count == 0: continue
+      starts[w] = cell
+      findFits(q, rest[1 .. ^1], starts, found, budget)
+
+  proc pathsOf(f: Fit): seq[seq[int]] =
+    ## the three words in the grid: a path for each from its start, no two sharing a cell
+    var options: seq[seq[seq[int]]]
+    for i, clue in puz.clues:
+      var o: seq[seq[int]]
+      for path in ps.wordPaths(f.grid, pt.HintWord(pos: (row: f.starts[i] div 6, col: f.starts[i] mod 6), word: clue.word)):
+        var cells: seq[int]
+        for q in path: cells.add idx(q.row, q.col)
+        o.add cells
+      options.add o
+    var pick: seq[seq[int]]
+    proc rec(i: int): bool =
+      if i == options.len: return true
+      for o in options[i]:
+        if pick.allIt(it.allIt(it notin o)):
+          pick.add o
+          if rec(i + 1): return true
+          discard pick.pop
+    if rec(0): pick else: @[]
+
+  proc showFit() =
+    for c in 0 ..< 36: solGrid[c] = '.'
+    solPaths = @[]
+    if fitShown < fitList.len:
+      let f = fitList[fitShown]
+      for c in 0 ..< 36: solGrid[c] = f.grid[c div 6][c mod 6]
+      solPaths = pathsOf(f)
 
   proc analyze(b: Board) =
     let g = b.grid
@@ -761,14 +815,18 @@ nbJsFromCode:
         for ch in puz.letters:
           if peersOf[c].allIt(g[it] != ch): marks[c].add ch
     for c in 0 ..< 36: noneCell[c] = g[c] == '.' and marks[c].len == 0
-    var rest: seq[string]
-    for i, clue in puz.clues:
-      if wpath[i].len == 0: rest.add clue.word
-    var found: seq[pt.Grid]
+    var rest: seq[int]
+    var starts = newSeq[int](puz.clues.len)
+    for i in 0 ..< puz.clues.len:
+      if wpath[i].len == 0: rest.add i
+      else: starts[i] = wpath[i][0]
+    var found: seq[Fit]
     var budget = 4000
-    if complete: findFits(p, rest, found, budget)
-    fits = found.len
-    fitsCut = budget <= 0 and fits < 10
+    if g.clashes.len == 0: findFits(p, rest, starts, found, budget)
+    fitList = found
+    fitCut = budget <= 0 and found.len < 10
+    fitShown = 0
+    showFit()
     let r = ps.solve(toProblem(g, allTiles = false), ps.defaultOptions(limit = 1000, keep = 0))
     count = r.count
     countDone = r.complete
@@ -793,7 +851,10 @@ nbJsFromCode:
     cluesEl.innerHTML = cstring(html)
 
   let solEl = document.getElementById("sol")
+  let diceBtn = document.getElementById("dice")
   proc showFits() =
+    let fits = fitList.len
+    let fitsCut = fitCut
     var s = ""
     if fits == 0 and not fitsCut:
       s = """<b>0</b> soluzioni: così le parole non ci stanno"""
@@ -807,7 +868,10 @@ nbJsFromCode:
       s = &"""<b>{fits}</b> soluzioni"""
     let cls = if fits == 0 and not fitsCut: "sol zero" else: "sol"
     solEl.className = cstring(cls)
+    if fits > 0:
+      s.add &""" · questa è la {fitShown + 1}"""
     solEl.innerHTML = cstring(s)
+    diceBtn.setDisabled(fits < 2)
 
   proc showPanel(b: Board) =
     var s = ""
@@ -1579,6 +1643,15 @@ nbJsFromCode:
   document.getElementById("save").addEventListener("click", proc (ev: Event) =
     copyText(cstring(builderUrl()))
     copied(document.getElementById("save"), "Copiato il link al builder in questo stato."))
+  proc randomInt(n: int): int {.importjs: "Math.floor(Math.random() * #)".}
+  diceBtn.addEventListener("click", proc (ev: Event) =
+    if fitList.len < 2: return
+    var k = randomInt(fitList.len - 1)
+    if k >= fitShown: inc k
+    fitShown = k
+    showFit()
+    stage.draw(stage.state)
+    showFits())
   document.getElementById("link").addEventListener("click", proc (ev: Event) =
     copyText(cstring(playUrl & playCode()))
     copied(document.getElementById("link"), "Copiato il link per giocare questo puzzle."))
