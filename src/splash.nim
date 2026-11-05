@@ -65,8 +65,7 @@ const splashCss* = """
 .tu-t.bump{animation:tu-bump .45s}
 @keyframes tu-bump{40%{transform:translate(calc(var(--x) * var(--c)), calc(var(--y) * var(--c))) scale(1.18)}}
 .tu-t.dim{opacity:.3}
-.tu-n{position:absolute;left:0;top:0;width:calc(var(--c) * .34);height:calc(var(--c) * .34);border-radius:50%;color:#fff;
-  font:700 calc(var(--c) * .2)/calc(var(--c) * .34) "JetBrains Mono",monospace;text-align:center;z-index:2;
+.tu-n{position:absolute;left:0;top:0;width:var(--c);height:var(--c);border-radius:26%;border:calc(var(--c) * .07) solid;z-index:2;pointer-events:none;
   transform:translate(calc(var(--x) * var(--c)), calc(var(--y) * var(--c)));opacity:0;transition:opacity .4s}
 .tu-n.on{opacity:1}
 .tu-text{min-height:5.4em;margin:12px 2px 10px;font-size:16.5px;line-height:1.45;text-align:left}
@@ -395,23 +394,23 @@ async function play() {
     const c = CLUES[i];
     c.path.forEach(p => lit.add(p));
     for (const p of ALL) cellT[p].classList.toggle('dim', !lit.has(p));
-    const n = mk('tu-n', i + 1);
-    n.style.background = `var(--c${i % 5})`;
-    at(n, c.c - 0.04, c.r - 0.04);
+    const n = mk('tu-n');
+    n.style.borderColor = `var(--w${i % 3})`;
+    at(n, c.c, c.r);
     nums.push(n);
     await frame(); n.classList.add('on');
     const d = c.path.map((p, k) => `${k ? 'L' : 'M'}${p % 6 + 0.5} ${Math.floor(p / 6) + 0.5}`).join(' ');
-    paths.insertAdjacentHTML('beforeend', `<path class="tu-path" pathLength="1" d="${d}" style="stroke:var(--c${i % 5})"/>`);
+    paths.insertAdjacentHTML('beforeend', `<path class="tu-path" pathLength="1" d="${d}" style="stroke:var(--w${i % 3})"/>`);
     const el = paths.lastChild;
     await frame(); el.classList.add('on');
     for (const p of c.path) { const t = cellT[p]; t.classList.remove('bump'); void t.offsetWidth; t.classList.add('bump'); await sleep(1600 / c.path.length) }
   }
   await trace(0);
-  say(T(`<b>${CLUES[0].word}</b> starts in cell 1 and goes one step at a time: up, down, left or right. Never diagonally.`,
-        `<b>${CLUES[0].word}</b> parte dalla casella 1 e va avanti un passo alla volta: su, giù, a destra o a sinistra. Mai in diagonale.`), 4);
+  say(T(`<b>${CLUES[0].word}</b> starts in the cell with its colour and goes one step at a time: up, down, left or right. Never diagonally.`,
+        `<b>${CLUES[0].word}</b> parte dalla casella del suo colore e va avanti un passo alla volta: su, giù, a destra o a sinistra. Mai in diagonale.`), 4);
   await next();
-  say(T(`Same for <b>${CLUES[1].word}</b> from cell 2 and <b>${CLUES[2].word}</b> from cell 3.`,
-        `Lo stesso per <b>${CLUES[1].word}</b> dalla casella 2 e <b>${CLUES[2].word}</b> dalla casella 3.`), 4);
+  say(T(`Same for <b>${CLUES[1].word}</b> and <b>${CLUES[2].word}</b>, each from its own cell, each in its own colour.`,
+        `Lo stesso per <b>${CLUES[1].word}</b> e <b>${CLUES[2].word}</b>, ognuna dalla sua casella, ognuna con il suo colore.`), 4);
   for (let i = 1; i < CLUES.length; i++) await trace(i);
   await next();
 
@@ -420,11 +419,11 @@ async function play() {
   for (const p of ALL) cellT[p].classList.remove('dim');
   for (const c of ALL) if (!D.givens.includes(c)) { at(cellT[c], ...trayXY(li(SOL[c]))); cellT[c].classList.add('ghost') }
   await sleep(700);
-  say(T('A puzzle starts almost empty: a few letters, the words and the cells where they start.\nThe words are clues: they tell you where letters go.',
-        'Un puzzle parte quasi vuoto: qualche lettera, le parole e le caselle dove iniziano.\nLe parole sono indizi: ti dicono dove vanno le lettere.'), 5);
+  say(T('A puzzle starts almost empty: a few letters, and for each word the coloured cell where it starts.\nThe words are clues: they tell you where letters go.',
+        'Un puzzle parte quasi vuoto: qualche lettera e, per ogni parola, la casella colorata dove inizia.\nLe parole sono indizi: ti dicono dove vanno le lettere.'), 5);
   await next();
-  say(T('To play, drag a tile from its stack onto a cell. Want me to guide your first puzzle?',
-        'Per giocare trascina una tessera dalla sua pila su una casella. Vuoi che ti guidi nel primo puzzle?'), 5);
+  say(T('To play, pull a copy out of a letter below the board and drop it on a cell. Want me to guide your first puzzle?',
+        'Per giocare tira fuori una copia da una lettera sotto la griglia e lasciala su una casella. Vuoi che ti guidi nel primo puzzle?'), 5);
   const how = await ask([[T('Just play', 'Gioco da solo'), 'play'], [T('🎓 Guide me', '🎓 Guidami'), 'guide', true]]);
   ls.set('parloku:learned', '1');
   close();

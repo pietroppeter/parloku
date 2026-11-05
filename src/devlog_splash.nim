@@ -118,10 +118,10 @@ nbRawHtml: """
   <li><b>Do you know what a mini sudoku is?</b> Three answers: <i>No, what's a sudoku?</i> · <i>I know sudoku, not the mini one</i> ·
     <i>Yes, I know it</i>.</li>
   <li><b>The mini sudoku, at your level.</b> The 6×6 grid appears above the six symbols, and tiles fly up from them into the cells (see the table below).</li>
-  <li><b>The words are in the grid.</b> On the solved grid, ITALIA lights up from its numbered cell, one step at a time, while the other
+  <li><b>The words are in the grid.</b> On the solved grid, ITALIA lights up from its start cell, ringed in the word's colour, one step at a time, while the other
     letters fade. <i>“Up, down, left or right. Never diagonally.”</i> Then PASTA and ALPI.</li>
-  <li><b>How a puzzle starts.</b> Every tile flies back home except the three given letters, and the three numbers stay.
-    <i>“The words are clues: they tell you where letters go.”</i> Then: <i>“To play, drag a tile from its stack onto a cell.
+  <li><b>How a puzzle starts.</b> Every tile flies back home except the three given letters, and the three coloured start rings stay.
+    <i>“The words are clues: they tell you where letters go.”</i> Then: <i>“To play, pull a copy out of a letter below the board and drop it on a cell.
     Want me to guide your first puzzle?”</i> <b>🎓 Guide me</b> starts the coach on puzzle 1, <b>Just play</b> closes the lesson.</li>
 </ol>
 <div class="tablewrap"><table class="ba">
