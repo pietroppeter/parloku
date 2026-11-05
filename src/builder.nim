@@ -26,12 +26,16 @@ nbRawHtml: """
 <div class="row custom"><input id="custom" spellcheck="false" autocomplete="off" placeholder="tre parole, es. NERO ROSA ORO" aria-label="tre parole"><button class="btn" id="use">usa</button></div>
 <div class="say" id="say"></div>
 <div class="game">
-  <div class="clues" id="clues"></div>
+  <div class="top"><div class="clues" id="clues"></div>
+  <div class="tools">
+    <span class="tool pinsrc" id="pinsrc" role="button" title="puntina: trascinala su una lettera per fissarla" aria-label="puntina">📌</span>
+    <button class="tool" id="reset" title="ricomincia" aria-label="ricomincia">↺</button>
+    <button class="tool" id="save" title="salva: copia il link al builder in questo stato" aria-label="salva">💾</button>
+    <button class="tool" id="link" title="copia il link per giocare" aria-label="link per giocare">🔗</button>
+  </div></div>
   <div class="stage" id="board"></div>
   <div class="status"><span class="acts">
     <button class="btn" id="undo" disabled>↶ annulla</button>
-    <span class="pinsrc" id="pinsrc" role="button" aria-label="puntina: trascinala su una lettera">""" & pinIcon & """<span class="tx">fissa</span></span>
-    <button class="btn" id="reset">↺ svuota</button>
   </span></div>
 </div>
 <div class="panel" id="panel"></div>
@@ -40,6 +44,8 @@ nbRawHtml: """
 <p><b>Lettere forzate.</b> Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.</p>
 <p><b>Togliere.</b> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
 <p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
+<p><b>Ordine delle lettere.</b> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un tocco le rimette a posto.</p>
+<p><b>Icone.</b> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.</p>
 <p><b>Annotazioni.</b> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><b>Indizi.</b> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
 </details>
@@ -654,6 +660,8 @@ nbJsFromCode:
   proc hoverIndex(ev: Event): cstring {.importjs: "(#.target.closest('[data-clue]')?.dataset.clue ?? null)".}
   proc value(e: Element): cstring {.importjs: "#.value".}
   proc setValue(e: Element, v: cstring) {.importjs: "#.value = #".}
+  proc location(): cstring {.importjs: "(location.href)@".}
+  proc queryParam(k: cstring): cstring {.importjs: "(new URLSearchParams(location.search).get(#) ?? '')".}
   proc setSkin(v: cstring) {.importjs: "document.body.dataset.skin = #".}
   setSkin("niki")
 
@@ -941,7 +949,7 @@ nbJsFromCode:
   let pinSrc = document.getElementById("pinsrc")
   let ghost = document.createElement("div")
   ghost.className = "pinghost"
-  ghost.innerHTML = cstring(pinSvg)
+  ghost.innerHTML = "📌"
   ghost.setHidden(true)
   document.body.appendChild(ghost)
   var carrying = false
@@ -1240,6 +1248,134 @@ nbJsFromCode:
     for p in wpath.mitems: p.setLen(0)
     stage.setState(emptyBoard()))
 
+  # ---- hold a letter below: the six letters wiggle and can be reordered (drag one onto another to swap them);
+  # a tap puts them back to rest
+  proc addClass(e: Element, c: cstring) {.importjs: "#.classList.add(#)".}
+  proc dropClass(e: Element, c: cstring) {.importjs: "#.classList.remove(#)".}
+  proc inHost(ev: Event): bool {.importjs: "(e => e.target instanceof Node && document.getElementById('board').contains(e.target))(#)".}
+  let jigStyle = document.createElement("style")
+  document.head.appendChild(jigStyle)
+  var jiggling = false
+  var jigHeld = -1                 # the letter being moved while wiggling
+  var jigDown = vec(0, 0)
+  var jigMoved = false
+  var pressTimer = 0
+  var pressAt = vec(0, 0)
+  var pressStarted = false         # this press started the wiggling: its release is not a tap
+  proc stackUnder(p: Vec): int =
+    result = -1
+    for li in 0 .. 5:
+      if norm(stackPos(li) - p) < 36: return li
+  proc tileLook(li: int): string =
+    for it in renderBoard(stage.state):
+      let id = parseInt(it.key[1 .. ^1])
+      if id div 6 == li and stage.state.cells.find(id) < 0: return it.svg
+    tileSvg(li, false)
+  proc drawJig(at = vec(0, 0)) =
+    var g = ""
+    for li in 0 .. 5:
+      if li == jigHeld: continue
+      let s = stackPos(li)
+      g.add &"""<g transform="translate({s.x},{s.y})"><g class="jig j{li mod 2}">{tileLook(li)}</g></g>"""
+    if jigHeld >= 0:
+      let t = stackUnder(at)
+      if t >= 0 and t != jigHeld:
+        let q = stackPos(t)
+        g.add &"""<rect class="target" x="{q.x - 36}" y="{q.y - 36}" width="72" height="72" rx="13"/>"""
+      g.add &"""<g transform="translate({at.x:.1f},{at.y:.1f})"><g class="jig lift">{tileLook(jigHeld)}</g></g>"""
+    stage.ghosts.innerHTML = cstring(g)
+  proc startJiggle() =
+    jiggling = true
+    # the tile the press lifted goes back: the stacks are drawn wiggling on top, the real ones hidden
+    if stage.dragKey.len > 0:
+      stage.dragKey = ""
+      stage.svg.dropClass("dragging")
+      stage.draw(stage.state)
+      if not stage.onMove.isNil: stage.onMove()
+    var css = ""
+    for id in 0 ..< 36:
+      if stage.state.cells.find(id) < 0:
+        if css.len > 0: css.add ","
+        css.add &"""#board [data-key="t{id}"]"""
+    if css.len > 0: css.add "{visibility:hidden}"
+    jigStyle.innerHTML = cstring(css)
+    stage.svg.addClass("jiggling")
+    buzz2()
+    say "Trascina una lettera su un'altra per scambiarle. Tocca una lettera per finire."
+    drawJig()
+  proc stopJiggle() =
+    jiggling = false
+    jigHeld = -1
+    jigStyle.innerHTML = ""
+    stage.svg.dropClass("jiggling")
+    stage.ghosts.innerHTML = ""
+    say ""
+  proc swapLetters(i, j: int) =
+    var ls = puz.letters
+    swap(ls[i], ls[j])
+    puz.letters = ls
+    var b = stage.state
+    for c in 0 ..< 36:
+      let id = b.cells[c]
+      if id >= 0:
+        if id div 6 == i: b.cells[c] = j * 6 + id mod 6
+        elif id div 6 == j: b.cells[c] = i * 6 + id mod 6
+    history = @[]                  # the tiles were renumbered: undo starts again from here
+    last = b
+    undoBtn.setDisabled(true)
+    stage.state = b
+    refresh()
+    let keep = jiggling
+    if keep:
+      jiggling = false
+      startJiggle()
+  document.addEventListener("pointerdown", proc (ev: Event) =
+    if not jiggling:
+      if not inHost(ev): return
+      let li = stackUnder(localOf(ev))
+      if li < 0: return
+      pressAt = clientXY(ev)
+      pressTimer = setTimer(proc () =
+        pressTimer = 0
+        pressStarted = true
+        startJiggle(), 550)
+      return
+    if not inHost(ev):
+      stopJiggle()
+      return
+    stopIt(ev)
+    ev.preventDefault()
+    capture2(host, ev)
+    jigHeld = stackUnder(localOf(ev))
+    jigDown = clientXY(ev)
+    jigMoved = false, true)
+  document.addEventListener("pointermove", proc (ev: Event) =
+    if pressTimer != 0 and norm(clientXY(ev) - pressAt) > 6:
+      clearTimer(pressTimer)
+      pressTimer = 0
+    if not jiggling or jigHeld < 0: return
+    if norm(clientXY(ev) - jigDown) > 6: jigMoved = true
+    if jigMoved: drawJig(localOf(ev)), true)
+  document.addEventListener("pointerup", proc (ev: Event) =
+    if pressTimer != 0:
+      clearTimer(pressTimer)
+      pressTimer = 0
+    if not jiggling: return
+    if pressStarted:
+      pressStarted = false
+      stopIt(ev)
+      return
+    let held = jigHeld
+    jigHeld = -1
+    if not jigMoved:
+      stopJiggle()               # a tap: back to playing
+      return
+    let t = stackUnder(localOf(ev))
+    if held >= 0 and t >= 0 and t != held:
+      buzz2()
+      swapLetters(held, t)
+    else: drawJig(), true)
+
   # ---- tap a word: its outline on the board wiggles
   cluesEl.addEventListener("click", proc (ev: Event) =
     let i = hoverIndex(ev)
@@ -1257,7 +1393,7 @@ nbJsFromCode:
       t.innerHTML = "✓ copiato")
 
   # ---- word sets
-  proc loadSet(text: string) =
+  proc loadSet(text: string): bool =
     let ws = text.toUpperAscii.splitWhitespace
     if ws.len == 0: return
     var ls = ""
@@ -1283,6 +1419,7 @@ nbJsFromCode:
     undoBtn.setDisabled(true)
     say "Trascina il cerchietto di una parola sulla griglia, poi tieni premuta la sua ultima lettera per allungarla."
     stage.setState(emptyBoard())
+    true
 
   var setsHtml = ""
   for i, st in sets:
@@ -1292,10 +1429,75 @@ nbJsFromCode:
     let i = dataOf(ev, "set")
     if not i.isNil:
       document.getElementById("custom").setValue(cstring(sets[parseInt($i)]))
-      loadSet(sets[parseInt($i)]))
+      discard loadSet(sets[parseInt($i)]))
   document.getElementById("use").addEventListener("click", proc (ev: Event) =
-    loadSet($document.getElementById("custom").value))
-  document.getElementById("custom").setValue(cstring(sets[0]))
-  loadSet(sets[0])
+    discard loadSet($document.getElementById("custom").value))
+
+  # ---- 💾 the builder's whole state in a link: letters (in their order) ~ words ~ each word's cells ~ board ~ pins
+  const b36 = "0123456789abcdefghijklmnopqrstuvwxyz"
+  proc stateCode(): string =
+    var paths, board, pins: string
+    for i, p in wpath:
+      if i > 0: paths.add '-'
+      for c in p: paths.add b36[c]
+    let g = stage.state.grid
+    for c in 0 ..< 36: board.add (if g[c] == '.': '_' else: g[c])
+    for gv in puz.givens: pins.add b36[idx(gv.pos)]
+    var words: seq[string]
+    for clue in puz.clues: words.add clue.word
+    puz.letters & "~" & words.join("-") & "~" & paths & "~" & board & "~" & pins
+  proc loadState(code: string): bool =
+    let parts = code.split('~')
+    if parts.len != 5 or parts[3].len != 36: return false
+    let words = parts[1].split('-')
+    if not loadSet(words.join(" ")): return false
+    document.getElementById("custom").setValue(cstring(words.join(" ")))
+    var ls = parts[0]
+    var sorted = ls
+    sorted.sort()
+    var mine = puz.letters
+    mine.sort()
+    if sorted != mine: return false
+    puz.letters = ls
+    var b = emptyBoard()
+    for c in 0 ..< 36:
+      let ch = parts[3][c]
+      if ch != '_':
+        if ch notin ls or b.freeTile(ch) < 0: return false
+        b.putAt(c, ch)
+    let ps = parts[2].split('-')
+    for i in 0 ..< min(ps.len, wpath.len):
+      for ch in ps[i]:
+        let c = b36.find(ch)
+        if c >= 0: wpath[i].add c
+    for ch in parts[4]:
+      let c = b36.find(ch)
+      if c >= 0 and b.cells[c] >= 0: puz.givens.add Given(pos: (row: c div 6, col: c mod 6), letter: letterOf(b.cells[c]))
+    last = b
+    lastPaths = wpath
+    lastGivens = puz.givens
+    stage.setState(b)
+    say "Ripreso dallo stato salvato."
+    true
+  proc builderUrl(): string =
+    let here = $location()
+    if "github.io" in here: here.split('?')[0] & "?s=" & stateCode()
+    else: "https://pietroppeter.github.io/parloku/builder.html?s=" & stateCode()
+  proc copied(e: Element, what: string) =
+    let old = e.innerHTML
+    e.innerHTML = "✓"
+    say what
+    discard setTimer(proc () = e.innerHTML = old, 1200)
+  document.getElementById("save").addEventListener("click", proc (ev: Event) =
+    copyText(cstring(builderUrl()))
+    copied(document.getElementById("save"), "Copiato il link al builder in questo stato."))
+  document.getElementById("link").addEventListener("click", proc (ev: Event) =
+    copyText(cstring(playUrl & playCode()))
+    copied(document.getElementById("link"), "Copiato il link per giocare questo puzzle."))
+
+  let startCode = $queryParam("s")
+  if startCode.len == 0 or not loadState(startCode):
+    document.getElementById("custom").setValue(cstring(sets[0]))
+    discard loadSet(sets[0])
 
 nbSave

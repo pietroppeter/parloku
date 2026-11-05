@@ -18,18 +18,27 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .opt{fill:none;stroke-width:4;stroke-dasharray:7 6;animation:optp 1s ease-in-out infinite alternate}
 .opt.w0{stroke:var(--w0)} .opt.w1{stroke:var(--w1)} .opt.w2{stroke:var(--w2)}
 @keyframes optp{from{opacity:.45}to{opacity:1}}
+.jig.j0{animation:jig0 .28s ease-in-out infinite alternate} .jig.j1{animation:jig1 .28s ease-in-out infinite alternate}
+.jig.lift{filter:drop-shadow(0 8px 8px rgba(0,0,0,.25))}
+@keyframes jig0{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
+@keyframes jig1{from{transform:rotate(4deg)}to{transform:rotate(-4deg)}}
 .growtile circle{stroke:var(--tstroke);stroke-width:var(--tsw)}
 .growtile{pointer-events:none;filter:drop-shadow(0 6px 6px rgba(0,0,0,.2))}
 /* pencil marks in the empty cells */
 .pm{font:700 15px "JetBrains Mono",monospace;fill:color-mix(in srgb,var(--ink) 50%,transparent);pointer-events:none}
 .dragging .pm{opacity:.5}
+/* words on the left, four round tools in a square on the right */
+.bld .top{display:flex;align-items:center;gap:10px}
+.bld .top .clues{flex:1;min-width:0}
+.tools{display:grid;grid-template-columns:repeat(2,44px);gap:8px;flex:none}
+.tool{width:44px;height:44px;border-radius:50%;border:var(--border) solid var(--ink);background:var(--card);display:grid;place-items:center;
+  font-size:20px;line-height:1;padding:0;cursor:pointer;color:var(--ink);font-family:inherit}
+.tool.pinsrc{background:var(--hl);cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.pinghost{font-size:34px;line-height:52px;text-align:center}
 /* the pin: drag it from the bar onto a letter; pinned tiles wear a small one in the corner */
 svg.pin line{stroke:var(--ink);stroke-width:3;stroke-linecap:round}
 svg.pin circle{fill:var(--w0);stroke:var(--ink);stroke-width:2.5}
 svg.pin circle.hi{fill:rgba(255,255,255,.65);stroke:none}
-.pinsrc{display:inline-flex;align-items:center;gap:6px;font:700 13px var(--font-body);border:var(--border) solid var(--ink);background:var(--hl);
-  color:var(--ink);border-radius:999px;padding:4px 14px 4px 8px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
-.pinsrc svg.pin{width:18px;height:26px}
 .pinghost{position:fixed;left:0;top:0;width:36px;height:52px;pointer-events:none;z-index:60;filter:drop-shadow(0 6px 6px rgba(0,0,0,.25))}
 .pinghost svg{width:100%;height:100%}
 .pinmark line{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round}
