@@ -723,6 +723,7 @@ nbCodeAnd(nbJsFromCode):
       let ink = &"w{i mod 3}"
       let t = if focusClue == i: 8.0 else: 5.0
       let rr = cell * 0.47
+      let corner = 18.0                    # outer corner radius of the outline: rounded squares, as the word boxes
       if wiggleClue == i:
         var (sx, sy) = (0.0, 0.0)
         let cells = if path.len > 0: path else: @[idx(clue.pos)]
@@ -732,7 +733,8 @@ nbCodeAnd(nbJsFromCode):
         result.add &"""<g class="wig" style="transform-origin:{sx / cells.len.float:.1f}px {sy / cells.len.float:.1f}px">"""
       if path.len <= 1:
         let p = cellPos(idx(clue.pos))
-        result.add &"""<circle class="wo {ink}" cx="{p.x}" cy="{p.y}" r="{rr + t / 2:.1f}" stroke-width="{t}"/>"""
+        let h = rr + t / 2                 # a rounded square, like the word's box above
+        result.add &"""<rect class="wo {ink}" x="{p.x - h:.1f}" y="{p.y - h:.1f}" width="{2 * h:.1f}" height="{2 * h:.1f}" rx="{corner - t / 2:.1f}" stroke-width="{t}"/>"""
       else:
         var d = ""
         for k, c in path:
@@ -755,10 +757,22 @@ nbCodeAnd(nbJsFromCode):
             let piece = &"M{kx.x:.1f},{kx.y:.1f}L{s1.x:.1f},{s1.y:.1f}Q{kx.x:.1f},{kx.y:.1f} {s2.x:.1f},{s2.y:.1f}Z"
             if inner: fillIn.add piece
             else: fillOut.add piece
+        # the outline is the union of a rounded square per cell and a band between each two cells in a row,
+        # for the outer edge (white) and, cut out of it, for the inner edge (black)
+        proc squares(w, r: float, col: string): string =
+          for k, c in path:
+            let p = cellPos(c)
+            result.add &"""<rect x="{p.x - w:.1f}" y="{p.y - w:.1f}" width="{2 * w:.1f}" height="{2 * w:.1f}" rx="{r:.1f}" fill="{col}"/>"""
+            if k > 0:
+              let q = cellPos(path[k - 1])
+              let (x0, y0) = (min(p.x, q.x), min(p.y, q.y))
+              let (dx, dy) = (abs(p.x - q.x), abs(p.y - q.y))
+              if dx > dy: result.add &"""<rect x="{x0:.1f}" y="{y0 - w:.1f}" width="{dx:.1f}" height="{2 * w:.1f}" fill="{col}"/>"""
+              else: result.add &"""<rect x="{x0 - w:.1f}" y="{y0:.1f}" width="{2 * w:.1f}" height="{dy:.1f}" fill="{col}"/>"""
         let m = &"{maskTag}{i}"
         result.add &"""<mask id="{m}" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="650">""" &
-          &"""<path d="{d}" class="wm" stroke="#fff" stroke-width="{2 * wOut:.1f}"/><path d="{fillOut}" fill="#fff"/>""" &
-          &"""<path d="{d}" class="wm" stroke="#000" stroke-width="{2 * wIn:.1f}"/><path d="{fillIn}" fill="#000"/></mask>""" &
+          squares(wOut, corner, "#fff") & &"""<path d="{fillOut}" fill="#fff"/>""" &
+          squares(wIn, corner - t, "#000") & &"""<path d="{fillIn}" fill="#000"/></mask>""" &
           &"""<rect class="wf {ink}" x="0" y="0" width="600" height="650" mask="url(#{m})"/>"""
       if wiggleClue == i: result.add "</g>"
     if coachTarget >= 0:

@@ -100,7 +100,7 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
   border:var(--border) solid var(--line);box-shadow:var(--btn-shadow);cursor:default;transition:transform .2s}
 .clue .n{width:26px;height:26px;border-radius:50%;color:#fff;font:700 14px "JetBrains Mono",monospace;display:grid;place-items:center}
 .clue .l{width:26px;height:30px;border-radius:7px;display:grid;place-items:center;font:var(--glyph-weight) 18px var(--font-glyph);
-  border:1.5px dashed var(--line);color:var(--muted);transition:background .25s,color .25s}
+  border:1.5px solid var(--line);color:var(--muted);transition:background .25s,color .25s}
 /* a clue letter already on the board: bold, dark, with a thick dark edge; the ones still to place stay light */
 .clue.done{border-color:var(--ink)}
 .clue .ok{font-size:18px;width:18px;text-align:center;color:var(--c4);font-weight:700}
