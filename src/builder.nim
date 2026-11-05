@@ -36,14 +36,9 @@ nbRawHtml: """
     <button class="tool" id="link" title="copia il link per giocare" aria-label="link per giocare">🔗</button>
   </div></div>
   <div class="stage" id="board"></div>
-  <div class="status"><span class="acts">
-    <button class="btn" id="undo" disabled>↶ annulla</button>
-    <span class="sol" id="sol" title="griglie complete con queste lettere e tutte e tre le parole"></span>
-    <label class="nou" title="scarta le parole che girano a U su se stesse"><input type="checkbox" id="nou" checked> niente U</label>
-    <button class="tool dice" id="dice" title="un'altra soluzione" aria-label="un'altra soluzione">🎲</button>
-  </span></div>
+  <div class="sols" id="sols" aria-label="soluzioni"></div>
 </div>
-<div class="panel" id="panel"></div>
+<div hidden><button id="undo" disabled></button><span id="sol"></span><input type="checkbox" id="nou" checked><button id="dice"></button><div id="panel"></div></div>
 </div>
 """
 
@@ -779,7 +774,10 @@ nbJsFromCode:
   var fitList: seq[Fit]        # up to 10 different grids
   var fitCut = false           # the search hit its budget before deciding
   var fitShown = 0             # the one drawn on the board
-  var searchBudget = 60000
+  var searchBudget = 500000
+  const maxFits = 100          # solutions listed under the board
+  var perLayout = 8            # grids tried per layout of the words, so the list mixes different layouts
+  proc setPerLayout(n: int) {.exportc.} = perLayout = n
   proc setBudget(n: int) {.exportc.} = searchBudget = n
   var noUTurn = true           # for now: no word turns back on itself in a U (cells k and k+3 side by side)
   proc hasUTurn(path: seq[int]): bool =
@@ -794,6 +792,29 @@ nbJsFromCode:
     if g[c] == ch: return true
     g[c] == '.' and peersOf[c].allIt(g[it] != ch)
 
+  proc readings(at: proc (c: int): char, path: seq[int], word: string): int =
+    ## how many ways (0, 1 or 2 = more) the word reads from the first cell of `path`, never using a cell twice
+    var ways = 0
+    var seen: array[36, bool]
+    proc walk(c, k: int) =
+      if ways > 1 or seen[c] or at(c) != word[k]: return
+      if k == word.len - 1:
+        inc ways
+        return
+      seen[c] = true
+      let (r, col) = (c div 6, c mod 6)
+      if r > 0: walk(c - 6, k + 1)
+      if r < 5: walk(c + 6, k + 1)
+      if col > 0: walk(c - 1, k + 1)
+      if col < 5: walk(c + 1, k + 1)
+      seen[c] = false
+    walk(path[0], 0)
+    ways
+  proc unambiguous(sg: pt.Grid, path: seq[int]): bool =
+    if path.len == 0: return true
+    var word = ""
+    for c in path: word.add sg[c div 6][c mod 6]
+    readings(proc (c: int): char = sg[c div 6][c mod 6], path, word) == 1
   var sG: array[36, char]       # the search state, kept here: Nim closures cannot capture var parameters
   var sUsed: array[36, bool]
   var sPaths: seq[seq[int]]
@@ -802,7 +823,7 @@ nbJsFromCode:
   proc findFits(order: seq[int])
   proc step(order: seq[int], path: var seq[int], c: int) =
     # the next letter of word order[0] goes in cell c
-    if sFound.len >= 10 or sBudget <= 0: return
+    if sFound.len >= maxFits or sBudget <= 0: return
     dec sBudget
     let w = order[0]
     let word = puz.clues[w].word
@@ -816,9 +837,14 @@ nbJsFromCode:
     sG[c] = word[k]
     sUsed[c] = true
     if path.len == word.len:
-      # a whole word: go on only if some sudoku still fits these letters
+      # a whole word: go on only if the letters already there don't read it a second way,
+      # and some sudoku still fits these letters
       dec sBudget
-      if ps.solve(lettersProblem(sG), ps.defaultOptions(limit = 1, keep = 0)).count > 0:
+      var ok = true
+      for v in 0 ..< sPaths.len:
+        let p2 = if v == w: path else: sPaths[v]
+        if p2.len > 0 and readings(proc (c: int): char = sG[c], p2, puz.clues[v].word) > 1: ok = false
+      if ok and ps.solve(lettersProblem(sG), ps.defaultOptions(limit = 1, keep = 0)).count > 0:
         sPaths[w] = path
         findFits(order[1 .. ^1])
         sPaths[w] = @[]
@@ -832,12 +858,13 @@ nbJsFromCode:
     sUsed[c] = false
     discard path.pop
   proc findFits(order: seq[int]) =
-    if sFound.len >= 10 or sBudget <= 0: return
+    if sFound.len >= maxFits or sBudget <= 0: return
     if order.len == 0:
       dec sBudget
-      let r = ps.solve(lettersProblem(sG), ps.defaultOptions(limit = 10 - sFound.len, keep = 10 - sFound.len))
+      let r = ps.solve(lettersProblem(sG), ps.defaultOptions(limit = min(maxFits - sFound.len, perLayout), keep = min(maxFits - sFound.len, perLayout)))
       for sg in r.solutions:
-        if sFound.len < 10 and not sFound.anyIt(it.grid == sg): sFound.add Fit(grid: sg, paths: sPaths)
+        if not sPaths.allIt(sg.unambiguous(it)): continue   # each word must read one way only
+        if sFound.len < maxFits and not sFound.anyIt(it.grid == sg): sFound.add Fit(grid: sg, paths: sPaths)
       return
     let w = order[0]
     var path: seq[int]
@@ -897,7 +924,7 @@ nbJsFromCode:
     sBudget = searchBudget
     if g.clashes.len == 0: findFits(order)
     fitList = sFound
-    fitCut = sBudget <= 0 and sFound.len < 10
+    fitCut = sBudget <= 0 and sFound.len < maxFits
     fitShown = 0
     showFit()
     let r = ps.solve(toProblem(g, allTiles = false), ps.defaultOptions(limit = 1000, keep = 0))
@@ -924,28 +951,20 @@ nbJsFromCode:
       html.add &"""<span class="wring{on}" data-ring="{i}" style="--wc:var(--w{i mod 3})"></span></div>"""
     cluesEl.innerHTML = cstring(html)
 
-  let solEl = document.getElementById("sol")
-  let diceBtn = document.getElementById("dice")
+  let solsEl = document.getElementById("sols")
   proc showFits() =
-    let fits = fitList.len
-    let fitsCut = fitCut
+    ## one numbered circle per solution found (up to 100), in two rows that scroll sideways; the one shown is filled
     var s = ""
-    if fits == 0 and not fitsCut:
-      s = """<b>0</b> soluzioni: così le parole non ci stanno"""
-    elif fitsCut:
-      s = &"""<b>≥ {fits}</b> soluzioni…"""
-    elif fits >= 10:
-      s = """<b>10+</b> soluzioni"""
-    elif fits == 1:
-      s = """<b>1</b> soluzione"""
-    else:
-      s = &"""<b>{fits}</b> soluzioni"""
-    let cls = if fits == 0 and not fitsCut: "sol zero" else: "sol"
-    solEl.className = cstring(cls)
-    if fits > 0:
-      s.add &""" · n° {fitShown + 1}"""
-    solEl.innerHTML = cstring(s)
-    diceBtn.setDisabled(fits < 2)
+    if fitList.len == 0:
+      if fitCut: s = """<span class="none">…</span>"""
+      else: s = """<span class="none zero">0 soluzioni: così le parole non ci stanno</span>"""
+    for k in 0 ..< fitList.len:
+      var on = ""
+      if k == fitShown: on = " on"
+      s.add &"""<button class="sc{on}" data-k="{k}">{k + 1}</button>"""
+    if fitCut and fitList.len > 0: s.add """<span class="sc more" title="la ricerca si è fermata: potrebbero essercene altre">…</span>"""
+    solsEl.innerHTML = cstring(s)
+  proc dataK(ev: Event): cstring {.importjs: "(#.target.closest('[data-k]')?.dataset.k ?? null)".}
 
   proc showPanel(b: Board) =
     var s = ""
@@ -1468,7 +1487,6 @@ nbJsFromCode:
     analyze(stage.state)
     stage.draw(stage.state)
     showClues(stage.state)
-    showPanel(stage.state)
     showFits()
   stage.onCommit = proc () =
     if stage.state.cells != last.cells or puz.givens != lastGivens or wpath != lastPaths:
@@ -1706,7 +1724,6 @@ nbJsFromCode:
     lastPaths = wpath
     last = emptyBoard()
     undoBtn.setDisabled(true)
-    say "Trascina una parola dall'alto sulla griglia, poi tieni premuta la sua ultima lettera per allungarla."
     stage.setState(emptyBoard())
     true
 
@@ -1822,11 +1839,10 @@ nbJsFromCode:
   uBox.addEventListener("change", proc (ev: Event) =
     noUTurn = uBox.checked
     refresh())
-  diceBtn.addEventListener("click", proc (ev: Event) =
-    if fitList.len < 2: return
-    var k = randomInt(fitList.len - 1)
-    if k >= fitShown: inc k
-    fitShown = k
+  solsEl.addEventListener("click", proc (ev: Event) =
+    let k = dataK(ev)
+    if k.isNil: return
+    fitShown = parseInt($k)
     showFit()
     stage.draw(stage.state)
     showFits())

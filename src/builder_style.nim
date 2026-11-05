@@ -92,6 +92,16 @@ pre > code{font-size:12.5px!important}
 .bld .tools{grid-template-columns:repeat(2,38px);gap:6px}
 .bld .tool{width:38px;height:38px;font-size:17px}
 .bld .stage{margin:4px auto 0;max-width:min(100%,calc((100svh - 272px) * 500 / 664));min-width:250px}
+.bld .say:empty{display:none}
+.bld .sols{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,34px);grid-auto-columns:34px;gap:5px;overflow-x:auto;overflow-y:hidden;
+  padding:4px 2px 6px;margin:4px 0 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+.bld .sols::-webkit-scrollbar{display:none}
+.bld .sols .sc{width:34px;height:34px;border-radius:50%;border:2px solid var(--ink);background:var(--card);color:var(--ink);
+  font:700 13px var(--font-body);padding:0;display:grid;place-items:center;cursor:pointer}
+.bld .sols .sc.on{background:var(--ink);color:var(--card)}
+.bld .sols .sc.more{border-style:solid;border-color:var(--line);color:var(--muted)}
+.bld .sols .none{grid-row:1 / span 2;align-self:center;white-space:nowrap;font:600 14px var(--font-body);color:var(--muted);padding:0 6px}
+.bld .sols .none.zero{color:var(--bad-line)}
 .bld .status{margin:2px 0 0;padding:0}
 .bld .status .acts{gap:4px;flex-wrap:nowrap;justify-content:center}
 .bld .status .btn{padding:4px 10px;font-size:13px}

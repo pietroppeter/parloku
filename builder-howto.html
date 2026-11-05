@@ -462,6 +462,16 @@ pre > code{font-size:12.5px!important}
 .bld .tools{grid-template-columns:repeat(2,38px);gap:6px}
 .bld .tool{width:38px;height:38px;font-size:17px}
 .bld .stage{margin:4px auto 0;max-width:min(100%,calc((100svh - 272px) * 500 / 664));min-width:250px}
+.bld .say:empty{display:none}
+.bld .sols{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,34px);grid-auto-columns:34px;gap:5px;overflow-x:auto;overflow-y:hidden;
+  padding:4px 2px 6px;margin:4px 0 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+.bld .sols::-webkit-scrollbar{display:none}
+.bld .sols .sc{width:34px;height:34px;border-radius:50%;border:2px solid var(--ink);background:var(--card);color:var(--ink);
+  font:700 13px var(--font-body);padding:0;display:grid;place-items:center;cursor:pointer}
+.bld .sols .sc.on{background:var(--ink);color:var(--card)}
+.bld .sols .sc.more{border-style:solid;border-color:var(--line);color:var(--muted)}
+.bld .sols .none{grid-row:1 / span 2;align-self:center;white-space:nowrap;font:600 14px var(--font-body);color:var(--muted);padding:0 6px}
+.bld .sols .none.zero{color:var(--bad-line)}
 .bld .status{margin:2px 0 0;padding:0}
 .bld .status .acts{gap:4px;flex-wrap:nowrap;justify-content:center}
 .bld .status .btn{padding:4px 10px;font-size:13px}
@@ -528,7 +538,7 @@ figcaption {
 <p><strong>Gioco.</strong> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
 <p><strong>Ordine delle lettere.</strong> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.</p>
 <p><strong>Icone.</strong> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia il puzzle in JSON (lettere nell'ordine di sotto, indizi, inizi delle parole, soluzione, e sotto &quot;builder&quot; il link che riapre il builder esattamente in questo stato): incollalo in chat per aggiungerlo ai puzzle del gioco; 🔗 copia il link per giocare il puzzle.</p>
-<p><strong>Soluzioni.</strong> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Con «niente U» scarta anche le parole che girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra); una parola lunga può comunque toccarsi più avanti. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola e le altre lettere della soluzione sono in nero; 🎲 ne mostra un'altra.</p>
+<p><strong>Soluzioni.</strong> Sotto la griglia il builder elenca, con un cerchio numerato ciascuna, fino a 100 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe (due file che scorrono a destra e sinistra; «0 soluzioni» se così le parole non ci stanno, «…» se la ricerca si è fermata prima). Una soluzione vale solo se ogni parola si legge in un modo solo dalla sua casella di partenza: con M A / A R e una parola che comincia con MAR, entrambe le A andrebbero bene, e la soluzione è scartata. Per ora le parole non si sovrappongono, né tra loro né con se stesse, e non girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra). Tocca un cerchio per vedere quella soluzione: nelle annotazioni, le lettere delle tre parole sono colorate come la loro parola e le altre lettere della soluzione sono in nero.</p>
 <p><strong>Annotazioni.</strong> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><strong>Indizi.</strong> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
 <p>The builder is a <a href="https://github.com/pietroppeter/nimib">nimib</a> notebook. Board, tiles and gestures are the game's;
@@ -605,7 +615,7 @@ nbText: <span class="hljs-string">&quot;&quot;&quot;
 
 **Icone.** 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia il puzzle in JSON (lettere nell'ordine di sotto, indizi, inizi delle parole, soluzione, e sotto &quot;builder&quot; il link che riapre il builder esattamente in questo stato): incollalo in chat per aggiungerlo ai puzzle del gioco; 🔗 copia il link per giocare il puzzle.
 
-**Soluzioni.** Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Con «niente U» scarta anche le parole che girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra); una parola lunga può comunque toccarsi più avanti. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola e le altre lettere della soluzione sono in nero; 🎲 ne mostra un'altra.
+**Soluzioni.** Sotto la griglia il builder elenca, con un cerchio numerato ciascuna, fino a 100 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe (due file che scorrono a destra e sinistra; «0 soluzioni» se così le parole non ci stanno, «…» se la ricerca si è fermata prima). Una soluzione vale solo se ogni parola si legge in un modo solo dalla sua casella di partenza: con M A / A R e una parola che comincia con MAR, entrambe le A andrebbero bene, e la soluzione è scartata. Per ora le parole non si sovrappongono, né tra loro né con se stesse, e non girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra). Tocca un cerchio per vedere quella soluzione: nelle annotazioni, le lettere delle tre parole sono colorate come la loro parola e le altre lettere della soluzione sono in nero.
 
 **Annotazioni.** Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.
 
