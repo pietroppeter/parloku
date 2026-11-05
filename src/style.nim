@@ -102,7 +102,9 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
 .clue .n{width:26px;height:26px;border-radius:50%;color:#fff;font:700 14px "JetBrains Mono",monospace;display:grid;place-items:center}
 .clue .l{width:26px;height:30px;border-radius:7px;display:grid;place-items:center;font:var(--glyph-weight) 18px var(--font-glyph);
   border:1.5px dashed var(--line);color:var(--muted);transition:background .25s,color .25s}
-.clue .l.on{border:1.5px solid transparent}
+/* a clue letter already on the board: bold, dark, with a thick dark edge; the ones still to place stay light */
+.clue .l{font-weight:500}
+.clue .l.on{border:2.5px solid var(--ink);font-weight:900;color:var(--ink)!important}
 .clue.done{border-color:var(--ink)}
 .clue .ok{font-size:18px;width:18px;text-align:center;color:var(--c4);font-weight:700}
 .stage{position:relative;background:var(--card);border:var(--border) solid var(--line);border-radius:calc(var(--radius) + 4px);box-shadow:var(--shadow);padding:6px;overflow:hidden}

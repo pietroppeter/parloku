@@ -591,8 +591,7 @@ nbCodeAnd(nbJsFromCode):
       result.add Item(key: &"t{id}", pos: pos, svg: tileSvg(id div 6, c >= 0 and isGiven(c)))
 
 nbText: """
-And here is the entire interaction. Grabbing tile `id` lists one future per free cell (the tile in that cell;
-if it came from another cell, the tiles swap; otherwise the old occupant goes home), snaps to the nearest within
+And here is the entire interaction. Grabbing tile `id` lists one future per empty cell (a tile never replaces a letter already placed), snaps to the nearest within
 half a cell, or else falls back to "the tile went back to its letter". Givens have no spec, so they can't be picked up.
 """
 
@@ -619,8 +618,8 @@ nbCodeAnd(nbJsFromCode):
     let src = b.cells.find(id)
     if src >= 0 and isGiven(src): return nil
     var futures: seq[Board]
-    for c in 0 ..< 36:
-      if not isGiven(c): futures.add b.place(id, c)
+    for c in 0 ..< 36:                     # only empty cells: a tile never pushes out a letter already placed
+      if not isGiven(c) and (b.cells[c] < 0 or c == src): futures.add b.place(id, c)
     closest(futures).within(cell * 0.6).orElse(closest(@[b.home(id)]))
 
 nbText: "Driving it by hand at build time: grab the first letter's tile and hover between two cells of the top row."
@@ -1007,6 +1006,31 @@ nbJsFromCode:
     joined = pulling
     if d.len > 0: necks.innerHTML = cstring(&"""<path class="neck g{li}" d="{d}"/>""")
     else: necks.innerHTML = ""
+
+  # ---- a double tap on a tile on the board sends it back to its letter below
+  var tapKey = ""
+  var tapAt = 0.0
+  var downAt = vec(0, 0)
+  var downKey: cstring = nil              # the tile under the finger when it went down (pointerup lands on the svg: it is captured)
+  stage.svg.addEventListener("pointerdown", proc (ev: Event) =
+    downKey = keyAt(ev)
+    downAt = clientXY(ev))
+  stage.svg.addEventListener("pointerup", proc (ev: Event) =
+    let k = downKey
+    let up = clientXY(ev)
+    if k.isNil or norm(up - downAt) > 8:   # a drag, not a tap
+      tapKey = ""
+      return
+    let id = parseInt(($k)[1 .. ^1])
+    let at = stage.state.cells.find(id)
+    if at < 0 or isGiven(at): return
+    let t = now()
+    if tapKey == $k and t - tapAt < 400:
+      tapKey = ""
+      stage.setState(stage.state.home(id))
+    else:
+      tapKey = $k
+      tapAt = t)
 
   # ---- on the game page, only the game: tap an empty spot to show the rest, and again to hide it
   proc interactive(ev: Event): bool {.importjs:
