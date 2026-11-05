@@ -82,15 +82,166 @@ nbRawHtml: """
 <p class="kicker">GARDEN DEVLOG · 01</p>
 <h1>Tiles that <i>divide</i> like cells</h1>
 <p class="lede">In the first Parloku every letter came as a stack of six tiles. Here we try something else:
-a tile is a cell, and you pull a new one out of it. Pull a little and a bud swells. Get near a place it may go
-and the bud splits away. Come back and it joins again.</p>
+a tile is a cell. Pull a new one out of it, or push two back together into one.</p>
 """
 
-nbRawHtml: """<h2><span class="num">01 · TRY IT</span>A garden of three cells</h2>"""
+nbRawHtml: """<h2><span class="num">01 · ONE CELL</span>Divide it, then put it back together</h2>"""
 
 nbText: """
-Drag **S** or **O** towards one of the empty rings. Watch the neck thin as you go, snap as you reach a ring,
-and grow back if you return. Let go anywhere else and the bud is pulled home.
+Here's a single cell, without a letter. Drag it to the right. A bud swells and stretches on a neck that thins as you go.
+Near an empty ring the bud splits away; come back and it joins again. Let go on a ring and you have two cells; let go
+anywhere else and the bud is pulled home.
+
+This cell may make **one** copy. Once it has, the copy can't divide, so it comes away whole: move it to the other ring,
+or drop it back on its mother and the two **coalesce** into one.
+"""
+
+nbRawHtml: """
+<div class="zogyn-stage" id="one"></div>
+<p class="status" id="one-status"></p>
+"""
+
+nbRawHtml: """<h2><span class="num">02 · THE ANIMATION</span>Two circles, a neck and a spring</h2>"""
+nbText: """
+Everything you just saw is drawn with two circles and a neck between them. The tiles zogyn moves are only letters
+and invisible hit areas; the soft bodies are a separate layer underneath. A dividing cell is two circles (mother and
+bud) and a neck. The neck is a closed path. On each side a
+curve leaves the mother along its outline, dips to a waist and climbs onto the bud. All the character is in one number:
+the waist's half-width, as a function of how far apart the two centres are. It starts fat (a bulge), thins fast,
+then slowly, and never quite reaches zero. It's a thread that only breaks when the cell has divided (what decides
+that comes later).
+"""
+
+nbCodeAnd(nbJsFromCode):
+  import std/[strformat, strutils, math, sequtils]
+  import zogyn
+  const ink = "#24361f"
+  const glazes = {'*': "#c3e39b", 'S': "#ffe08a", 'O': "#ffb38a", 'L': "#9fd8cb", 'A': "#ffb38a", 'I': "#c3e39b",
+                  'P': "#f7a8bd", 'T': "#b9c9f3"}
+
+  func glaze(c: char): string =
+    for (k, v) in glazes:
+      if k == c: return v
+    "#e6e4cc"
+
+  func smoothstep(a, b, x: float): float =
+    let t = clamp((x - a) / (b - a), 0.0, 1.0)
+    t * t * (3 - 2 * t)
+
+  func waist(d, r: float): float =
+    ## half-width of the neck between cells of radius r whose centres are d apart
+    let t = clamp((d - 0.4 * r) / (4.2 * r), 0.0, 1.0)
+    r * (0.85 - 0.74 * t)
+
+  func neck(c1: Vec, r1: float, c2: Vec, r2: float, hw: float): string =
+    ## SVG path joining two circles with a waist of half-width hw
+    let d = dist(c1, c2)
+    if d < 0.2 * r1 or hw < 0.3: return ""
+    let u = (c2 - c1) * (1 / d)
+    let n = vec(-u.y, u.x)
+    # the neck meets each body wider than the waist: a fillet, as when a soap bubble pinches
+    let a1 = arcsin(min(0.94, 1.05 * hw / r1 + 0.32))
+    let a2 = arcsin(min(0.94, 1.05 * hw / r2 + 0.32))
+    let m = c1 + u * (r1 + (d - r1 - r2) / 2)
+    func f(v: Vec): string = &"{v.x:.1f} {v.y:.1f}"
+    var side: array[2, string]
+    for k, s in [1.0, -1.0]:
+      let p1 = c1 + (u * cos(a1) + n * (s * sin(a1))) * r1
+      let t1 = u * sin(a1) - n * (s * cos(a1))
+      let p2 = c2 + (u * -cos(a2) + n * (s * sin(a2))) * r2
+      let t2 = u * -sin(a2) - n * (s * cos(a2))
+      let w = m + n * (s * hw)
+      # handles: along the outline only as far as needed to drop to the waist, along the axis at the waist
+      let h1 = clamp(1.4 * (r1 * sin(a1) - hw) / max(cos(a1), 0.2), 1.0, dist(p1, w) * 0.5)
+      let h2 = clamp(1.4 * (r2 * sin(a2) - hw) / max(cos(a2), 0.2), 1.0, dist(p2, w) * 0.5)
+      let (l1, l2) = (dist(p1, w) * 0.5, dist(p2, w) * 0.5)
+      side[k] = if k == 0:
+        &"M{f(c1)}L{f(p1)}C{f(p1 + t1 * h1)} {f(w - u * l1)} {f(w)}C{f(w + u * l2)} {f(p2 + t2 * h2)} {f(p2)}L{f(c2)}"
+      else:
+        &"L{f(p2)}C{f(p2 + t2 * h2)} {f(w + u * l2)} {f(w)}C{f(w - u * l1)} {f(p1 + t1 * h1)} {f(p1)}Z"
+    side[0] & side[1]
+
+  type Body = object
+    at: Vec
+    r: float
+    letter: char
+    neckTo: int        # index of the body it's joined to, or -1
+    hw: float          # waist of that neck
+    faded: bool        # a spent seed: drawn hollow
+
+  func membrane(bodies: openArray[Body], sw = 3.0): string =
+    ## outline first (every shape stroked twice as wide), fills on top:
+    ## the inner strokes are covered, only the outline of the union shows
+    var ink2, fill: string
+    for b in bodies:
+      let c = &"""cx="{b.at.x:.1f}" cy="{b.at.y:.1f}" r="{b.r:.1f}""""
+      ink2.add &"""<circle {c}/>"""
+      var hue = glaze(b.letter)
+      if b.faded: hue = "#f2f0e1"
+      fill.add &"""<circle {c} fill="{hue}"/>"""
+      if b.neckTo >= 0:
+        let o = bodies[b.neckTo]
+        let p = neck(b.at, b.r, o.at, o.r, b.hw)
+        ink2.add &"""<path d="{p}"/>"""
+        fill.add &"""<path d="{p}" fill="{glaze(b.letter)}"/>"""
+    for b in bodies:           # a glint, so they read as soft and round
+      fill.add &"""<ellipse cx="{b.at.x - b.r * 0.36:.1f}" cy="{b.at.y - b.r * 0.42:.1f}" rx="{b.r * 0.3:.1f}" ry="{b.r * 0.17:.1f}" fill="#fff" opacity=".55" transform="rotate(-30 {b.at.x - b.r * 0.36:.1f} {b.at.y - b.r * 0.42:.1f})"/>"""
+    &"""<g fill="{ink}" stroke="{ink}" stroke-width="{2 * sw}" stroke-linejoin="round">{ink2}</g><g>{fill}</g>"""
+
+  func glyph(letter: char, r: float): string =
+    if letter == '*': return ""        # the plain cell has no letter
+    &"""<text y="{r * 0.36:.1f}" text-anchor="middle" font-size="{r * 1.05:.1f}" fill="{ink}">{letter}</text>"""
+
+nbText: """
+The outline is the old sign-painter's trick: draw every shape once with a stroke twice as thick as you want, then fill
+them all on top. Where shapes overlap the fills hide the inner strokes, so only the outline of the union is left.
+Here is the waist at work, drawn while this page was built. The mother stays put and the bud is pulled to the right.
+Read it right to left and it's two cells coalescing:
+"""
+
+nbCode:
+  var strip = """<div class="strip">"""
+  let r = 22.0
+  for (d, label) in [(0.0, "at rest"), (14.0, "budding"), (34.0, "pulled"), (60.0, "stretched"),
+                     (88.0, "a thread"), (88.0, "divided")]:
+    let joined = label != "divided"
+    let k = if joined: 1 - 0.2 * smoothstep(0.0, 2.5 * r, d) else: 1.0
+    let mother = Body(at: vec(30, 40), r: r * (1 - 0.06 * (1 - k)), letter: '*', neckTo: -1)
+    var bud = Body(at: vec(30 + d, 40), r: r * k, letter: '*', neckTo: -1)
+    if joined: (bud.neckTo, bud.hw) = (0, waist(d, r))
+    strip.add &"""<figure><svg viewBox="0 0 150 80">{membrane([mother, bud], 2.4)}</svg><figcaption>{label}</figcaption></figure>"""
+  strip.add "</div>"
+nbRawHtml: strip
+
+nbText: """
+The bud also shrinks a little while it's stretched (`1 - 0.2·smoothstep`), and a letter on it shrinks with it, as if
+it were still drawing material from its mother. Once it divides it springs back to full size.
+
+### Making it move
+
+The drawing above is a pure function of where the two centres are. To animate it, a `requestAnimationFrame` loop
+redraws the layer while anything moves. It reads each tile's *actual* position from its computed CSS transform,
+so the bodies follow the tiles even while they glide (a CSS transition) back home or into a ring. On top of that come
+three small touches:
+
+- **A spring when it splits.** Mother and daughter wobble for half a second: a damped sine on their radius,
+  `1 + 0.09·e^(-t/140)·sin(t/26)` with `t` in milliseconds.
+- **A neck that regrows.** When the bud rejoins, the neck grows back from nothing over 160 ms with a little overshoot,
+  so a quick back and forth near a ring reads as one hesitant cell, not as flicker.
+- **Coalescing is budding backwards.** As a free cell nears its twin, a neck reaches out between them and gets
+  *fatter* as they get closer, the same waist curve with the distance shrinking. When it has glided in, the twin
+  takes it in with a wobble.
+
+Tiles slide with a slightly springy easing (`cubic-bezier(.2,.9,.25,1.15)`), so a bud released far away is *pulled*
+home and overshoots a hair before it settles.
+"""
+
+nbRawHtml: """<h2><span class="num">03 · WITH LETTERS</span>A garden, then a board</h2>"""
+
+nbRawHtml: """<h3>A garden of three letters</h3>"""
+
+nbText: """
+Now the cells carry letters. Drag **S** or **O** towards one of the empty rings.
 
 Each letter may be used **twice**, and every tile in the garden is a cell, so the ones you planted can bud as well.
 **L** already has both of its copies out, so its seed looks empty and gives nothing. A tile that can't divide any more
@@ -111,7 +262,7 @@ The number of places is free: the drag lists every ring the copy may land on, an
 Tick *show machinery* to see them: each coral dot is a place the tile could go, plus one for home.
 """
 
-nbRawHtml: """<h2><span class="num">02 · ON THE BOARD</span>The same cells in a mini sudoku</h2>"""
+nbRawHtml: """<h3>On the board: a mini sudoku</h3>"""
 
 nbText: """
 Here the places come from a rule instead of a list. A letter may go into an empty cell only if its row, its
@@ -127,18 +278,18 @@ nbRawHtml: """
 <p class="status" id="board-status"></p>
 """
 
-nbRawHtml: """<h2><span class="num">03 · HOW IT WORKS</span>Two layers that don't talk much</h2>"""
+nbRawHtml: """<h2><span class="num">04 · WHAT DECIDES</span>States, and zogyn</h2>"""
 
 nbText: """
-The effect has two independent halves:
+So far we've only drawn. Something still has to decide *what happens*: does this pull make a copy, where can it
+go, when has the cell divided? The effect has two independent halves:
 
 1. **Where can the copy go?** That's a question about the *model*, and [zogyn](https://github.com/pietroppeter/zogyn)
    answers it. We never write a drop handler. For the grabbed tile we list the states the drag can reach: "nothing happened"
    plus "a copy planted in place *i*", one per place. A tile that can't divide lists "moved to place *i*" and
    "fused into tile *k*" instead. zogyn shows whichever lands the tile closest to the pointer.
-2. **What does it look like?** A membrane layer draws round bodies and the stretchy neck between two cells
-   (mother and bud, or two tiles about to fuse).
-   It never decides anything. Every frame it looks at which state zogyn picked and where the tiles are on screen.
+2. **What does it look like?** The membrane layer from the previous section. It never decides anything.
+   Every frame it looks at which state zogyn picked and where the tiles are on screen.
 
 The trick that ties them together: **the neck exists exactly when zogyn's pick is the "nothing happened" state.**
 If the pick is a planted state, the cell has divided. Fusing is the same picture run backwards: a neck appears when
@@ -158,9 +309,6 @@ This block runs natively (the figures below are drawn at build time) and in the 
 """
 
 nbCodeAnd(nbJsFromCode):
-  import std/[strformat, strutils, math, sequtils]
-  import zogyn
-
   type
     Patch = object         # a garden: seeds that never move, places that fill up
       seeds: string        # letter of each seed
@@ -261,6 +409,8 @@ The two rules differ in one line each:
 
 nbCodeAnd(nbJsFromCode):
   const copies = 2
+  let cellRule: Rule = proc (s: Patch, letter: char, place: int): bool =
+    s.cell.count(letter) < 1               # the plain cell: one copy at a time
   let gardenRule: Rule = proc (s: Patch, letter: char, place: int): bool =
     s.cell.count(letter) < copies
 
@@ -271,124 +421,12 @@ nbCodeAnd(nbJsFromCode):
           (k div 12 == r div 2 and (k mod 6) div 3 == c div 3)): return false
     true
 
-nbRawHtml: """<h3>The membrane: two circles and a neck</h3>"""
-
-nbText: """
-A dividing cell is two circles (mother and bud) and a neck between them. The neck is a closed path. On each side a
-curve leaves the mother along its outline, dips to a waist and climbs onto the bud. All the character is in one number:
-the waist's half-width, as a function of how far apart the two centres are. It starts fat (a bulge), thins fast,
-then slowly, and never quite reaches zero. It's a thread that only breaks when zogyn says the cell has divided.
-"""
-
-nbCodeAnd(nbJsFromCode):
-  const ink = "#24361f"
-  const glazes = {'S': "#ffe08a", 'O': "#ffb38a", 'L': "#9fd8cb", 'A': "#ffb38a", 'I': "#c3e39b",
-                  'P': "#f7a8bd", 'T': "#b9c9f3"}
-
-  func glaze(c: char): string =
-    for (k, v) in glazes:
-      if k == c: return v
-    "#e6e4cc"
-
-  func smoothstep(a, b, x: float): float =
-    let t = clamp((x - a) / (b - a), 0.0, 1.0)
-    t * t * (3 - 2 * t)
-
-  func waist(d, r: float): float =
-    ## half-width of the neck between cells of radius r whose centres are d apart
-    let t = clamp((d - 0.4 * r) / (4.2 * r), 0.0, 1.0)
-    r * (0.85 - 0.74 * t)
-
-  func neck(c1: Vec, r1: float, c2: Vec, r2: float, hw: float): string =
-    ## SVG path joining two circles with a waist of half-width hw
-    let d = dist(c1, c2)
-    if d < 0.2 * r1 or hw < 0.3: return ""
-    let u = (c2 - c1) * (1 / d)
-    let n = vec(-u.y, u.x)
-    # the neck meets each body wider than the waist: a fillet, as when a soap bubble pinches
-    let a1 = arcsin(min(0.94, 1.05 * hw / r1 + 0.32))
-    let a2 = arcsin(min(0.94, 1.05 * hw / r2 + 0.32))
-    let m = c1 + u * (r1 + (d - r1 - r2) / 2)
-    func f(v: Vec): string = &"{v.x:.1f} {v.y:.1f}"
-    var side: array[2, string]
-    for k, s in [1.0, -1.0]:
-      let p1 = c1 + (u * cos(a1) + n * (s * sin(a1))) * r1
-      let t1 = u * sin(a1) - n * (s * cos(a1))
-      let p2 = c2 + (u * -cos(a2) + n * (s * sin(a2))) * r2
-      let t2 = u * -sin(a2) - n * (s * cos(a2))
-      let w = m + n * (s * hw)
-      # handles: along the outline only as far as needed to drop to the waist, along the axis at the waist
-      let h1 = clamp(1.4 * (r1 * sin(a1) - hw) / max(cos(a1), 0.2), 1.0, dist(p1, w) * 0.5)
-      let h2 = clamp(1.4 * (r2 * sin(a2) - hw) / max(cos(a2), 0.2), 1.0, dist(p2, w) * 0.5)
-      let (l1, l2) = (dist(p1, w) * 0.5, dist(p2, w) * 0.5)
-      side[k] = if k == 0:
-        &"M{f(c1)}L{f(p1)}C{f(p1 + t1 * h1)} {f(w - u * l1)} {f(w)}C{f(w + u * l2)} {f(p2 + t2 * h2)} {f(p2)}L{f(c2)}"
-      else:
-        &"L{f(p2)}C{f(p2 + t2 * h2)} {f(w + u * l2)} {f(w)}C{f(w - u * l1)} {f(p1 + t1 * h1)} {f(p1)}Z"
-    side[0] & side[1]
-
-  type Body = object
-    at: Vec
-    r: float
-    letter: char
-    neckTo: int        # index of the body it's joined to, or -1
-    hw: float          # waist of that neck
-    faded: bool        # a spent seed: drawn hollow
-
-  func membrane(bodies: openArray[Body], sw = 3.0): string =
-    ## outline first (every shape stroked twice as wide), fills on top:
-    ## the inner strokes are covered, only the outline of the union shows
-    var ink2, fill: string
-    for b in bodies:
-      let c = &"""cx="{b.at.x:.1f}" cy="{b.at.y:.1f}" r="{b.r:.1f}""""
-      ink2.add &"""<circle {c}/>"""
-      var hue = glaze(b.letter)
-      if b.faded: hue = "#f2f0e1"
-      fill.add &"""<circle {c} fill="{hue}"/>"""
-      if b.neckTo >= 0:
-        let o = bodies[b.neckTo]
-        let p = neck(b.at, b.r, o.at, o.r, b.hw)
-        ink2.add &"""<path d="{p}"/>"""
-        fill.add &"""<path d="{p}" fill="{glaze(b.letter)}"/>"""
-    for b in bodies:           # a glint, so they read as soft and round
-      fill.add &"""<ellipse cx="{b.at.x - b.r * 0.36:.1f}" cy="{b.at.y - b.r * 0.42:.1f}" rx="{b.r * 0.3:.1f}" ry="{b.r * 0.17:.1f}" fill="#fff" opacity=".55" transform="rotate(-30 {b.at.x - b.r * 0.36:.1f} {b.at.y - b.r * 0.42:.1f})"/>"""
-    &"""<g fill="{ink}" stroke="{ink}" stroke-width="{2 * sw}" stroke-linejoin="round">{ink2}</g><g>{fill}</g>"""
-
-  func glyph(letter: char, r: float): string =
-    &"""<text y="{r * 0.36:.1f}" text-anchor="middle" font-size="{r * 1.05:.1f}" fill="{ink}">{letter}</text>"""
-
-nbText: """
-The outline is the old sign-painter's trick: draw every shape once with a stroke twice as thick as you want, then fill
-them all on top. Where shapes overlap the fills hide the inner strokes, so only the outline of the union is left.
-Here is the waist at work, drawn while this page was built. The mother stays put and the bud is pulled to the right:
-"""
-
-nbCode:
-  var strip = """<div class="strip">"""
-  let r = 22.0
-  for (d, label) in [(0.0, "at rest"), (14.0, "budding"), (34.0, "pulled"), (60.0, "stretched"),
-                     (88.0, "a thread"), (88.0, "divided")]:
-    let joined = label != "divided"
-    let k = if joined: 1 - 0.2 * smoothstep(0.0, 2.5 * r, d) else: 1.0
-    let mother = Body(at: vec(30, 40), r: r * (1 - 0.06 * (1 - k)), letter: 'S', neckTo: -1)
-    var bud = Body(at: vec(30 + d, 40), r: r * k, letter: 'S', neckTo: -1)
-    if joined: (bud.neckTo, bud.hw) = (0, waist(d, r))
-    strip.add &"""<figure><svg viewBox="0 0 150 80">{membrane([mother, bud], 2.4)}""" &
-      &"""<g transform="translate(30 40)">{glyph('S', mother.r)}</g><g transform="translate({bud.at.x} 40) scale({k:.2f})">{glyph('S', r)}</g></svg><figcaption>{label}</figcaption></figure>"""
-  strip.add "</div>"
-nbRawHtml: strip
-
-nbText: """
-The bud also shrinks a little while it's stretched (`1 - 0.2·smoothstep`), and its letter shrinks with it, as if
-it were still drawing material from its mother. Once it divides it springs back to full size.
-"""
-
-nbRawHtml: """<h3>Where the tiles are: one render, two layouts</h3>"""
+nbRawHtml: """<h3>Where the tiles are: one render, three layouts</h3>"""
 
 nbText: """
 zogyn needs a *render*: a pure function from the model to keyed, positioned items. Each item is only a letter
-and an invisible hit circle. The bodies are the membrane's job. The garden puts its places on an arc and the board
-on a 6×6 grid, so they get two layouts of the same render:
+and an invisible hit circle. The bodies are the membrane's job. The single cell has two places in a row, the garden
+puts its places on an arc and the board on a 6×6 grid, so they get three layouts of the same render:
 """
 
 nbCodeAnd(nbJsFromCode):
@@ -418,6 +456,10 @@ nbCodeAnd(nbJsFromCode):
       let a = if n == 1: PI / 2 else: PI * (0.92 - 0.84 * i.float / float(n - 1))
       vec(180 + 140 * cos(a), 232 - 150 * sin(a)))
 
+  let single = Layout(r: 26,
+    seedAt: proc (j, n: int): Vec = vec(72, 80),
+    placeAt: proc (i, n: int): Vec = vec(214 + 92 * i.float, 80))
+
   let board = Layout(r: 21,
     seedAt: proc (j, n: int): Vec = vec(45 + 54 * j.float, 392),
     placeAt: proc (i, n: int): Vec = vec(45 + 54 * float(i mod 6), 41 + 54 * float(i div 6)))
@@ -431,6 +473,10 @@ nbCodeAnd(nbJsFromCode):
       result.cell[place] = 'L'
       result.cellId[place] = result.next
       inc result.next
+
+  proc newCell(): Patch =
+    ## one plain cell and two empty places; it may make one copy
+    Patch(seeds: "*", seedId: @[1], cell: "  ", cellId: @[0, 0], next: 2)
 
   proc newBoard(letters, givens: string): Patch =
     ## givens as in puzzle links: <row><col><letter>, dot separated
@@ -464,18 +510,16 @@ nbCode:
 nbRawHtml: """<h3>The effect layer: drawing what zogyn picked</h3>"""
 
 nbText: """
-The membrane is a `<g>` slipped under zogyn's tiles. While anything moves, a `requestAnimationFrame` loop redraws it.
-It reads each tile's *actual* position from its computed CSS transform, so the bodies follow zogyn's glide
-(a CSS transition) without knowing about it. The loop decides three things:
+Back to the animation loop, now that we know what zogyn offers. Each frame it answers three questions from
+zogyn's pick:
 
 - **Is the held tile joined?** Yes when zogyn's current pick is the committed state ("nothing happened"). Then it draws
   the mother at the tile's home with its letter, the bud under the pointer and the neck between them. After a release
   back home the tile glides back, and the neck follows it until they touch.
-- **Did it just split or rejoin?** When the answer flips, it starts a small spring. A split makes mother and daughter
-  wobble (a damped sine on their radius). A rejoin grows the neck back from nothing, with a little overshoot.
-- **Is it fusing?** When the pick is "fused into *k*" (or a released tile is still gliding into *k*), it draws a
-  neck between the tile and *k*. The waist grows as they get closer, the budding curve run backwards. When the
-  tile has arrived the page tidies it out of the model, and *k* gives a little wobble as it takes it in.
+- **Did it just split or rejoin?** When the answer flips, it starts the spring (on a split) or regrows the neck
+  (on a rejoin).
+- **Is it fusing?** When the pick is "fused into *k*" (or a released tile is still gliding into *k*), it draws the
+  neck between the tile and *k*. When the tile has arrived the page tidies it out of the model.
 
 Spent seeds are drawn hollow with a faded letter. The layer finds them by asking the spec: `nil` means nothing to give.
 
@@ -500,6 +544,7 @@ nbCodeDisplay(nbJsFromCode):
     st: Stage[Patch]
     r: float
     rule: Rule
+    hollow: bool              # draw spent seeds hollow
     layer, status: Element
     tether: string            # key still joined to its mother: held at home, or gliding back
     joined: bool              # was the held bud joined last frame?
@@ -561,7 +606,7 @@ nbCodeDisplay(nbJsFromCode):
       var k = 1.0
       if buds and (key == held or dist(at, st.render.locate(st.state, held)) < 1): k = wob
       if key == c.mergeKey: k = spring(t - c.mergeAt, 0.12)
-      let spent = st.spec(st.state, key).isNil and st.state.letterOf(key) != '\0'
+      let spent = c.hollow and st.spec(st.state, key).isNil and st.state.letterOf(key) != '\0'
       bodies.add Body(at: at, r: r * k, letter: letter, neckTo: -1, faded: spent)
       index[key] = bodies.len - 1
       n.querySelector(".nuc").setCss("transform", "scale(1)")
@@ -602,23 +647,28 @@ nbCodeDisplay(nbJsFromCode):
     c.mergeAt = now()
     st.setState(st.state.tidy)
 
-  proc grow(st: Stage[Patch], r: float, statusId: string, rule: Rule): Cells =
-    let c = Cells(st: st, r: r, rule: rule, layer: svgG(), status: document.getElementById(cstring(statusId)))
+  proc grow(st: Stage[Patch], r: float, statusId: string, rule: Rule, hollow = true): Cells =
+    let c = Cells(st: st, r: r, rule: rule, hollow: hollow, layer: svgG(),
+                  status: document.getElementById(cstring(statusId)))
     c.layer.setAttribute("class", "membrane")
     st.svg.insertBefore(c.layer, st.fg)
     st.onMove = proc () =
       let held = st.dragKey
       if held.len > 0:
         let letter = st.state.letterOf(held)
+        var (it, twin) = ($letter, "another " & $letter)
+        if letter == '*': (it, twin) = ("the cell", "its twin")
         let n = st.state.targets(held, rule).len
-        var msg = &"{letter} can bud a copy into {n} places"
-        if n == 1: msg = &"{letter} can bud a copy into 1 place"
-        if n == 0: msg = &"{letter} can't divide any more: move it, or drop it on another {letter}"
+        var msg = &"{it} can bud a copy into {n} places"
+        if n == 1: msg = &"{it} can bud a copy into 1 place"
+        if n == 0: msg = &"{it} can't divide any more: move it, or drop it on {twin}"
         if st.choice.ok and st.choice.state != st.state:
-          if n > 0: msg = &"{letter} has split off: let go to plant it"
-          elif st.choice.state.fusing(held).len > 0: msg = &"let go and the two {letter}s fuse"
-          else: msg = &"let go to move {letter} here"
+          if n > 0: msg = &"{it} has split off: let go to plant it"
+          elif st.choice.state.fusing(held).len > 0: msg = "let go and the two fuse into one"
+          else: msg = &"let go to move {it} here"
         c.status.textContent = cstring(msg)
+      else:
+        c.status.textContent = ""
       c.kick()
     st.onCommit = proc (before, after: Patch) =
       if after.absorbed.len > 0: later(proc () = c.tidyUp(), 380)
@@ -626,13 +676,8 @@ nbCodeDisplay(nbJsFromCode):
     c
 nbRawHtml: "</details>"
 
-nbText: """
-Two details made it feel right. The neck regrows over 160 ms instead of popping back, so a quick back-and-forth near
-a ring reads as one hesitant cell, not as flicker. And tiles slide with a slightly springy easing
-(`cubic-bezier(.2,.9,.25,1.15)`), so a bud released far away is *pulled* home and overshoots a hair before it settles.
-"""
 
-nbRawHtml: """<h2><span class="num">04 · NEXT</span>What this opens up</h2>"""
+nbRawHtml: """<h2><span class="num">05 · NEXT</span>What this opens up</h2>"""
 
 nbText: """
 - **More kinds of source.** The model doesn't care what a source is. The clue words' letters can become seeds too,
@@ -649,13 +694,18 @@ nbJsFromCode:
   import std/dom
   proc qsa(sel: cstring): seq[Element] {.importjs: "Array.from(document.querySelectorAll(#))".}
 
+  proc ringsOf(lay: Layout): proc (s: Patch): string =
+    result = proc (s: Patch): string =
+      for i in 0 ..< s.cell.len:
+        let p = lay.placeAt(i, s.cell.len)
+        result.add &"""<circle cx="{p.x:.1f}" cy="{p.y:.1f}" r="{lay.r + 3}" fill="#eef0dc" stroke="#a7c27a" stroke-width="2" stroke-dasharray="5 5"/>"""
+  let ost = mount("one", 360, 160, newCell(), cellRender(single), cellSpec(cellRule, 1.7 * single.r),
+                  backdrop = ringsOf(single))
+  discard grow(ost, single.r, "one-status", cellRule, hollow = false)
+
   var gardenN = 5
-  proc rings(s: Patch): string =
-    for i in 0 ..< s.cell.len:
-      let p = garden.placeAt(i, s.cell.len)
-      result.add &"""<circle cx="{p.x:.1f}" cy="{p.y:.1f}" r="{garden.r + 3}" fill="#eef0dc" stroke="#a7c27a" stroke-width="2" stroke-dasharray="5 5"/>"""
   let gst = mount("garden", 360, 290, newGarden(gardenN), cellRender(garden),
-                  cellSpec(gardenRule, 1.7 * garden.r), backdrop = rings)
+                  cellSpec(gardenRule, 1.7 * garden.r), backdrop = ringsOf(garden))
   let gc = grow(gst, garden.r, "garden-status", gardenRule)
   for b in qsa(".controls [data-n]"):
     let btn = b
