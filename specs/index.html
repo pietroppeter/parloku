@@ -453,7 +453,7 @@ figcaption {
 <svg width="0" height="0" style="position:absolute"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs></svg><script>document.body.dataset.skin = localStorage.getItem('parloku:look') || 'niki'</script>
 <h1>Specs</h1>
 <p class="lede">How Parloku behaves, written down. Every drag scenario below is played on the game's own code while
-this page is built, and the animation shows what really happened.</p><div class="stats"><span><b>12</b> specs</span><span><b>59</b> requirements</span><span><b>71</b> scenarios</span><span><b>15/15</b> drag scenarios pass</span><span><b>1</b> open changes, <b>0</b> scenarios to do</span></div>
+this page is built, and the animation shows what really happened.</p><div class="stats"><span><b>12</b> specs</span><span><b>59</b> requirements</span><span><b>71</b> scenarios</span><span><b>15/15</b> drag scenarios pass</span><span><b>2</b> open changes, <b>0</b> scenarios to do</span></div>
 <p>Parloku plans its work with <a href="https://github.com/Fission-AI/OpenSpec">OpenSpec</a>. A <strong>spec</strong> in <code>openspec/specs/</code> says
 how one part of Parloku behaves today: requirements, each with scenarios (WHEN this, THEN that). A <strong>change</strong> in
 <code>openspec/changes/</code> proposes new behaviour: why, what, the spec deltas, and tasks. When it ships it is archived and its
@@ -751,7 +751,68 @@ specs SHALL pass before a PR is merged; scenarios in an open change MAY fail unt
 <div class="scen"><h5>A spec scenario breaks</h5><ul><li><strong>WHEN</strong> a change to <code>src/parloku.nim</code> makes a scenario in <code>openspec/specs/</code> fail
 </li><li><strong>THEN</strong> <code>tools/specdrag.nim</code> exits with an error naming the scenario, and shows the expected and the actual board
 </li></ul></div></article></details></div>
-<h2>Open changes</h2><div class="specview"><details class="change" id="change-settle-word-overlaps"><summary><span class="nm">settle-word-overlaps</span><span class="ct">0/4 tasks</span><span class="bar"><i style="width:0%"></i></span></summary><div class="cbody"><h4>Proposal</h4><h2 id="why">Why</h2>
+<h2>Open changes</h2><div class="specview"><details class="change" id="change-rework-player-menu"><summary><span class="nm">rework-player-menu</span><span class="ct">4/6 tasks</span><span class="bar"><i style="width:66%"></i></span></summary><div class="cbody"><h4>Proposal</h4><h2 id="why">Why</h2>
+<p>Pietro reviewed the player's menu (5 November 2026): there are too many buttons at the top, and a reset can't be
+taken back. Built in PR #13 (project thread &quot;Evolve Parloku game and devlog&quot;), which is waiting for his review.</p>
+<h2 id="what-changes">What Changes</h2>
+<ul>
+<li>The top of the game has only three buttons: <strong>istruzioni</strong> (a new page, <code>istruzioni.html</code>, with the rules of the
+game and then the gameplay; no solving tutorial for now), <strong>ancora!</strong> (a list to pick another puzzle, with the solved
+ones ticked) and <strong>rifaccio</strong> (reset).</li>
+<li>Reset restarts right away, with no &quot;sure?&quot;. For 8 seconds afterwards, or until the first move if that comes sooner,
+the button reads <strong>annullo rifaccio</strong> and brings back the board, its history and the clock. On an untouched board
+there is nothing to undo, so it isn't offered.</li>
+<li>Solved puzzles are remembered in the browser (<code>parloku:solved</code>).</li>
+</ul>
+<h2 id="capabilities">Capabilities</h2>
+<h3>New Capabilities</h3>
+<ul>
+<li>none</li>
+</ul>
+<h3>Modified Capabilities</h3>
+<ul>
+<li><code>player</code>: the menu, reset and its undo, solved puzzles.</li>
+<li><code>first-principles</code>: &quot;mistakes are cheap&quot; is met by undoing a reset, not by asking first.</li>
+</ul>
+<h2 id="impact">Impact</h2>
+<ul>
+<li><code>src/parloku.nim</code> (menu and reset), a new <code>src/istruzioni.nim</code> page.</li>
+<li>First principles touched: one job per piece (fewer buttons), mistakes are cheap (undoing a reset).</li>
+</ul>
+<h4>Tasks</h4><h2 id="1.-menu-(pr-#13)">1. Menu (PR #13)</h2>
+<ul>
+<li>☑ 1.1 Three buttons at the top: istruzioni, ancora!, rifaccio</li>
+<li>☑ 1.2 istruzioni.html with the rules, then the gameplay</li>
+<li>☑ 1.3 ancora! lists the puzzles, solved ones ticked (<code>parloku:solved</code>)</li>
+<li>☑ 1.4 rifaccio restarts at once; annullo rifaccio for 8 s or until the first move</li>
+<li>☐ 1.5 Pietro's review, then merge and archive this change</li>
+<li>☐ 1.6 Run <code>nim r tools/specdrag.nim</code> and rebuild specs/ (src/specs_page.nim)</li>
+</ul>
+<h4>Spec delta: <a href="#spec-first-principles">first-principles</a></h4><article class="req"><h4><span class="tag t-modified">MODIFIED</span> Mistakes are cheap</h4><p>Any change to the board SHALL be undoable, and the one action that wipes the board SHALL be undoable right after it,
+without a confirmation in the way.</p>
+<div class="scen"><h5>Reset</h5><ul><li><strong>WHEN</strong> the player taps reset by mistake
+</li><li><strong>THEN</strong> they can get their board back with one tap
+</li></ul></div></article><h4>Spec delta: <a href="#spec-player">player</a></h4><article class="req"><h4><span class="tag t-added">ADDED</span> Three buttons at the top</h4><p>The top of the game SHALL show only three buttons: istruzioni, which opens a page with the rules of the game and then
+the gameplay; ancora!, which lists the puzzles to pick another one, with the solved ones ticked; and rifaccio, which
+starts the puzzle again. Solved puzzles SHALL be remembered in the browser.</p>
+<div class="scen"><h5>Picking another puzzle</h5><ul><li><strong>WHEN</strong> the player has solved puzzle 1 and taps ancora!
+</li><li><strong>THEN</strong> the list shows every puzzle, with puzzle 1 ticked
+</li></ul></div><div class="scen"><h5>The instructions</h5><ul><li><strong>WHEN</strong> the player taps istruzioni
+</li><li><strong>THEN</strong> a page explains the rules first and then how to play, without a solving tutorial
+</li></ul></div></article><article class="req"><h4><span class="tag t-modified">MODIFIED</span> Undo, hint, reset, link</h4><p>The page SHALL offer ↶ undo (takes back the last change, any number of times), 💡 hint (glides one correct tile into
+an empty or wrong cell), rifaccio (starts the puzzle again, right away, without asking) and 🔗 link (copies a link to
+this puzzle). For 8 seconds after a reset, or until the first move if that comes sooner, rifaccio SHALL read
+&quot;annullo rifaccio&quot; and bring back the board, its undo history and the clock. A reset of an untouched board SHALL NOT
+offer it.</p>
+<div class="scen"><h5>Undo after a wrong drop</h5><ul><li><strong>WHEN</strong> the player drops a tile and taps ↶
+</li><li><strong>THEN</strong> the board is as before the drop
+</li></ul></div><div class="scen"><h5>Hint with a wrong tile on the board</h5><ul><li><strong>WHEN</strong> one tile is wrong and the player taps 💡
+</li><li><strong>THEN</strong> a correct tile glides into a cell that was empty or wrong
+</li></ul></div><div class="scen"><h5>Reset by mistake</h5><ul><li><strong>WHEN</strong> the player taps rifaccio with ten tiles placed, then taps &quot;annullo rifaccio&quot; within 8 seconds
+</li><li><strong>THEN</strong> the ten tiles, the undo history and the clock are back
+</li></ul></div><div class="scen"><h5>The undo window closes</h5><ul><li><strong>WHEN</strong> the player taps rifaccio and then places a tile
+</li><li><strong>THEN</strong> the button reads rifaccio again
+</li></ul></div></article></div></details><details class="change" id="change-settle-word-overlaps"><summary><span class="nm">settle-word-overlaps</span><span class="ct">0/4 tasks</span><span class="bar"><i style="width:0%"></i></span></summary><div class="cbody"><h4>Proposal</h4><h2 id="why">Why</h2>
 <p>Writing the specs showed three parts of Parloku disagreeing on one rule: may a word pass twice over the same cell?</p>
 <ul>
 <li>The board's outlines never use a cell twice (since PR #8: G-I-O-C no longer reads as GIOCO).</li>

@@ -175,7 +175,9 @@ the change <code>settle-word-overlaps</code> lists the three questions.</p>
 <h4>2 · Reset doesn't ask any more</h4>
 <p>"Back to basics" made ↺ reset ask "sure?" before wiping the board. The game now restarts right away, and undo can't
 bring the board back after a reset. The <code>first-principles</code> spec keeps the rule (mistakes are cheap: the one
-action that wipes the board is undoable or asks first), so either reset gets undo or the rule changes.</p>
+action that wipes the board is undoable or asks first), so either reset gets undo or the rule changes.
+<b>Decided:</b> reset gets undo. For 8 seconds after a reset (or until the first move) the button reads "annullo
+rifaccio". That is the open change <code>rework-player-menu</code> (PR #13), with the new three-button menu.</p>
 <h4>3 · Givens give copies</h4>
 <p>A given can't be moved or sent back, but a drag on it, quick or after holding, pulls a copy of its letter, like any letter on the
 board. I wrote that down as it is; say if givens should give nothing.</p>
@@ -204,7 +206,7 @@ nbText: """
 nbRawHtml: """<div class="ask"><b>For Pietro to check</b><ul>
 <li>The five families and twelve names: do they match how you think about Parloku?</li>
 <li>Devlog and garden: is my reading right?</li>
-<li>Words and their own cells (<code>settle-word-overlaps</code>), and reset.</li>
+<li>Words and their own cells (<code>settle-word-overlaps</code>).</li>
 <li>Givens giving copies, and retiring <code>tests/gestures</code> later.</li>
 </ul></div>"""
 
