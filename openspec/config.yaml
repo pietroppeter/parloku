@@ -1,0 +1,34 @@
+schema: spec-driven
+
+context: |
+  Parloku is a word mini sudoku (6x6, six letters, word clues) played by dragging tiles. Every page is a nimib
+  notebook in src/ compiled to a standalone HTML file at the repo root or in devlog/, garden/, specs/; GitHub Pages
+  serves main. The game's model, rules, solver and drag spec live in the nbCodeAnd(nbJsFromCode) blocks of
+  src/parloku.nim, which run natively at build time and in the browser. Puzzles are puzzlepaw JSON in data/; the
+  builder uses puzzlepaw's parloku/solver. zogyn packages the same declarative drag engine as a library.
+  Pietro reviews on his phone: every change is first shown as a published preview (a claude.ai artifact, which can't
+  load remote images or fonts), nothing goes to main without his go, one clean PR per change, old branches are kept.
+  Write specs and proposals in plain, short English sentences, like the devlog.
+
+rules:
+  proposal:
+    - Name where the change comes from (a playtest, a PR, a project thread) and the PR that builds it
+    - Say which first-principles requirements a change to a screen touches, or that it touches none
+    - If the change grows out of a garden page (garden/), name the page
+  specs:
+    - Write gameplay scenarios that a drag can show as a ```drag block (start board, gesture, end board and/or
+      outline), as the way-of-working spec says, so tools/specdrag.nim runs them
+    - Use r<row>c<col> (1-based) for cells, and the puzzle numbers of data/ for boards
+    - A playtest finding becomes a scenario in a change before it is fixed
+  tasks:
+    - End with a task to run `nim r tools/specdrag.nim` and rebuild specs/ (src/specs_page.nim)
+
+operations:
+  apply:
+    guidance:
+      - Scenarios in openspec/specs must keep passing; the change's own scenarios should pass when it is done
+      - Show Pietro a preview artifact before asking to merge
+  archive:
+    guidance:
+      - Add or update the devlog post that tells the change, and its line in the README devlog list
+      - Rebuild specs/index.html
