@@ -2,6 +2,8 @@
 
 **Play it:** https://pietroppeter.github.io/parloku/
 
+**Build it:** https://pietroppeter.github.io/parloku/builder.html. After you have played a few handcrafted puzzles, challenge yourself to create your own: you can become a puzzlecrafter and share your creations with friends!
+
 Parloku is a mini sudoku spelled in letters (a *wordoku*) with words hidden in it.
 Fill the 6×6 grid so each of six letters appears once per row, column and 2×3 box, and
 so every clue word can be spelled from its numbered cell, one step at a time up, down, left or right.
