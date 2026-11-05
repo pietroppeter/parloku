@@ -105,7 +105,8 @@ nbCodeAnd(nbJsFromCode):
 
   proc decode(code: string): Puzzle =
     var c = code.strip(chars = {'?', '#', ' '})
-    if c.startsWith("p="): c = c[2 .. ^1]
+    for part in c.split('&'):              # a whole query string: take its p= value, wherever it is
+      if part.startsWith("p="): c = part[2 .. ^1]
     let parts = c.toUpperAscii.split('_')
     if parts.len != 3: return
     result.letters = parts[0]
@@ -199,9 +200,28 @@ nbCodeAnd(nbJsFromCode):
     for c in 0 ..< 36:
       if g[c] != '.' and peersOf[c].anyIt(g[it] == g[c]): result.add c
 
-  proc trace(g: Grid, clue: Clue, wild = false): seq[int] =
-    ## longest prefix of the word that can be walked from its start cell
-    ## (the rules let a path come back to a cell it already used)
+  proc trace(g: Grid, clue: Clue, wild = false, revisit = false): seq[int] =
+    ## longest prefix of the word that can be walked from its start cell.
+    ## The rules let a path come back to a cell it already used (`revisit`, for the solver); the board's
+    ## outlines don't, or G-I-O-C would read as GIOCO by stepping back onto the O
+    if not revisit:
+      var best, path: seq[int]
+      let word = clue.word
+      proc walk(cell, i: int) =
+        if best.len == word.len or cell in path: return
+        let ok = g[cell] == word[i] or (wild and g[cell] == '.')
+        if not ok: return
+        path.add cell
+        if path.len > best.len: best = path
+        if i + 1 < word.len:
+          let (r, c) = (cell div 6, cell mod 6)
+          if r > 0: walk(cell - 6, i + 1)
+          if r < 5: walk(cell + 6, i + 1)
+          if c > 0: walk(cell - 1, i + 1)
+          if c < 5: walk(cell + 1, i + 1)
+        discard path.pop
+      walk(idx(clue.pos), 0)
+      return best
     var best, path: seq[int]
     let word = clue.word
     proc walk(cell, i: int) =
@@ -221,7 +241,7 @@ nbCodeAnd(nbJsFromCode):
     best
 
   proc solved(p: Puzzle, g: Grid): bool =
-    '.' notin g and g.clashes.len == 0 and p.clues.allIt(g.trace(it).len == it.word.len)
+    '.' notin g and g.clashes.len == 0 and p.clues.allIt(g.trace(it, revisit = true).len == it.word.len)
 
   proc solve(p: Puzzle, limit = 2): seq[Grid] =
     ## backtracking with "fewest candidates first", pruning on the clues;
@@ -229,7 +249,7 @@ nbCodeAnd(nbJsFromCode):
     var g = startGrid(p)
     var sols: seq[Grid]
     proc fits(g: Grid, cell: int, ch: char): bool = peersOf[cell].allIt(g[it] != ch)
-    proc cluesOk(g: Grid): bool = p.clues.allIt(g.trace(it, wild = true).len == it.word.len)
+    proc cluesOk(g: Grid): bool = p.clues.allIt(g.trace(it, wild = true, revisit = true).len == it.word.len)
     proc go(g: var Grid) =
       if sols.len >= limit: return
       var best = -1
@@ -630,6 +650,14 @@ nbCodeAnd(nbJsFromCode):
       inc result.moves
 
   var extendFrom = -1            # the board cell a copy is being pulled from (-1: from below)
+  proc isHead(b: Board, at: int): bool =
+    ## the letter on `at` is the last one spelled so far of some word: the head of its snake
+    let g = b.grid
+    for clue in puz.clues:
+      let path = g.trace(clue)
+      if path.len > 0 and path[^1] == at: return true
+    false
+
   proc nextOfWord(b: Board, at: int): int =
     ## a free tile of the next letter, if the letter on cell `at` ends a word spelled so far (else -1)
     let g = b.grid
@@ -648,12 +676,14 @@ nbCodeAnd(nbJsFromCode):
     # a copy pulled off the last letter of a word in progress: dropped right next to it, it spells the word's
     # next letter instead (the word grows); dropped further away, it is a plain copy
     var ext = -1
-    if src < 0 and extendFrom >= 0: ext = nextOfWord(b, extendFrom)
+    var fromCell = extendFrom              # a copy pulled off a board letter...
+    if src >= 0: fromCell = src            # ...or a snake's head being moved
+    if fromCell >= 0: ext = nextOfWord(b, fromCell)
     var futures: seq[Board]
     var keys: seq[string]
     for c in 0 ..< 36:                     # only empty cells: a tile never pushes out a letter already placed
       if not isGiven(c) and (b.cells[c] < 0 or c == src):
-        let near = abs(c div 6 - extendFrom div 6) + abs(c mod 6 - extendFrom mod 6) == 1
+        let near = abs(c div 6 - fromCell div 6) + abs(c mod 6 - fromCell mod 6) == 1
         if ext >= 0 and near:
           futures.add b.place(ext, c)
           keys.add &"t{ext}"
@@ -1034,6 +1064,9 @@ nbJsFromCode:
     let id = parseInt(key[1 .. ^1])
     extendFrom = b.cells.find(id)
     if extendFrom < 0: return key
+    if not isGiven(extendFrom) and b.isHead(extendFrom):   # a snake's head moves (or grows the snake): no copy
+      extendFrom = -1
+      return key
     for k in 0 .. 5:
       if b.cells.find((id div 6) * 6 + k) < 0: return &"t{(id div 6) * 6 + k}"
     ""
@@ -1098,7 +1131,7 @@ nbJsFromCode:
     let held = stage.dragKey
     if held.len > 0:
       var want = -1
-      if stage.redirected and stage.choice.ok:      # the future being shown places another tile: the next letter
+      if stage.choice.ok:                 # the future being shown places another tile: the word's next letter
         for id in 0 ..< 36:
           if $id != held[1 .. ^1] and stage.choice.state.cells.find(id) >= 0 and stage.state.cells.find(id) < 0: want = id
       if want >= 0:                       # redrawn on every move: the view puts the held tile's own look back
