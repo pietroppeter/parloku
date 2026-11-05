@@ -546,7 +546,7 @@ nbCodeAnd(nbJsFromCode):
   const by = 16.0
 
   proc cellPos(c: int): Vec = vec(bx + float(c mod 6) * cell + cell / 2, by + float(c div 6) * cell + cell / 2)
-  proc stackPos(li: int): Vec = vec(50 + li.float * 100, 566)
+  proc stackPos(li: int): Vec = vec(150 + float(li mod 3) * 150, 546 + float(li div 3) * 74)   # two rows of three under the board
 
   proc blobPath(s: float, seed: int, amp: float): string =
     ## a soft closed blob around the origin: 8 points with varied radii, joined by Catmull-Rom curves
@@ -575,7 +575,9 @@ nbCodeAnd(nbJsFromCode):
   proc tileSvg(li: int, given: bool): string =
     let letter = puz.letters[li]
     ## all three shapes are drawn; the page's skin (CSS) shows one, and sets the colours
-    result = shapes(li) & """<rect class="sh" x="-25" y="-26" width="50" height="20" rx="8"/>""" &
+    var cls = "tile"
+    if given: cls = "tile given"
+    result = shapes(li, cls) & """<rect class="sh" x="-25" y="-26" width="50" height="20" rx="8"/>""" &
       &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{letter}</text>"""
     if given:
       result.add """<rect class="gv" x="-26" y="-26" width="52" height="52" rx="8"/><circle class="gvc" r="25"/>"""
@@ -671,7 +673,7 @@ nbCodeAnd(nbJsFromCode):
       result.add &"""<text x="{cellPos(i).x}" y="{by + cell * 6 + 28}" text-anchor="middle" font-size="14" class="mono lbl">c{i + 1}</text>"""
     for li in coachStacks:
       let s = stackPos(li)
-      result.add &"""<rect class="glow pulse" x="{s.x - 40}" y="{s.y - 40}" width="80" height="94" rx="18"/>"""
+      result.add &"""<rect class="glow pulse" x="{s.x - 38}" y="{s.y - 38}" width="76" height="76" rx="18"/>"""
     # a letter with no tiles left shows an empty ring and a tick
     var left: array[6, int]
     for id in 0 ..< 36:
@@ -845,8 +847,8 @@ nbCodeDisplay(nbJsFromCode):
 
   proc mount[S](host: Element, w, h: float, init: S, render: Render[S],
                 spec: proc (s: S, key: string): Behavior[S],
-                backdrop, overlay: proc (s: S): string): Stage[S] =
-    host.innerHTML = cstring(&"""<svg class="d2" viewBox="0 0 {w} {h}"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs><g class="bg"></g>""" &
+                backdrop, overlay: proc (s: S): string, x0 = 0.0): Stage[S] =
+    host.innerHTML = cstring(&"""<svg class="d2" viewBox="{x0} 0 {w} {h}"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs><g class="bg"></g>""" &
       """<g class="fg"></g><g class="overlay"></g><g class="ghosts"></g></svg>""" &
       """<label class="ghost-toggle"><input type="checkbox"> <span data-it="mostra il meccanismo">show machinery</span></label>""")
     let st = Stage[S](state: init, render: render, spec: spec, backdrop: backdrop, overlay: overlay)
@@ -858,7 +860,7 @@ nbCodeDisplay(nbJsFromCode):
     let toLocal = proc (ev: Event): Vec =
       let (l, t, rw, rh) = rectOf(st.svg)
       let c = clientXY(ev)
-      vec((c.x - l) * w / rw, (c.y - t) * h / rh)
+      vec(x0 + (c.x - l) * w / rw, (c.y - t) * h / rh)
     st.svg.addEventListener("pointerdown", proc (ev: Event) =
       let k = keyAt(ev)
       if k.isNil: return
@@ -926,7 +928,7 @@ nbJsFromCode:
 
   proc emptyBoard(): Board = puz.boardOf(puz.startGrid)
   puz = decode(code)
-  let stage = mount(host, 600, 612, emptyBoard(), renderBoard, tileSpec, backdrop, overlay)
+  let stage = mount(host, 500, 664, emptyBoard(), renderBoard, tileSpec, backdrop, overlay, 50)   # cropped to the board: bigger on a phone
   block:
     let slot = document.getElementById("machinery-slot")
     let toggle = host.querySelector(".ghost-toggle")

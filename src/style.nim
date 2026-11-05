@@ -103,8 +103,6 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
 .clue .l{width:26px;height:30px;border-radius:7px;display:grid;place-items:center;font:var(--glyph-weight) 18px var(--font-glyph);
   border:1.5px dashed var(--line);color:var(--muted);transition:background .25s,color .25s}
 /* a clue letter already on the board: bold, dark, with a thick dark edge; the ones still to place stay light */
-.clue .l{font-weight:500}
-.clue .l.on{border:2.5px solid var(--ink);font-weight:900;color:var(--ink)!important}
 .clue.done{border-color:var(--ink)}
 .clue .ok{font-size:18px;width:18px;text-align:center;color:var(--c4);font-weight:700}
 .stage{position:relative;background:var(--card);border:var(--border) solid var(--line);border-radius:calc(var(--radius) + 4px);box-shadow:var(--shadow);padding:6px;overflow:hidden}
@@ -124,7 +122,10 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .layer{filter:brightness(.88)}
 .tile .ring{fill:none;stroke:rgba(255,255,255,.6);stroke-width:5}
 .sh{fill:#fff;opacity:var(--shine)}
-.gv,.gvc{fill:none;stroke:var(--ink);stroke-opacity:.35;stroke-width:2;stroke-dasharray:3 4}
+.gv,.gvc{fill:none;stroke:var(--ink);stroke-opacity:.85;stroke-width:3.5}
+/* a given can't move: a solid dark ring inside, and a thicker outline */
+.tile.given rect,.tile.given circle,.tile.given path{stroke:var(--ink);stroke-width:4.5px}
+.tile.given .ring{stroke:rgba(255,255,255,.6)}
 .frame{fill:var(--frame)}
 .cell{stroke:color-mix(in srgb,var(--ink) 16%,transparent);stroke-width:1.5} .cell.ca{fill:var(--ca)} .cell.cb{fill:var(--cb)} .cell.tint{fill:var(--hl)} .cell.bad{fill:var(--bad)}
 .badline{fill:none;stroke:var(--bad-line);stroke-width:3}
