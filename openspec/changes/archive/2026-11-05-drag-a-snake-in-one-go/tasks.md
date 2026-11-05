@@ -10,4 +10,4 @@
 
 ## 3. Builder
 
-- [x] 3.1 Same gestures in the builder (PR #6)
+- [ ] 3.1 Same gestures in the builder (not checked: builder scenarios need `tools/specdrag` to open builder.html)
