@@ -514,6 +514,22 @@ nbCodeAnd(nbJsFromCode):
           if d < result.dist:
             result = Choice[S](ok: true, state: s, land: lands[i], dist: d)
 
+  proc closestBy[S](states: seq[S], keys: seq[string]): Behavior[S] =
+    ## like `closest`, but state i is reached where item keys[i] lands in it ("" = the held item):
+    ## the held item can stand in for another one
+    result = proc (render: Render[S], key: string): Picker[S] =
+      var lands: seq[Vec]
+      for i, s in states:
+        let k = if keys[i].len > 0: keys[i] else: key
+        lands.add render.locate(s, k)
+      result.lands = lands
+      result.pick = proc (p: Vec): Choice[S] =
+        result.dist = Inf
+        for i, s in states:
+          let d = norm(lands[i] - p)
+          if d < result.dist:
+            result = Choice[S](ok: true, state: s, land: lands[i], dist: d)
+
   proc within[S](b: Behavior[S], radius: float): Behavior[S] =
     result = proc (render: Render[S], key: string): Picker[S] =
       let inner = b(render, key)
@@ -613,16 +629,40 @@ nbCodeAnd(nbJsFromCode):
       result.cells[src] = -1
       inc result.moves
 
+  var extendFrom = -1            # the board cell a copy is being pulled from (-1: from below)
+  proc nextOfWord(b: Board, at: int): int =
+    ## a free tile of the next letter, if the letter on cell `at` ends a word spelled so far (else -1)
+    let g = b.grid
+    for clue in puz.clues:
+      let path = g.trace(clue)
+      if path.len > 0 and path.len < clue.word.len and path[^1] == at:
+        let li = puz.letters.find(clue.word[path.len])
+        for j in 0 .. 5:
+          if b.cells.find(li * 6 + j) < 0: return li * 6 + j
+    -1
+
   proc tileSpec(b: Board, key: string): Behavior[Board] =
     let id = parseInt(key[1 .. ^1])
     let src = b.cells.find(id)
     if src >= 0 and isGiven(src): return nil
+    # a copy pulled off the last letter of a word in progress: dropped right next to it, it spells the word's
+    # next letter instead (the word grows); dropped further away, it is a plain copy
+    var ext = -1
+    if src < 0 and extendFrom >= 0: ext = nextOfWord(b, extendFrom)
     var futures: seq[Board]
+    var keys: seq[string]
     for c in 0 ..< 36:                     # only empty cells: a tile never pushes out a letter already placed
-      if not isGiven(c) and (b.cells[c] < 0 or c == src): futures.add b.place(id, c)
+      if not isGiven(c) and (b.cells[c] < 0 or c == src):
+        let near = abs(c div 6 - extendFrom div 6) + abs(c mod 6 - extendFrom mod 6) == 1
+        if ext >= 0 and near:
+          futures.add b.place(ext, c)
+          keys.add &"t{ext}"
+        else:
+          futures.add b.place(id, c)
+          keys.add ""
     var fallback = b.home(id)              # a tile from below goes back to its letter
     if src >= 0: fallback = b              # a tile lifted off the board stays in its cell
-    closest(futures).within(cell * 0.6).orElse(closest(@[fallback]))
+    closestBy(futures, keys).within(cell * 0.6).orElse(closest(@[fallback]))
 
 nbText: "Driving it by hand at build time: grab the first letter's tile and hover between two cells of the top row."
 
@@ -992,7 +1032,8 @@ nbJsFromCode:
   # letters on the board stay put: grabbing one pulls out a copy of it (a double tap sends it back)
   stage.redirect = proc (b: Board, key: string): string =
     let id = parseInt(key[1 .. ^1])
-    if b.cells.find(id) < 0: return key
+    extendFrom = b.cells.find(id)
+    if extendFrom < 0: return key
     for k in 0 .. 5:
       if b.cells.find((id div 6) * 6 + k) < 0: return &"t{(id div 6) * 6 + k}"
     ""
@@ -1051,8 +1092,35 @@ nbJsFromCode:
     e.setAttribute("r", "32")
     fx.appendChild(e)
     later(proc () = fx.removeChild(e), 500)
+  var swapped = ""                 # the held copy shows the word's next letter while it hovers next to the word
+  var swappedTo = -1
   stage.onMove = proc () =
     let held = stage.dragKey
+    if held.len > 0:
+      var want = -1
+      if stage.redirected and stage.choice.ok:      # the future being shown places another tile: the next letter
+        for id in 0 ..< 36:
+          if $id != held[1 .. ^1] and stage.choice.state.cells.find(id) >= 0 and stage.state.cells.find(id) < 0: want = id
+      if want >= 0:                       # redrawn on every move: the view puts the held tile's own look back
+        stage.nodes[held].innerHTML = cstring(tileSvg(want div 6, false))
+        stage.looks[held] = ""
+      if swappedTo >= 0 and swappedTo != want: stage.nodes[&"t{swappedTo}"].setStyle("opacity", "")
+      if want >= 0: stage.nodes[&"t{want}"].setStyle("opacity", "0")   # the held tile is the preview
+      swapped = held
+      swappedTo = want
+    elif swapped.len > 0:
+      # let go: the next letter starts where the finger was, and glides into its cell
+      let to = swappedTo
+      swapped = ""
+      swappedTo = -1
+      if to >= 0: stage.nodes[&"t{to}"].setStyle("opacity", "")
+      if to >= 0 and stage.state.cells.find(to) >= 0:
+        let n = stage.nodes[&"t{to}"]
+        n.setStyle("transition", "none")
+        n.setStyle("transform", tr(stage.at))
+        discard rectOf(n)
+        n.setStyle("transition", "")
+        n.setStyle("transform", tr(cellPos(stage.state.cells.find(to))))
     var d = ""
     var li = 0
     var pulling = false
@@ -1062,7 +1130,7 @@ nbJsFromCode:
       let fromCell = stage.state.cells.find(id)
       let home = stage.origin              # the letter it was pulled from: below, or on the board
       let dd = norm(stage.at - home)
-      let atHome = stage.choice.ok and stage.choice.state.cells.find(id) < 0
+      let atHome = stage.choice.ok and stage.choice.state.cells.find(id) < 0 and swappedTo < 0
       var others = false                 # copies left under the held one: then it divides, else it moves whole
       for k in 0 .. 5:
         if li * 6 + k != id and stage.state.cells.find(li * 6 + k) < 0: others = true
@@ -1072,8 +1140,8 @@ nbJsFromCode:
         d = neckPath(home, stage.at, 31, waist(dd, 31))
       elif fromCell >= 0 and atHome and dd < 2.6 * cell:
         d = neckPath(stage.at, home, 31, waist(dd, 31))
-      if joined and not pulling and fromCell < 0 and others: ripple(home, li)
-    joined = pulling
+      if joined and not pulling and fromCell < 0 and others and swappedTo < 0: ripple(home, li)
+    if swappedTo < 0: joined = pulling
     if d.len > 0: necks.innerHTML = cstring(&"""<path class="neck g{li}" d="{d}"/>""")
     else: necks.innerHTML = ""
 
