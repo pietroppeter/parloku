@@ -823,6 +823,7 @@ nbCodeDisplay(nbJsFromCode):
     origin: Vec                   # where the held item was grabbed
     redirected: bool
     holdMs: int                   # how long a press on a redirected item waits before lifting the item itself
+    targetAt: proc (p: Vec): bool # whether a landing spot gets the drop-target outline (nil: always)
 
   proc tr(p: Vec): cstring = cstring(&"translate({p.x:.2f}px, {p.y:.2f}px)")
 
@@ -832,7 +833,7 @@ nbCodeDisplay(nbJsFromCode):
       if st.showGhosts:
         for l in st.picker.lands:
           if l.x == l.x: g.add &"""<circle class="land" cx="{l.x}" cy="{l.y}" r="6"/>"""
-      if st.choice.ok:
+      if st.choice.ok and (st.targetAt.isNil or st.targetAt(st.choice.land)):
         let c = st.choice.land
         g.add &"""<rect class="target" x="{c.x - 36}" y="{c.y - 36}" width="72" height="72" rx="13"/>"""
         if st.showGhosts:
@@ -1022,6 +1023,7 @@ nbJsFromCode:
   puz = decode(code)
   let stage = mount(host, 500, 664, emptyBoard(), renderBoard, tileSpec, backdrop, overlay, 50)   # cropped to the board: bigger on a phone
   # letters on the board stay put: grabbing one pulls out a copy of it (a double tap sends it back)
+  stage.targetAt = proc (p: Vec): bool = p.y < by + 6 * cell   # only cells are targets: a letter going back below is not
   stage.redirect = proc (b: Board, key: string): string =
     let id = parseInt(key[1 .. ^1])
     let at = b.cells.find(id)
