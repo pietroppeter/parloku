@@ -180,7 +180,7 @@ body.focus,body.chrome{padding-bottom:0}
 body.focus .play,body.chrome .play{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:8px 0}
 body.focus .play>h1,body.focus .play>.lede,body.focus .play>.rules,body.focus .play>.skins,
 body.chrome .play>h1,body.chrome .play>.lede,body.chrome .play>.rules,
-body.focus .picker,body.focus .status{display:none}
+body.focus .status{display:none}
 body.focus .game,body.chrome .game{margin:0}
 body.chrome .play>.skins{display:none}
 .clue .ok:empty{display:none}
@@ -189,27 +189,34 @@ body.chrome .play>.skins{display:none}
 @keyframes wig{0%,100%{transform:none}15%{transform:rotate(-5deg) scale(1.04)}35%{transform:rotate(4deg) scale(1.04)}55%{transform:rotate(-3deg)}75%{transform:rotate(2deg)}}
 @media (prefers-reduced-motion: reduce){.wig{animation:none}}
 @media (max-width:440px){body.chrome .status .tx{display:none} body.chrome .status .btn{min-width:48px}}
-body.chrome .picker,body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
+body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
   padding:10px 16px;background:color-mix(in srgb,var(--bg) 94%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-body.chrome .picker{top:0;padding-top:max(10px,env(safe-area-inset-top))}
-/* the menu bar: one row, scrolled sideways; only tutorial, puzzles and styles */
-body.chrome .picker{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0}
-body.chrome .picker::-webkit-scrollbar{display:none}
-body.chrome .picker>*{flex:none}
-body.chrome .picker .langs,body.chrome .status,body.chrome .picker .tut,body.chrome .play>.skins{display:none}
-body.chrome .status{bottom:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
-/* the menu: three buttons (how to play, again! with its list of puzzles, restart); elsewhere only the puzzle list */
+body.chrome .picker .langs,body.chrome .status,body.chrome .picker .tut,body.chrome .play>.skins,body.focus .picker .langs,body.focus .picker .tut{display:none}
+/* the menu: a bar that slides down from the top, while words, grid and letters shrink a little to make room;
+   it slides back up after a few idle seconds or a tap in the game. "again!" swaps its buttons for the puzzles, scrolled sideways */
+body.focus .picker,body.chrome .picker{display:flex;position:fixed;top:0;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
+  padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));flex-wrap:nowrap;justify-content:center;gap:8px;
+  overflow-x:auto;scrollbar-width:none;background:color-mix(in srgb,var(--bg) 94%,transparent);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:transform .35s ease,visibility .35s}
+body.focus .picker{transform:translateY(-105%);visibility:hidden}
+body.chrome .picker{transform:none;visibility:visible}
+.picker::-webkit-scrollbar{display:none}
+.picker>*{flex:none}
+body.focus .play,body.chrome .play{transition:padding-top .35s ease}
+body.chrome .play{padding-top:calc(66px + env(safe-area-inset-top))}
+.stage{transition:margin .35s ease}
+body.chrome .stage{margin:0 28px}
+.clues{transition:gap .35s ease}
+body.chrome .clues{gap:3px}
 .menu-only{display:none}
-body.chrome .picker .menu-only{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
-body.chrome .picker{justify-content:center;overflow:visible}
-body.chrome #picker{display:none}
-body.chrome #picker.open{display:flex;flex-direction:column;gap:8px;position:fixed;left:50%;transform:translateX(-50%);
-  top:calc(max(10px,env(safe-area-inset-top)) + 58px);width:min(340px,calc(100vw - 32px));padding:12px;z-index:30;
-  background:var(--card);border:var(--border) solid var(--ink);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.18)}
-body.chrome #picker.open .btn{justify-content:flex-start;text-align:left;width:100%;display:flex;gap:8px;align-items:center}
-#picker .ck{display:inline-block;width:1.1em;color:var(--w1);font-weight:800}
-.picker > #picker .ck:empty{display:none}
-body.chrome #picker .ck:empty{display:inline-block}
+body.focus .picker .menu-only,body.chrome .picker .menu-only{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
+body.focus .picker #picker,body.chrome .picker #picker{display:none}
+body.focus .picker.listing,body.chrome .picker.listing{justify-content:flex-start}
+body.focus .picker.listing>:not(#picker),body.chrome .picker.listing>:not(#picker){display:none}
+body.focus .picker.listing #picker,body.chrome .picker.listing #picker{display:contents}
+#picker .btn{white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+#picker .ck{color:var(--w1);font-weight:800}
+#picker .ck:empty{display:none}
 @media (max-width:400px){body.chrome .picker{gap:6px;padding-left:8px;padding-right:8px} body.chrome .picker .menu-only{padding:6px 11px;font-size:13px}}
 @media (prefers-reduced-motion: reduce){.ripple{animation:none;opacity:0}}
 .machinery-slot{margin:10px 0}

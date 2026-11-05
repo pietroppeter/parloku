@@ -1331,13 +1331,16 @@ nbJsFromCode:
     "!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')".}
   proc scrollTop() {.importjs: "window.scrollTo(0, 0)".}
   proc inPlay(ev: Event): bool {.importjs: "!!#.target.closest('.play')".}
+  proc inBar(ev: Event): bool {.importjs: "!!#.target.closest('.picker')".}
+  proc onClue(ev: Event): bool {.importjs: "!!#.target.closest('.clue,button,a')".}
+  proc inStage(ev: Event): bool {.importjs: "!!#.target.closest('.stage')".}
   var hideTimer = 0
   proc setMode(m: string)
   proc armHide() =
     ## the menu bar goes away by itself after a few idle seconds
     clearTimer(hideTimer)
     hideTimer = setTimer(proc () =
-      if document.body.classList.contains("chrome") and not document.getElementById("picker").classList.contains("open"): setMode("focus"), 4000)
+      if document.body.classList.contains("chrome"): setMode("focus"), 4000)
   proc setMode(m: string) =
     for k in ["focus", "chrome", "explain"]:
       if k == m: document.body.classList.add(cstring(k))
@@ -1345,7 +1348,9 @@ nbJsFromCode:
     if m == "chrome":
       armHide()
     else:
-      document.getElementById("picker").classList.remove("open")
+      discard setTimer(proc () =          # back to the three buttons once the bar is out of sight
+        if not document.body.classList.contains("chrome"):
+          document.querySelector(".picker").classList.remove("listing"), 400)
   let playEl = document.getElementById("play")
   if not playEl.isNil:
     setMode("focus")
@@ -1355,10 +1360,18 @@ nbJsFromCode:
     for ev in ["pointerdown", "scroll"]:
       bar.addEventListener(cstring(ev), proc (e: Event) = armHide())
     document.addEventListener("click", proc (ev: Event) =
+      # a tap above the words brings the menu down; with the menu down, any tap outside it sends it back up
+      if document.body.classList.contains("chrome"):
+        if not inBar(ev): setMode("focus")
+        return
+      if document.body.classList.contains("focus"):
+        # the menu's zone: anywhere above the grid that is not a word (a word wiggles instead)
+        if onClue(ev) or inStage(ev): return
+        let (_, gridTop, _, _) = rectOf(host)
+        if clientXY(ev).y < gridTop: setMode("chrome")
+        return
       if interactive(ev): return
-      if document.body.classList.contains("focus"): setMode("chrome")
-      elif document.body.classList.contains("chrome"): setMode("focus")
-      elif inPlay(ev):
+      if inPlay(ev):
         setMode("focus")
         scrollTop())
 
@@ -1469,6 +1482,7 @@ nbJsFromCode:
   var beforeStarted, beforeWon = 0.0
   var undoTimer = 0
   var endUndoCb: proc ()                # set below, with the restart button
+  var afterChange: proc ()              # set below: shows or hides the restart button
   stage.onCommit = proc () =
     if started == 0 and stage.state.moves > 0: started = now()
     if undoable and not quiet and stage.state.cells != last.cells: endUndoCb()   # a move: no going back to before the restart
@@ -1478,6 +1492,7 @@ nbJsFromCode:
     undoBtn.setDisabled(history.len == 0)
     refresh()
     save()
+    if not afterChange.isNil: afterChange()
 
   proc load(c: string) =
     code = c
@@ -1509,32 +1524,82 @@ nbJsFromCode:
 
   proc dataI(ev: Event): cstring {.importjs: "(#.target.closest('[data-i]')?.dataset.i ?? null)".}
   let againBtn = document.getElementById("again")
-  proc openList(o: bool) =
-    if o:
-      pickerEl.classList.add("open")
-      againBtn.setAttr("aria-expanded", "true")
-      clearTimer(hideTimer)
-    else:
-      pickerEl.classList.remove("open")
-      againBtn.setAttr("aria-expanded", "false")
   againBtn.addEventListener("click", proc (ev: Event) =
-    openList(not pickerEl.classList.contains("open")))
+    document.querySelector(".picker").classList.add("listing")   # the three buttons give way to the puzzles
+    armHide())
+
+  # ---- changing puzzle: words, grid and letters leave to the left one at a time, and the new ones come in from the right
+  proc slideOut(e: Element, dx: float, delay: int) {.importjs:
+    "#.animate([{transform: 'translateX(0px)', opacity: 1}, {transform: 'translateX(' + # + 'px)', opacity: 0}], {duration: 260, delay: #, easing: 'ease-in', fill: 'both'})".}
+  proc slideIn(e: Element, dx: float, delay: int) {.importjs:
+    "#.animate([{transform: 'translateX(' + # + 'px)', opacity: 0}, {transform: 'translateX(0px)', opacity: 1}], {duration: 300, delay: #, easing: 'ease-out', fill: 'both'})".}
+  proc stopAnims(e: Element) {.importjs: "#.getAnimations().forEach(a => a.cancel())".}
+  proc kids(e: Element): seq[Element] {.importjs: "Array.from(#.children)".}
+  proc clueEls(): seq[Element] {.importjs: "Array.from(document.querySelectorAll('.clues .clue'))".}
+  proc viewW(): float {.importjs: "(window.innerWidth)".}
+  proc lessMotion2(): bool {.importjs: "matchMedia('(prefers-reduced-motion: reduce)').matches".}
+  const step = 90                      # ms between one piece and the next
+  proc pieces(): seq[(seq[Element], bool)] =
+    ## in order: each word, then the grid (with the letters on it), then each of the six letters below; true for SVG parts
+    for c in clueEls(): result.add (@[c], false)
+    var grid = @[stage.bg, stage.top]
+    var below: array[6, seq[Element]]
+    for id in 0 ..< 36:
+      let n = stage.nodes.getOrDefault(&"t{id}")
+      if n.isNil: continue                 # move a tile's insides: the tile itself is placed by its own transform
+      if stage.state.cells.find(id) >= 0: grid.add n.kids
+      else: below[id div 6].add n.kids
+    result.add (grid, true)
+    for row in below: result.add (row, true)
+  var switching = false
+  proc switchTo(c: string) =
+    proc go() =
+      tutorial = false
+      lsSet(cstring("parloku:" & c), "")   # picking a puzzle always starts it afresh
+      load(c)
+      pushQuery(cstring("p=" & code))
+    if lessMotion2():
+      go()
+      return
+    switching = true
+    let gone = pieces()
+    for j, (els, svg) in gone:
+      for e in els:
+        if svg: e.slideOut(-640, j * step)
+        else: e.slideOut(-viewW(), j * step)
+    discard setTimer(proc () =
+      go()
+      let inn = pieces()
+      for j, (els, svg) in inn:
+        for e in els:
+          if svg: e.slideIn(640, j * step)
+          else: e.slideIn(viewW(), j * step)
+      discard setTimer(proc () =
+        for (els, _) in pieces():
+          for e in els: e.stopAnims()
+        switching = false, inn.len * step + 320), gone.len * step + 280)
+
   pickerEl.addEventListener("click", proc (ev: Event) =
     let i = dataI(ev)
-    if not i.isNil:
-      openList(false)
-      endUndoCb()
-      if not playEl.isNil: setMode("focus")
-      tutorial = false
-      lsSet(cstring("parloku:" & games[parseInt($i)][0]), "")   # picking a puzzle always starts it afresh
-      load(games[parseInt($i)][0])
-      pushQuery(cstring("p=" & code)))
+    if i.isNil or switching: return
+    let c = games[parseInt($i)][0]
+    if not playEl.isNil: setMode("focus")
+    if c == code and not tutorial: return          # the puzzle already in play: just close the menu
+    endUndoCb()
+    switchTo(c))
 
   # ---- restart right away, no "sure?": for a few seconds, until the next move, the button offers to undo it
   let resetBtn = document.getElementById("reset")
+  proc showReset() =
+    ## restart is only offered once a letter is down (or while its undo is on offer)
+    var placed = false
+    for c in 0 ..< 36:
+      if stage.state.cells[c] >= 0 and not isGiven(c): placed = true
+    resetBtn.setHidden(not placed and not undoable)
   proc resetLabel() =
     if undoable: resetBtn.innerHTML = cstring(L("↶ undo restart", "↶ annullo rifaccio"))
     else: resetBtn.innerHTML = cstring(L("↺ restart", "↺ rifaccio"))
+    showReset()
   proc endUndo() =
     if not undoable: return
     undoable = false
@@ -1542,6 +1607,7 @@ nbJsFromCode:
     resetLabel()
     if document.body.classList.contains("chrome"): armHide()
   endUndoCb = endUndo
+  afterChange = showReset
   resetLabel()
   resetBtn.addEventListener("click", proc (ev: Event) =
     if undoable:                        # put back the board as it was before the restart
