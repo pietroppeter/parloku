@@ -63,6 +63,15 @@ table{border-collapse:collapse;font-size:15px;width:100%} td,th{padding:6px 8px;
 .strip figure{margin:0;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:4px}
 .strip svg{display:block;width:100%;height:auto}
 .strip figcaption{text-align:center;font:12px "JetBrains Mono",monospace;color:var(--muted)}
+.scrub{margin:16px auto;max-width:440px;background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:8px 12px}
+.scrub svg{display:block;width:100%;height:auto;overflow:visible}
+.scrub svg text{font:600 10px "JetBrains Mono",monospace}
+.scrub input[type=range]{width:100%;accent-color:var(--leaf)}
+.scrub .controls{gap:14px;margin:4px 0}
+.scrub .controls input{accent-color:var(--leaf);vertical-align:-2px}
+.scrub figcaption{text-align:center;font:12px "JetBrains Mono",monospace;color:var(--muted)}
+blockquote{margin:16px 0;padding:8px 16px;border-left:4px solid var(--bloom);background:var(--card);border-radius:0 12px 12px 0;font-family:Fraunces,Georgia,serif;font-size:17.5px}
+blockquote p{margin:4px 0}
 .note{background:var(--card);border-left:4px solid var(--moss);border-radius:0 12px 12px 0;padding:8px 14px;margin:16px 0}
 </style>
 """
@@ -101,17 +110,71 @@ nbRawHtml: """
 <p class="status" id="one-status"></p>
 """
 
-nbRawHtml: """<h2><span class="num">02 · THE ANIMATION</span>Two circles, a neck and a spring</h2>"""
+nbRawHtml: """<h2><span class="num">02 · THE ANIMATION</span>Four small ideas</h2>"""
+
 nbText: """
-Everything you just saw is drawn with two circles and a neck between them. The tiles zogyn moves are only letters
-and invisible hit areas; the soft bodies are a separate layer underneath. A dividing cell is two circles (mother and
-bud) and a neck. The neck is a closed path. On each side a
-curve leaves the mother along its outline, dips to a waist and climbs onto the bud. All the character is in one number:
-the waist's half-width, as a function of how far apart the two centres are. It starts fat (a bulge), thins fast,
-then slowly, and never quite reaches zero. It's a thread that only breaks when the cell has divided (what decides
-that comes later).
+The cell isn't one picture. It's two circles and a bridge between them, redrawn on every frame while you drag.
 """
 
+nbRawHtml: """<h3>1 · Two circles</h3>"""
+
+nbText: """
+The **mother** stays where the cell was. The **bud** follows your finger. Both are plain circles. While it's
+stretched the bud is a bit smaller, as if it were still taking material from its mother, and it grows back to full
+size once it splits off.
+"""
+
+nbRawHtml: """<h3>2 · A neck between them</h3>"""
+
+nbText: """
+Between the two circles goes a bridge, pinched in the middle like a soap bubble about to split. How pinched depends
+on just **one thing: how far apart the circles are**. Close together, the neck is fat. Further apart it thins
+quickly, then slowly, and it never quite breaks by itself. It becomes a thread. Pull the slider:
+"""
+
+nbRawHtml: """
+<figure class="scrub">
+<svg id="scrub" viewBox="0 0 300 120"></svg>
+<input id="scrub-d" type="range" min="0" max="200" value="70" aria-label="distance between the two circles">
+<div class="controls"><label><input type="checkbox" id="scrub-split"> split</label>
+<label><input type="checkbox" id="scrub-built"> show how it's built</label>
+<label><input type="checkbox" id="scrub-trick" checked> one outline</label></div>
+<figcaption id="scrub-read"></figcaption>
+</figure>
+"""
+
+nbText: """
+With *show how it's built* on you see the pieces: the two circles, the distance `d` between their centres, and the
+**waist**, the narrowest point of the neck. The only formula in the effect is the waist as a function of `d`. It
+starts at 0.85 of the radius and shrinks steadily to 0.11 of it at about four radii apart.
+
+Here is the same thing frozen at six distances (read it right to left and it's two cells coalescing):
+"""
+
+nbRawHtml: """<div class="strip" id="strip"></div>"""
+
+nbRawHtml: """<h3>3 · One outline around everything</h3>"""
+
+nbText: """
+Untick *one outline* above: each shape gets its own border, and you see the seams. The fix is an old sign-painter's
+trick. First draw every shape with a border twice as thick, then paint all the fills on top. The fills hide the
+inner half of each border, so only the outline around the whole group is left.
+"""
+
+nbRawHtml: """<h3>4 · Make it move</h3>"""
+
+nbText: """
+The picture only depends on where the two centres are, so animating it is just redrawing it on every frame from
+where the tiles really are on screen, even while they glide home. Three touches make it feel alive:
+
+- **Splitting wobbles.** When the bud breaks free, both cells wobble for half a second, like jelly.
+- **Rejoining regrows.** If you come back, the neck grows back over a sixth of a second instead of popping in,
+  so hesitating near a ring looks like one undecided cell rather than flicker.
+- **Coalescing is budding backwards.** As a free cell nears its twin a neck reaches out, getting *fatter* as they
+  get closer. When it has slid in, the twin wobbles as it takes it in.
+"""
+
+nbRawHtml: "<details><summary>the drawing code (Nim)</summary>"
 nbCodeAnd(nbJsFromCode):
   import std/[strformat, strutils, math, sequtils]
   import zogyn
@@ -192,49 +255,7 @@ nbCodeAnd(nbJsFromCode):
     if letter == '*': return ""        # the plain cell has no letter
     &"""<text y="{r * 0.36:.1f}" text-anchor="middle" font-size="{r * 1.05:.1f}" fill="{ink}">{letter}</text>"""
 
-nbText: """
-The outline is the old sign-painter's trick: draw every shape once with a stroke twice as thick as you want, then fill
-them all on top. Where shapes overlap the fills hide the inner strokes, so only the outline of the union is left.
-Here is the waist at work, drawn while this page was built. The mother stays put and the bud is pulled to the right.
-Read it right to left and it's two cells coalescing:
-"""
-
-nbCode:
-  var strip = """<div class="strip">"""
-  let r = 22.0
-  for (d, label) in [(0.0, "at rest"), (14.0, "budding"), (34.0, "pulled"), (60.0, "stretched"),
-                     (88.0, "a thread"), (88.0, "divided")]:
-    let joined = label != "divided"
-    let k = if joined: 1 - 0.2 * smoothstep(0.0, 2.5 * r, d) else: 1.0
-    let mother = Body(at: vec(30, 40), r: r * (1 - 0.06 * (1 - k)), letter: '*', neckTo: -1)
-    var bud = Body(at: vec(30 + d, 40), r: r * k, letter: '*', neckTo: -1)
-    if joined: (bud.neckTo, bud.hw) = (0, waist(d, r))
-    strip.add &"""<figure><svg viewBox="0 0 150 80">{membrane([mother, bud], 2.4)}</svg><figcaption>{label}</figcaption></figure>"""
-  strip.add "</div>"
-nbRawHtml: strip
-
-nbText: """
-The bud also shrinks a little while it's stretched (`1 - 0.2·smoothstep`), and a letter on it shrinks with it, as if
-it were still drawing material from its mother. Once it divides it springs back to full size.
-
-### Making it move
-
-The drawing above is a pure function of where the two centres are. To animate it, a `requestAnimationFrame` loop
-redraws the layer while anything moves. It reads each tile's *actual* position from its computed CSS transform,
-so the bodies follow the tiles even while they glide (a CSS transition) back home or into a ring. On top of that come
-three small touches:
-
-- **A spring when it splits.** Mother and daughter wobble for half a second: a damped sine on their radius,
-  `1 + 0.09·e^(-t/140)·sin(t/26)` with `t` in milliseconds.
-- **A neck that regrows.** When the bud rejoins, the neck grows back from nothing over 160 ms with a little overshoot,
-  so a quick back and forth near a ring reads as one hesitant cell, not as flicker.
-- **Coalescing is budding backwards.** As a free cell nears its twin, a neck reaches out between them and gets
-  *fatter* as they get closer, the same waist curve with the distance shrinking. When it has glided in, the twin
-  takes it in with a wobble.
-
-Tiles slide with a slightly springy easing (`cubic-bezier(.2,.9,.25,1.15)`), so a bud released far away is *pulled*
-home and overshoots a hair before it settles.
-"""
+nbRawHtml: "</details>"
 
 nbRawHtml: """<h2><span class="num">03 · WITH LETTERS</span>A garden, then a board</h2>"""
 
@@ -278,34 +299,40 @@ nbRawHtml: """
 <p class="status" id="board-status"></p>
 """
 
-nbRawHtml: """<h2><span class="num">04 · WHAT DECIDES</span>States, and zogyn</h2>"""
+nbRawHtml: """<h2><span class="num">04 · WHAT DECIDES</span>A list of possible endings</h2>"""
 
 nbText: """
-So far we've only drawn. Something still has to decide *what happens*: does this pull make a copy, where can it
-go, when has the cell divided? The effect has two independent halves:
+The drawing never decides anything. Does this pull make a copy? Where can it go? Has the cell split yet? Those
+answers come from [zogyn](https://github.com/pietroppeter/zogyn), and zogyn rests on one idea:
 
-1. **Where can the copy go?** That's a question about the *model*, and [zogyn](https://github.com/pietroppeter/zogyn)
-   answers it. We never write a drop handler. For the grabbed tile we list the states the drag can reach: "nothing happened"
-   plus "a copy planted in place *i*", one per place. A tile that can't divide lists "moved to place *i*" and
-   "fused into tile *k*" instead. zogyn shows whichever lands the tile closest to the pointer.
-2. **What does it look like?** The membrane layer from the previous section. It never decides anything.
-   Every frame it looks at which state zogyn picked and where the tiles are on screen.
+> When you grab a tile, list **every way the drag could end**. zogyn works out where the tile would sit in each
+> ending, shows the one nearest your finger, and keeps it when you let go.
 
-The trick that ties them together: **the neck exists exactly when zogyn's pick is the "nothing happened" state.**
-If the pick is a planted state, the cell has divided. Fusing is the same picture run backwards: a neck appears when
-the pick is "fused into *k*", between the held tile and *k*. So "splits near a place, rejoins near home, fuses near a
-sibling" isn't extra code. It falls out of the same choice that decides where the tile lands.
+There's no drop handler anywhere. For a cell, the endings are:
+
+- **nothing happens**: the bud goes back home;
+- **a copy in place *i***, one for each free place, while it can still divide;
+- once it can't: **moved to place *i***, or **fused into twin *k***.
+
+The animation then just reads zogyn's current pick:
+
+| zogyn's pick | what you see |
+|---|---|
+| nothing happens | the bud, joined to its mother by a neck |
+| a copy in place *i* | the bud has split off |
+| fused into *k* | a neck reaching out to *k* |
+| moved to place *i* | a free cell, no neck |
+
+That's why splitting near a ring, rejoining near home and coalescing near a twin need no extra code. They are what
+the pick looks like.
 """
 
-nbRawHtml: """<h3>The model: a tile leaves a fresh copy behind</h3>"""
+nbRawHtml: "<details><summary>the model: tiles, ids, plant, move, fuse (Nim)</summary>"
 
 nbText: """
-Every tile has an id, and the id is its key on screen (what your eye tracks). A source is a seed or any planted tile.
-When you plant from a source, *the tile you hold* keeps its id and moves to the place, and the source gets a **fresh id**.
-So the thing in your hand is the one that moves, and a new cell appears where it was. A tile that fuses
-is kept for a moment in `absorbed`, drawn on top of its partner, so zogyn can see where it lands. Once it has
-glided in, the page drops it (`tidy`).
-This block runs natively (the figures below are drawn at build time) and in the page:
+Each tile has an id, and the id is what your eye tracks. When you plant a copy, the tile *in your hand* keeps its id
+and the mother gets a fresh one, so the thing you hold is the thing that moves. A tile that fuses is kept in
+`absorbed` for a moment, on top of its twin, until it has slid in.
 """
 
 nbCodeAnd(nbJsFromCode):
@@ -384,6 +411,14 @@ nbCodeAnd(nbJsFromCode):
         fused.absorbed.add (s.cellId[i], id)
         result.add fused
 
+nbRawHtml: "</details>"
+
+nbText: """
+The list of endings, written for zogyn. `closest(xs)` means "whichever of these lands nearest the finger",
+`within(r)` means "only if it's that close", and `orElse` is the fallback:
+"""
+
+nbCodeAnd(nbJsFromCode):
   proc cellSpec(rule: Rule, snap: float): Spec[Patch] =
     result = proc (s: Patch, key: string): Behavior[Patch] =
       if s.letterOf(key) == '\0': return nil
@@ -398,13 +433,8 @@ nbCodeAnd(nbJsFromCode):
       closest(fuse).within(2 * snap).orElse(closest(move).within(snap)).orElse(closest(@[s]))
 
 nbText: """
-That last proc is the whole interaction. `closest(places).within(snap)` picks a reachable state once the tile is
-within `snap` of where it would land; `.orElse(closest(@[s]))` falls back to home anywhere else. Which list it gets
-decides the gesture: buds while the letter can still divide, whole moves and fusions once it can't (fusions are
-tried first and from twice as far, so a sibling seems to pull). A spent seed
-gets `nil`, so it can't even be grabbed. Nothing else in the code knows which letters are spent.
-
-The two rules differ in one line each:
+A seed whose letter has nothing left to give gets `nil`, so it can't be grabbed, and it's drawn hollow. The rules
+that decide where a copy may go are one line each:
 """
 
 nbCodeAnd(nbJsFromCode):
@@ -421,7 +451,7 @@ nbCodeAnd(nbJsFromCode):
           (k div 12 == r div 2 and (k mod 6) div 3 == c div 3)): return false
     true
 
-nbRawHtml: """<h3>Where the tiles are: one render, three layouts</h3>"""
+nbRawHtml: "<details><summary>layouts, and a drag checked while the page builds (Nim)</summary>"
 
 nbText: """
 zogyn needs a *render*: a pure function from the model to keyed, positioned items. Each item is only a letter
@@ -507,24 +537,11 @@ nbCode:
   let g3 = dragTo(sg, rg, g0, "t4", garden.seedAt(2, 3)).tidy  # ...or fused into the L seed
   echo "planted L dropped on its seed → '", g3.cell, "', now L can divide: ", g3.targets("t3", gardenRule).len > 0
 
-nbRawHtml: """<h3>The effect layer: drawing what zogyn picked</h3>"""
+nbRawHtml: "</details>"
 
 nbText: """
-Back to the animation loop, now that we know what zogyn offers. Each frame it answers three questions from
-zogyn's pick:
-
-- **Is the held tile joined?** Yes when zogyn's current pick is the committed state ("nothing happened"). Then it draws
-  the mother at the tile's home with its letter, the bud under the pointer and the neck between them. After a release
-  back home the tile glides back, and the neck follows it until they touch.
-- **Did it just split or rejoin?** When the answer flips, it starts the spring (on a split) or regrows the neck
-  (on a rejoin).
-- **Is it fusing?** When the pick is "fused into *k*" (or a released tile is still gliding into *k*), it draws the
-  neck between the tile and *k*. When the tile has arrived the page tidies it out of the model.
-
-Spent seeds are drawn hollow with a faded letter. The layer finds them by asking the spec: `nil` means nothing to give.
-
-None of this touches zogyn: its stage already exposes the pick (`choice`), the candidates (`picker.lands`), the held
-key, and `onMove`/`onCommit` hooks. The layer is about 150 lines:
+The animation loop from section 2 lives in the browser. It reads zogyn's pick (`choice`), the held tile and two hooks
+(`onMove`, `onCommit`). zogyn didn't need any change for it.
 """
 
 nbRawHtml: "<details><summary>the effect layer (browser only)</summary>"
@@ -693,6 +710,63 @@ nbText: """
 nbJsFromCode:
   import std/dom
   proc qsa(sel: cstring): seq[Element] {.importjs: "Array.from(document.querySelectorAll(#))".}
+
+  # ---- the slider figure and the strip of section 2
+  proc value(e: Element): cstring {.importjs: "#.value".}
+  proc isOn(e: Element): bool {.importjs: "#.checked".}
+  let byId = proc (id: string): Element = document.getElementById(cstring(id))
+
+  proc twoCells(d, r: float, c1: Vec, split, trick: bool): string =
+    var k = 1 - 0.2 * smoothstep(0.0, 2.5 * r, d)
+    if split: k = 1.0
+    let mother = Body(at: c1, r: r * (1 - 0.06 * (1 - k)), letter: '*', neckTo: -1)
+    var bud = Body(at: c1 + vec(d, 0), r: r * k, letter: '*', neckTo: -1)
+    if not split: (bud.neckTo, bud.hw) = (0, waist(d, r))
+    if trick: return membrane([mother, bud], 2.6)
+    let hue = glaze('*')
+    for b in [mother, bud]:
+      result.add &"""<circle cx="{b.at.x:.1f}" cy="{b.at.y:.1f}" r="{b.r:.1f}" fill="{hue}" stroke="{ink}" stroke-width="2.6"/>"""
+    if not split:
+      result.add &"""<path d="{neck(bud.at, bud.r, mother.at, mother.r, bud.hw)}" fill="{hue}" stroke="{ink}" stroke-width="2.6"/>"""
+
+  proc scrub() =
+    let r = 30.0
+    let c1 = vec(52, 56)
+    let d = parseFloat($byId("scrub-d").value)
+    let split = byId("scrub-split").isOn
+    var svg = twoCells(d, r, c1, split, byId("scrub-trick").isOn)
+    let hot = "#d9577a"
+    let hw = waist(d, r)
+    if byId("scrub-built").isOn:
+      let c2 = c1 + vec(d, 0)
+      var k = 1 - 0.2 * smoothstep(0.0, 2.5 * r, d)
+      if split: k = 1.0
+      let m = c1.x + r + (d - r - r * k) / 2
+      svg.add &"""<g fill="none" stroke="{hot}" stroke-width="1.5">""" &
+        &"""<circle cx="{c1.x}" cy="{c1.y}" r="{r * (1 - 0.06 * (1 - k)):.1f}" stroke-dasharray="4 3"/>""" &
+        &"""<circle cx="{c2.x}" cy="{c2.y}" r="{r * k:.1f}" stroke-dasharray="4 3"/>""" &
+        &"""<line x1="{c1.x}" y1="104" x2="{c2.x}" y2="104"/><line x1="{c1.x}" y1="99" x2="{c1.x}" y2="109"/>""" &
+        &"""<line x1="{c2.x}" y1="99" x2="{c2.x}" y2="109"/></g>""" &
+        &"""<circle cx="{c1.x}" cy="{c1.y}" r="2.5" fill="{hot}"/><circle cx="{c2.x}" cy="{c2.y}" r="2.5" fill="{hot}"/>""" &
+        &"""<text x="{c1.x + d / 2:.1f}" y="118" text-anchor="middle" font-size="10" fill="{hot}">d</text>"""
+      if not split and d > r:
+        svg.add &"""<line x1="{m:.1f}" y1="{c1.y - hw:.1f}" x2="{m:.1f}" y2="{c1.y + hw:.1f}" stroke="{hot}" stroke-width="2.5"/>""" &
+          &"""<text x="{m:.1f}" y="{c1.y - hw - 6:.1f}" text-anchor="middle" font-size="10" fill="{hot}">waist</text>"""
+    byId("scrub").innerHTML = cstring(svg)
+    var read = &"d = {d:.0f}, waist = {2 * hw:.0f} (radius 30)"
+    if split: read = &"d = {d:.0f}: split, no neck"
+    byId("scrub-read").textContent = cstring(read)
+
+  for id in ["scrub-d", "scrub-split", "scrub-built", "scrub-trick"]:
+    byId(id).addEventListener("input", proc (ev: Event) = scrub())
+  scrub()
+
+  var strip = ""
+  for (d, label) in [(0.0, "at rest"), (14.0, "budding"), (34.0, "pulled"), (60.0, "stretched"),
+                     (88.0, "a thread"), (88.0, "divided")]:
+    strip.add &"""<figure><svg viewBox="0 0 150 80">{twoCells(d, 22, vec(30, 40), label == "divided", true)}</svg>""" &
+      &"""<figcaption>{label}</figcaption></figure>"""
+  byId("strip").innerHTML = cstring(strip)
 
   proc ringsOf(lay: Layout): proc (s: Patch): string =
     result = proc (s: Patch): string =
