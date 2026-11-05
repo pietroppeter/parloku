@@ -19,7 +19,7 @@ nbText: """
 
 [← torna al builder](builder.html)
 
-**Parole.** Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Se trascini l'ultima lettera più lontano, ne fai una copia come nel gioco.
+**Parole.** Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.
 
 **Lettere forzate.** Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.
 

@@ -449,6 +449,8 @@ pre > code{font-size:12.5px!important}
 .bld .panel .warn{margin:0;font-size:12px;flex-basis:100%}
 .bld .btn.sm{padding:3px 10px;font-size:12px;text-decoration:none}
 .bld ~ *, footer, body > hr{display:none}
+body:has(.bld) main{padding-top:6px!important;padding-bottom:0!important;margin-top:0!important;margin-bottom:0!important}
+body:has(.bld){padding-top:0!important;padding-bottom:0!important}
 </style>
 
   
@@ -491,7 +493,7 @@ figcaption {
 <main>
 <h1 id="parloku-builder:-come-funziona">Parloku builder: come funziona</h1>
 <p><a href="builder.html">← torna al builder</a></p>
-<p><strong>Parole.</strong> Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Se trascini l'ultima lettera più lontano, ne fai una copia come nel gioco.</p>
+<p><strong>Parole.</strong> Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.</p>
 <p><strong>Lettere forzate.</strong> Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.</p>
 <p><strong>Togliere.</strong> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
 <p><strong>Gioco.</strong> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
@@ -562,7 +564,7 @@ nbText: <span class="hljs-string">&quot;&quot;&quot;
 
 [← torna al builder](builder.html)
 
-**Parole.** Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Se trascini l'ultima lettera più lontano, ne fai una copia come nel gioco.
+**Parole.** Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.
 
 **Lettere forzate.** Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.
 

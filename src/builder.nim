@@ -1173,6 +1173,7 @@ nbJsFromCode:
   var growTimer = 0
   var tailTapCell = -1
   var tailTapAt = 0.0
+  var stepped = false             # this drag already grew or shrank the word
   proc showOpts(w: int) =
     growWord = w
     growOpts = stage.state.growOptions(w)
@@ -1212,9 +1213,11 @@ nbJsFromCode:
         return
       clearOpts()
     if c < 0: return
+    # the head of a word: the last cell of its container (an unfinished word wins)
     var w = -1
     for i in 0 ..< wpath.len:
-      if wpath[i].len > 0 and wpath[i].len < puz.clues[i].word.len and wpath[i][^1] == c: w = i
+      if wpath[i].len > 0 and wpath[i][^1] == c:
+        if w < 0 or wpath[i].len < puz.clues[i].word.len: w = i
     if w < 0: return
     stopIt(ev)
     ev.preventDefault()
@@ -1222,6 +1225,7 @@ nbJsFromCode:
     growing = w
     growDown = clientXY(ev)
     growMoved = false
+    stepped = false
     growTimer = setTimer(proc () =
       growTimer = 0
       if growing >= 0: showOpts(growing), 260), true)
@@ -1230,31 +1234,38 @@ nbJsFromCode:
     if not growMoved and norm(clientXY(ev) - growDown) > 6:
       growMoved = true
       if growWord != growing: showOpts(growing)
-    if growMoved:
-      let p = localOf(ev)
-      let tail = wpath[growing][^1]
-      if norm(p - cellPos(tail)) > cell * 1.5:
-        # dragged farther than the next cells: an ordinary copy of the letter, as in the game
-        let key = &"t{stage.state.cells[tail]}"
-        growing = -1
-        if growTimer != 0:
-          clearTimer(growTimer)
-          growTimer = 0
-        clearOpts()
-        capture2(stage.svg, ev)
-        stage.start(key, cellPos(tail))
-        if stage.dragKey.len > 0: stage.move(p)
-        return
-      let ch = puz.clues[growing].word[wpath[growing].len]
-      let li = puz.letters.find(ch)
-      let t = nearestOpt(p)
-      var g = ""
-      if t >= 0:
-        let q = cellPos(t)
-        g.add &"""<rect class="target" x="{q.x - 36}" y="{q.y - 36}" width="72" height="72" rx="13"/>"""
-      g.add &"""<g class="growtile" transform="translate({p.x:.1f},{p.y:.1f})"><circle r="31" style="fill:var(--g{li})"/>""" &
-        &"""<text y="12" text-anchor="middle" font-size="34" class="glyph i{li}">{ch}</text></g>"""
-      stage.ghosts.innerHTML = cstring(g))
+    if not growMoved: return
+    # the snake follows the finger: near the centre of a free next cell it grows there,
+    # back onto the letter before the head it shrinks; this repeats within one drag
+    let p = localOf(ev)
+    let wi = growing
+    let path = wpath[wi]
+    let word = puz.clues[wi].word
+    if path.len < word.len:
+      for c in stage.state.growOptions(wi):
+        if norm(p - cellPos(c)) < cell * 0.42:
+          var b = stage.state
+          b.putAt(c, word[path.len])
+          wpath[wi].add c
+          stepped = true
+          buzz2()
+          stage.setState(b)
+          if wpath[wi].len < word.len: showOpts(wi) else: clearOpts()
+          return
+    if path.len >= 2 and norm(p - cellPos(path[^2])) < cell * 0.42:
+      stepped = true
+      buzz2()
+      stage.setState(stage.state.cutAt(path[^1]))
+      showOpts(wi)
+      return
+    if stepped:
+      stage.ghosts.innerHTML = ""
+      return
+    # no step yet: the head letter follows the finger (let go on an empty cell to move it there)
+    let ch = word[path.len - 1]
+    let li = puz.letters.find(ch)
+    stage.ghosts.innerHTML = cstring(&"""<g class="growtile" transform="translate({p.x:.1f},{p.y:.1f})"><circle r="31" style="fill:var(--g{li})"/>""" &
+      &"""<text y="12" text-anchor="middle" font-size="34" class="glyph i{li}">{ch}</text></g>"""))
   proc growUp(ev: Event) =
     if growing < 0: return
     let w = growing
@@ -1274,9 +1285,19 @@ nbJsFromCode:
         tailTapCell = c
         tailTapAt = t
       return
-    let t = nearestOpt(localOf(ev))
-    if t >= 0: grow(w, t)
-    else: clearOpts()
+    clearOpts()
+    if stepped: return
+    # a drag that took no step: the head moves to the empty cell it was let go on
+    let c = cellUnder(ev)
+    let path = wpath[w]
+    if c < 0 or c == path[^1] or stage.state.cells[c] >= 0 or isGiven(path[^1]): return
+    let ch = puz.clues[w].word[path.len - 1]
+    var b = stage.state.cutAt(path[^1])
+    if path.len == 1:
+      if not b.canPut(c, ch): return
+      wpath[w] = @[c]               # a one-letter word moves its start
+    b.putAt(c, ch)
+    stage.setState(b)
   host.addEventListener("pointerup", growUp)
   # a double tap on an empty cell whose pencil marks leave one letter puts that letter there;
   # if it is the next letter of a word ending next to it, the word takes it
