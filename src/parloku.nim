@@ -605,10 +605,13 @@ nbCodeAnd(nbJsFromCode):
     for id in 0 ..< 36: at[id] = -1
     for c, id in b.cells:
       if id >= 0: at[id] = c
+    let bad = b.grid.clashes             # letters in conflict tremble (CSS), more and more for a few seconds
     for id in 0 ..< 36:
       let c = at[id]
       let pos = if c >= 0: cellPos(c) else: stackPos(id div 6)
-      result.add Item(key: &"t{id}", pos: pos, svg: tileSvg(id div 6, c >= 0 and isGiven(c)))
+      var svg = tileSvg(id div 6, c >= 0 and isGiven(c))
+      if c >= 0 and c in bad: svg = """<g class="shake">""" & svg & "</g>"
+      result.add Item(key: &"t{id}", pos: pos, svg: svg)
 
 nbText: """
 And here is the entire interaction. Grabbing tile `id` lists one future per empty cell (a tile never replaces a letter already placed), snaps to the nearest within
@@ -682,18 +685,13 @@ nbCodeAnd(nbJsFromCode):
 
   proc backdrop(b: Board): string =
     let g = b.grid
-    let bad = g.clashes
     result = &"""<rect class="frame" x="{bx - 9}" y="{by - 9}" width="{cell * 6 + 18}" height="{cell * 6 + 18}" rx="14"/>"""
     for c in 0 ..< 36:
       let p = cellPos(c)
       let (r, col) = (c div 6, c mod 6)
       let base = if (r div 2 + col div 3) mod 2 == 0: "ca" else: "cb"
       let tinted = if c in coachTint: "tint" else: base
-      var fill = tinted
-      if c in bad: fill = tinted & " bad"       # while a tile is held, the page's CSS hides the red
-      result.add &"""<rect class="cell {fill}" x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7"/>"""
-      if c in bad:
-        result.add &"""<rect x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7" class="badline"/>"""
+      result.add &"""<rect class="cell {tinted}" x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7"/>"""
     for i in 1 .. 2:
       let y = by + i.float * cell * 2
       result.add &"""<rect class="boxline" x="{bx}" y="{y - 2.5}" width="{cell * 6}" height="5"/>"""

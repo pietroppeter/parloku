@@ -128,7 +128,15 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .cell{stroke:color-mix(in srgb,var(--ink) 16%,transparent);stroke-width:1.5} .cell.ca{fill:var(--ca)} .cell.cb{fill:var(--cb)} .cell.tint{fill:var(--hl)} .cell.bad{fill:var(--bad)}
 .badline{fill:none;stroke:var(--bad-line);stroke-width:3}
 /* no red while a tile is held: only once it is let go */
+/* two letters in conflict tremble, gently at first and more over a few seconds (no red); not while a tile is held */
+@property --amp{syntax:'<number>';inherits:true;initial-value:0}
+.shake{transform-box:fill-box;transform-origin:50% 50%;animation:amp 3s ease-in forwards,shake .3s ease-in-out infinite}
+@keyframes amp{from{--amp:.12}to{--amp:1}}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(calc(var(--amp) * -2px)) rotate(calc(var(--amp) * -6deg))}
+  75%{transform:translateX(calc(var(--amp) * 2px)) rotate(calc(var(--amp) * 6deg))}}
+.dragging .shake{animation:none}
 .dragging .cell.bad.ca{fill:var(--ca)} .dragging .cell.bad.cb{fill:var(--cb)} .dragging .cell.bad.tint{fill:var(--hl)} .dragging .badline{display:none}
+@media (prefers-reduced-motion: reduce){.shake{animation:none} .shake .tile rect,.shake .tile circle,.shake .tile path{stroke:var(--bad-line)}}
 .boxline{fill:var(--boxline)}
 .lbl{fill:var(--muted);display:none} .tutoring .lbl{display:inline}
 .glow{fill:var(--hl);stroke:var(--c0);stroke-width:3}
