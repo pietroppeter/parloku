@@ -105,7 +105,8 @@ nbCodeAnd(nbJsFromCode):
 
   proc decode(code: string): Puzzle =
     var c = code.strip(chars = {'?', '#', ' '})
-    if c.startsWith("p="): c = c[2 .. ^1]
+    for part in c.split('&'):              # a whole query string: take its p= value, wherever it is
+      if part.startsWith("p="): c = part[2 .. ^1]
     let parts = c.toUpperAscii.split('_')
     if parts.len != 3: return
     result.letters = parts[0]
@@ -199,9 +200,28 @@ nbCodeAnd(nbJsFromCode):
     for c in 0 ..< 36:
       if g[c] != '.' and peersOf[c].anyIt(g[it] == g[c]): result.add c
 
-  proc trace(g: Grid, clue: Clue, wild = false): seq[int] =
-    ## longest prefix of the word that can be walked from its start cell
-    ## (the rules let a path come back to a cell it already used)
+  proc trace(g: Grid, clue: Clue, wild = false, revisit = false): seq[int] =
+    ## longest prefix of the word that can be walked from its start cell.
+    ## The rules let a path come back to a cell it already used (`revisit`, for the solver); the board's
+    ## outlines don't, or G-I-O-C would read as GIOCO by stepping back onto the O
+    if not revisit:
+      var best, path: seq[int]
+      let word = clue.word
+      proc walk(cell, i: int) =
+        if best.len == word.len or cell in path: return
+        let ok = g[cell] == word[i] or (wild and g[cell] == '.')
+        if not ok: return
+        path.add cell
+        if path.len > best.len: best = path
+        if i + 1 < word.len:
+          let (r, c) = (cell div 6, cell mod 6)
+          if r > 0: walk(cell - 6, i + 1)
+          if r < 5: walk(cell + 6, i + 1)
+          if c > 0: walk(cell - 1, i + 1)
+          if c < 5: walk(cell + 1, i + 1)
+        discard path.pop
+      walk(idx(clue.pos), 0)
+      return best
     var best, path: seq[int]
     let word = clue.word
     proc walk(cell, i: int) =
@@ -221,7 +241,7 @@ nbCodeAnd(nbJsFromCode):
     best
 
   proc solved(p: Puzzle, g: Grid): bool =
-    '.' notin g and g.clashes.len == 0 and p.clues.allIt(g.trace(it).len == it.word.len)
+    '.' notin g and g.clashes.len == 0 and p.clues.allIt(g.trace(it, revisit = true).len == it.word.len)
 
   proc solve(p: Puzzle, limit = 2): seq[Grid] =
     ## backtracking with "fewest candidates first", pruning on the clues;
@@ -229,7 +249,7 @@ nbCodeAnd(nbJsFromCode):
     var g = startGrid(p)
     var sols: seq[Grid]
     proc fits(g: Grid, cell: int, ch: char): bool = peersOf[cell].allIt(g[it] != ch)
-    proc cluesOk(g: Grid): bool = p.clues.allIt(g.trace(it, wild = true).len == it.word.len)
+    proc cluesOk(g: Grid): bool = p.clues.allIt(g.trace(it, wild = true, revisit = true).len == it.word.len)
     proc go(g: var Grid) =
       if sols.len >= limit: return
       var best = -1
@@ -613,6 +633,14 @@ nbCodeAnd(nbJsFromCode):
       result.cells[src] = -1
       inc result.moves
 
+  proc isHead(b: Board, at: int): bool =
+    ## the letter on `at` is the last one spelled so far of some word: the head of its snake
+    let g = b.grid
+    for clue in puz.clues:
+      let path = g.trace(clue)
+      if path.len > 0 and path[^1] == at: return true
+    false
+
   proc tileSpec(b: Board, key: string): Behavior[Board] =
     let id = parseInt(key[1 .. ^1])
     let src = b.cells.find(id)
@@ -905,7 +933,10 @@ nbCodeDisplay(nbJsFromCode):
       ev.preventDefault()
       capture(st.svg, ev)
       let p = toLocal(ev)
-      if st.redirect.isNil or st.redirect(st.state, $k) == $k or st.spec(st.state, $k).isNil:
+      var r = $k
+      if not st.redirect.isNil: r = st.redirect(st.state, $k)
+      if r.len == 0: return                # "": the page handles this grab itself
+      if r == $k or st.spec(st.state, $k).isNil:
         st.start($k, p)
         return
       pendKey = $k
@@ -992,7 +1023,9 @@ nbJsFromCode:
   # letters on the board stay put: grabbing one pulls out a copy of it (a double tap sends it back)
   stage.redirect = proc (b: Board, key: string): string =
     let id = parseInt(key[1 .. ^1])
-    if b.cells.find(id) < 0: return key
+    let at = b.cells.find(id)
+    if at < 0: return key
+    if b.isHead(at): return ""             # a snake's head is drawn by hand (below): no copy
     for k in 0 .. 5:
       if b.cells.find((id div 6) * 6 + k) < 0: return &"t{(id div 6) * 6 + k}"
     ""
@@ -1076,6 +1109,85 @@ nbJsFromCode:
     joined = pulling
     if d.len > 0: necks.innerHTML = cstring(&"""<path class="neck g{li}" d="{d}"/>""")
     else: necks.innerHTML = ""
+
+  # ---- drawing a snake: hold its head and walk. Onto a free neighbour, the word's next letter is added;
+  # back onto the cell before, the head letter goes back below. With no step taken, letting go on an empty
+  # cell moves the head there.
+  var snakeWord = -1
+  var snakePath: seq[int]
+  var snakeKey = ""
+  var snakeStepped = false
+  var snakeDown = vec(0, 0)
+  proc toBoard(ev: Event): Vec =
+    let (l, t0, rw, rh) = rectOf(stage.svg)
+    let c = clientXY(ev)
+    vec(50 + (c.x - l) * 500 / rw, (c.y - t0) * 664 / rh)
+  proc cellNear(p: Vec): int =
+    ## the cell whose centre is close to p (-1 between cells or off the board)
+    let (col, row) = (int(floor((p.x - bx) / cell)), int(floor((p.y - by) / cell)))
+    if col notin 0 .. 5 or row notin 0 .. 5: return -1
+    let c = row * 6 + col
+    if norm(p - cellPos(c)) < cell * 0.42: c else: -1
+  stage.svg.addEventListener("pointerdown", proc (ev: Event) =
+    let k = keyAt(ev)
+    snakeWord = -1
+    if k.isNil: return
+    let id = parseInt(($k)[1 .. ^1])
+    let at = stage.state.cells.find(id)
+    if at < 0: return
+    let g = stage.state.grid
+    for i, clue in puz.clues:            # an unfinished word first: its head is the one to grow
+      let path = g.trace(clue)
+      if path.len > 0 and path[^1] == at and (snakeWord < 0 or path.len < clue.word.len):
+        snakeWord = i
+        snakePath = path
+    if snakeWord < 0: return
+    snakeKey = $k
+    snakeStepped = false
+    snakeDown = toBoard(ev))
+  stage.svg.addEventListener("pointermove", proc (ev: Event) =
+    if snakeWord < 0: return
+    let p = toBoard(ev)
+    let head = snakePath[^1]
+    let c = cellNear(p)
+    var b = stage.state
+    let word = puz.clues[snakeWord].word
+    if c >= 0 and snakePath.len >= 2 and c == snakePath[^2] and not isGiven(head):
+      b = b.home(b.cells[head])          # back: the head letter returns below
+      discard snakePath.pop
+      snakeStepped = true
+      stage.setState(b)
+    elif c >= 0 and b.cells[c] < 0 and not isGiven(c) and snakePath.len < word.len and
+        abs(c div 6 - head div 6) + abs(c mod 6 - head mod 6) == 1:
+      let li = puz.letters.find(word[snakePath.len])
+      for j in 0 .. 5:
+        if b.cells.find(li * 6 + j) < 0:
+          snakePath.add c
+          snakeStepped = true
+          stage.setState(b.place(li * 6 + j, c))
+          break
+    if not snakeStepped and norm(p - snakeDown) > 6 and not isGiven(head):
+      let n = stage.nodes[snakeKey]      # no step yet: the head follows the finger, to be moved
+      n.setAttribute("class", "item grab lifted")
+      n.setStyle("transform", tr(p))
+    elif snakeStepped:
+      stage.draw(stage.state))
+  let snakeUp = proc (ev: Event) =
+    if snakeWord < 0: return
+    let w = snakeWord
+    snakeWord = -1
+    let head = snakePath[^1]
+    let p = toBoard(ev)
+    if not snakeStepped and norm(p - snakeDown) > 6 and not isGiven(head):
+      let (col, row) = (int(floor((p.x - bx) / cell)), int(floor((p.y - by) / cell)))
+      let c = row * 6 + col
+      if col in 0 .. 5 and row in 0 .. 5 and stage.state.cells[c] < 0 and not isGiven(c):
+        stage.setState(stage.state.place(stage.state.cells[head], c))   # moved
+        return
+    discard w
+    stage.draw(stage.state)              # glide back
+  stage.svg.addEventListener("pointerup", snakeUp)
+  stage.svg.addEventListener("pointercancel", snakeUp)
 
   # ---- a double tap on a tile on the board sends it back to its letter below; on an empty cell with only one possible letter (a start ring, or the last gap of a row, column or box), it fills that letter in
   var tapKey = ""
