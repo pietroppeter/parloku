@@ -10,6 +10,16 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .row.custom input{flex:1;min-width:0;font:600 15px var(--font-body);padding:8px 12px;border:2px solid var(--ink);border-radius:999px;background:var(--card);color:var(--ink);text-transform:uppercase}
 .say{min-height:24px;font-size:15px;color:var(--muted);margin:4px 0 4px}
 .clue{cursor:pointer}
+/* words sit on the left, each after its ring: drag the ring onto the board to start the word */
+.bld .clue,.bld .clue:nth-child(3n+2),.bld .clue:nth-child(3n){align-self:flex-start}
+.clue .wring{flex:none;width:22px;height:22px;border-radius:50%;border:4px solid var(--wc);background:var(--card);cursor:grab;touch-action:none;margin-right:2px}
+.clue .wring.on{background:color-mix(in srgb,var(--wc) 25%,var(--card))}
+.ringghost{position:fixed;left:0;top:0;width:48px;height:48px;box-sizing:border-box;border-radius:50%;border:6px solid var(--wc);pointer-events:none;z-index:60}
+.opt{fill:none;stroke-width:4;stroke-dasharray:7 6;animation:optp 1s ease-in-out infinite alternate}
+.opt.w0{stroke:var(--w0)} .opt.w1{stroke:var(--w1)} .opt.w2{stroke:var(--w2)}
+@keyframes optp{from{opacity:.45}to{opacity:1}}
+.growtile circle{stroke:var(--tstroke);stroke-width:var(--tsw)}
+.growtile{pointer-events:none;filter:drop-shadow(0 6px 6px rgba(0,0,0,.2))}
 /* pencil marks in the empty cells */
 .pm{font:700 15px "JetBrains Mono",monospace;fill:color-mix(in srgb,var(--ink) 50%,transparent);pointer-events:none}
 .dragging .pm{opacity:.5}

@@ -1,6 +1,5 @@
 ## The Parloku builder: the game's board, tiles and gestures, used to make a puzzle.
-## Pick three words, spell them on the board with the six letters (the outline of each word appears as you
-## spell it), play on, and pin some letters as clues. The pencil marks and the solution count come from
+## Pick three words, drag each word's ring onto the board and lengthen it letter by letter, play on, and pin some letters as clues. The pencil marks and the solution count come from
 ## puzzlepaw's `parloku/solver`, compiled to JS with the page.
 ##
 ## The model, rules, drag engine, view and runtime blocks are copied from `parloku.nim` (the game), so the
@@ -37,8 +36,9 @@ nbRawHtml: """
 </div>
 <div class="panel" id="panel"></div>
 <details class="how"><summary>come funziona</summary>
-<p><b>Parole.</b> Trascina le lettere dal basso sulla griglia, come nel gioco. Quando due o più lettere di seguito formano l'inizio di una delle parole, la parola si accende con il suo contorno, ovunque sia. Toccando una parola in alto, il suo contorno sulla griglia si muove.</p>
-<p><b>Mosse.</b> Un trascinamento veloce da una lettera sulla griglia ne fa una copia; tenendo premuto un attimo la sposti; un doppio tocco la rimanda giù.</p>
+<p><b>Parole.</b> Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta.</p>
+<p><b>Togliere.</b> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
+<p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
 <p><b>Annotazioni.</b> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><b>Indizi.</b> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
 </details>
@@ -209,27 +209,11 @@ nbJsFromCode:
     if g.clashes.len == 0 and cluesOk(g): go(g)
     sols
   # ---- builder state, read by the copied view code below
-  var wordAt: seq[int]            # where each word was found (its start cell), -1 when not on the board
+  var wpath: seq[seq[int]]        # each word's container: the cells it runs through, from its start (empty: not on the board)
   var marks: array[36, string]    # pencil marks: the letters each empty cell can still take
   var noneCell: array[36, bool]   # an empty cell with no letter left
-
-  proc detect(g: Grid, prev: seq[int]): seq[int] =
-    ## each word's start: the cell from which the longest prefix (2 letters or more) is spelled;
-    ## a word keeps its previous start while that is as good as any
-    for i, clue in puz.clues:
-      var order: seq[int]
-      if i < prev.len and prev[i] >= 0: order.add prev[i]
-      for c in 0 ..< 36:
-        if c notin order: order.add c
-      var best = -1
-      var bestLen = 1
-      for c in order:
-        if g[c] != clue.word[0]: continue
-        let n = g.trace(Clue(pos: (row: c div 6, col: c mod 6), word: clue.word)).len
-        if n > bestLen:
-          best = c
-          bestLen = n
-      result.add best
+  var growWord = -1               # the word being lengthened (its last letter is held)
+  var growOpts: seq[int]          # where its next letter can go
 
   const pinSvg = """<svg class="pin" viewBox="-14 -20 28 40"><line x1="0" y1="0" x2="0" y2="18"/><circle cx="0" cy="-6" r="10"/><circle class="hi" cx="-3" cy="-9" r="3"/></svg>"""
 
@@ -419,12 +403,10 @@ nbJsFromCode:
   proc overlay(b: Board): string =
     let g = b.grid
     let n = puz.clues.len
-    let starts = detect(g, wordAt)         # builder: words are found wherever they are spelled
-    for i, found in puz.clues:
-      if starts[i] < 0: continue
-      let clue = Clue(pos: (row: starts[i] div 6, col: starts[i] mod 6), word: found.word)
+    for i, clue in puz.clues:
+      if wpath[i].len == 0: continue      # builder: a word's outline follows its container
       # each word is an outline in its own dark colour: a ring on its start cell that grows around its letters
-      let path = g.trace(clue)
+      let path = wpath[i]
       let ink = &"w{i mod 3}"
       let t = if focusClue == i: 8.0 else: 5.0
       let rr = cell * 0.47
@@ -466,6 +448,9 @@ nbJsFromCode:
           &"""<path d="{d}" class="wm" stroke="#000" stroke-width="{2 * wIn:.1f}"/><path d="{fillIn}" fill="#000"/></mask>""" &
           &"""<rect class="wf {ink}" x="0" y="0" width="600" height="650" mask="url(#{m})"/>"""
       if wiggleClue == i: result.add "</g>"
+    for c in growOpts:                    # builder: where a held word's next letter can go
+      let p = cellPos(c)
+      result.add &"""<circle class="opt w{growWord mod 3}" cx="{p.x}" cy="{p.y}" r="{cell * 0.42:.1f}"/>"""
     if coachTarget >= 0:
       let p = cellPos(coachTarget)
       result.add &"""<rect class="aim pulse" x="{p.x - 37}" y="{p.y - 37}" width="74" height="74" rx="12"/>"""
@@ -697,8 +682,7 @@ nbJsFromCode:
     sorted.sort()
     puz = Puzzle(letters: sorted)
     for w in words: puz.clues.add Clue(pos: (row: 0, col: 0), word: w)
-    wordAt = newSeq[int](words.len)
-    for i in 0 ..< words.len: wordAt[i] = -1
+    wpath = newSeq[seq[int]](words.len)
 
   proc emptyBoard(): Board = puz.boardOf(puz.startGrid)
 
@@ -711,12 +695,12 @@ nbJsFromCode:
     else:
       for gv in puz.givens: result.letterHints.add pt.HintLetter(pos: gv.pos, letter: gv.letter)
     for i, clue in puz.clues:
-      if wordAt[i] >= 0: result.wordHints.add pt.HintWord(pos: clue.pos, word: clue.word)
+      if wpath[i].len > 0: result.wordHints.add pt.HintWord(pos: clue.pos, word: clue.word)
 
   proc playCode(): string =
     var p = Puzzle(letters: puz.letters, givens: puz.givens)
     for i, clue in puz.clues:
-      if wordAt[i] >= 0: p.clues.add clue
+      if wpath[i].len > 0: p.clues.add clue
     p.encode
 
   proc analyze(b: Board) =
@@ -726,9 +710,12 @@ nbJsFromCode:
     for gv in puz.givens:
       if g[idx(gv.pos)] == gv.letter: keep.add gv
     puz.givens = keep
-    wordAt = detect(g, wordAt)
-    for i in 0 ..< puz.clues.len:
-      if wordAt[i] >= 0: puz.clues[i].pos = (row: wordAt[i] div 6, col: wordAt[i] mod 6)
+    # a word keeps its cells while they spell it: it loses a letter that was taken away, and the ones after it
+    for i in 0 ..< wpath.len:
+      var k = 0
+      while k < wpath[i].len and g[wpath[i][k]] == puz.clues[i].word[k]: inc k
+      wpath[i].setLen(k)
+      if k > 0: puz.clues[i].pos = (row: wpath[i][0] div 6, col: wpath[i][0] mod 6)
     # pencil marks: exact when some full grid fits, else plain sudoku elimination
     let p = toProblem(g, allTiles = true)
     complete = g.clashes.len == 0 and ps.solve(p, ps.defaultOptions(limit = 1, keep = 0)).count > 0
@@ -748,14 +735,14 @@ nbJsFromCode:
     countDone = r.complete
 
   proc showClues(b: Board) =
-    let g = b.grid
     var html = ""
     for i, clue in puz.clues:
-      var path: seq[int]
-      if wordAt[i] >= 0: path = g.trace(clue)
+      let path = wpath[i]
       let full = path.len == clue.word.len
       let cls = if full: " done" else: ""
+      let on = if path.len > 0: " on" else: ""
       html.add &"""<div class="clue{cls}" data-clue="{i}" style="border-color:var(--w{i mod 3})">"""
+      html.add &"""<span class="wring{on}" data-ring="{i}" style="--wc:var(--w{i mod 3})"></span>"""
       for k, ch in clue.word:
         let li = puz.letters.find(ch)
         if k < path.len:
@@ -767,15 +754,14 @@ nbJsFromCode:
     cluesEl.innerHTML = cstring(html)
 
   proc showPanel(b: Board) =
-    let g = b.grid
     var s = ""
     var found, full = 0
     for i, clue in puz.clues:
-      if wordAt[i] >= 0:
+      if wpath[i].len > 0:
         inc found
-        if g.trace(clue).len == clue.word.len: inc full
+        if wpath[i].len == clue.word.len: inc full
     if found == 0:
-      s.add """<div class="verdict"><b>·</b> spella una parola sulla griglia</div>"""
+      s.add """<div class="verdict"><b>·</b> trascina il cerchietto di una parola sulla griglia</div>"""
     else:
       let n = if countDone: $count else: "≥ " & $count
       let cls = if count == 1: "one" elif count == 0: "zero" else: "many"
@@ -789,6 +775,41 @@ nbJsFromCode:
     if not complete:
       s.add """<p class="warn">Nessuna griglia completa è compatibile con le lettere sulla griglia: c'è una casella senza possibilità o un conflitto.</p>"""
     panelEl.innerHTML = cstring(s)
+
+  proc freeTile(b: Board, ch: char): int =
+    let li = puz.letters.find(ch)
+    for k in 0 .. 5:
+      if b.cells.find(li * 6 + k) < 0: return li * 6 + k
+    -1
+  proc canPut(b: Board, c: int, ch: char): bool =
+    ## a word's letter can go in cell c: it is there already, or the cell is empty and the letter clashes with nothing
+    let g = b.grid
+    if g[c] == ch: return true
+    g[c] == '.' and peersOf[c].allIt(g[it] != ch) and b.freeTile(ch) >= 0
+  proc putAt(b: var Board, c: int, ch: char) =
+    if b.cells[c] < 0: b.cells[c] = b.freeTile(ch)
+  proc cutAt(b: Board, c: int): Board =
+    ## the letter in cell c goes back below; a word running through it loses it and every letter after it
+    ## (a cell another word still uses, or a pinned one, keeps its letter)
+    result = b
+    var freed = @[c]
+    for i in 0 ..< wpath.len:
+      let k = wpath[i].find(c)
+      if k >= 0:
+        for cc in wpath[i][k .. ^1]: freed.add cc
+        wpath[i].setLen(k)
+    for cc in freed:
+      if cc == c or (not wpath.anyIt(cc in it) and not isGiven(cc)): result.cells[cc] = -1
+  proc growOptions(b: Board, w: int): seq[int] =
+    ## the cells next to a word's last letter where its next letter can go
+    let path = wpath[w]
+    let word = puz.clues[w].word
+    if path.len == 0 or path.len >= word.len: return
+    let c = path[^1]
+    let (r, col) = (c div 6, c mod 6)
+    for (dr, dc) in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+      let (rr, cc) = (r + dr, col + dc)
+      if rr in 0 .. 5 and cc in 0 .. 5 and b.canPut(idx(rr, cc), word[path.len]): result.add idx(rr, cc)
 
   setPuzzle(sets[0].split(' '))
   let stage = mount(host, 500, 664, emptyBoard(), renderBoard, tileSpec, backdrop, overlay, 50)
@@ -895,7 +916,7 @@ nbJsFromCode:
     let t = now()
     if tapKey == $k and t - tapAt < 400:
       tapKey = ""
-      stage.setState(stage.state.home(id))
+      stage.setState(stage.state.cutAt(at))
     else:
       tapKey = $k
       tapAt = t)
@@ -976,33 +997,207 @@ nbJsFromCode:
       clearTimer(holdTimer)
       holdTimer = 0)
 
+  # ---- words are containers: drag a word's ring onto the board, then hold its last letter to lengthen it
+  proc localOf(ev: Event): Vec =
+    let (l, t, rw, rh) = rectOf(stage.svg)
+    let c = clientXY(ev)
+    vec(50 + (c.x - l) * 500 / rw, (c.y - t) * 664 / rh)
+  proc stopIt(ev: Event) {.importjs: "#.stopPropagation()".}
+  proc redrawTop() = stage.top.innerHTML = cstring(overlay(stage.state))
+
+  let ringGhost = document.createElement("div")
+  ringGhost.className = "ringghost"
+  ringGhost.setHidden(true)
+  document.body.appendChild(ringGhost)
+  proc setWc(e: Element, i: int) {.importjs: "#.style.setProperty('--wc', 'var(--w' + # + ')')".}
+  var ringWord = -1
+  var ringDown = vec(0, 0)
+  var ringMoved = false
+  var ringTapWord = -1
+  var ringTapAt = 0.0
+  cluesEl.addEventListener("pointerdown", proc (ev: Event) =
+    let r = dataOf(ev, "ring")
+    if r.isNil: return
+    ev.preventDefault()
+    ringWord = parseInt($r)
+    ringDown = clientXY(ev)
+    ringMoved = false
+    capture2(cluesEl, ev))
+  cluesEl.addEventListener("pointermove", proc (ev: Event) =
+    if ringWord < 0: return
+    let c = clientXY(ev)
+    if not ringMoved and norm(c - ringDown) > 6:
+      ringMoved = true
+      ringGhost.setWc(ringWord mod 3)
+      ringGhost.setHidden(false)
+    if ringMoved: ringGhost.setPos(c.x - 24, c.y - 24))
+  cluesEl.addEventListener("pointerup", proc (ev: Event) =
+    if ringWord < 0: return
+    let w = ringWord
+    ringWord = -1
+    ringGhost.setHidden(true)
+    if not ringMoved:
+      # a double tap on a placed word's ring takes the word off the board
+      let t = now()
+      if ringTapWord == w and t - ringTapAt < 400 and wpath[w].len > 0:
+        ringTapWord = -1
+        stage.setState(stage.state.cutAt(wpath[w][0]))
+      else:
+        ringTapWord = w
+        ringTapAt = t
+      return
+    let c = cellUnder(ev)
+    if c < 0: return
+    var b = stage.state
+    if wpath[w].len > 0: b = b.cutAt(wpath[w][0])     # a word already on the board moves to its new start
+    let ch = puz.clues[w].word[0]
+    if not b.canPut(c, ch):
+      say &"«{ch}» non può andare lì: c'è già un'altra lettera o la stessa lettera nella riga, colonna o riquadro."
+      return
+    b.putAt(c, ch)
+    wpath[w] = @[c]
+    buzz2()
+    say ""
+    stage.setState(b))
+  cluesEl.addEventListener("pointercancel", proc (ev: Event) =
+    ringWord = -1
+    ringGhost.setHidden(true))
+
+  # holding the last letter of a word shows where the next one can go; drag there (or tap one) to add it
+  var growing = -1                # pointer down on a word's last letter
+  var growDown = vec(0, 0)
+  var growMoved = false
+  var growTimer = 0
+  var tailTapCell = -1
+  var tailTapAt = 0.0
+  proc showOpts(w: int) =
+    growWord = w
+    growOpts = stage.state.growOptions(w)
+    buzz2()
+    redrawTop()
+  proc clearOpts() =
+    growWord = -1
+    growOpts = @[]
+    stage.ghosts.innerHTML = ""
+    redrawTop()
+  proc grow(w, c: int) =
+    var b = stage.state
+    b.putAt(c, puz.clues[w].word[wpath[w].len])
+    wpath[w].add c
+    growWord = -1
+    growOpts = @[]
+    stage.ghosts.innerHTML = ""
+    buzz2()
+    stage.setState(b)
+  proc nearestOpt(p: Vec): int =
+    result = -1
+    var best = cell * 0.8
+    for c in growOpts:
+      let d = norm(cellPos(c) - p)
+      if d < best:
+        best = d
+        result = c
+  host.addEventListener("pointerdown", proc (ev: Event) =
+    let c = cellUnder(ev)
+    if growWord >= 0 and growing < 0:
+      # options showing from a hold: a tap on one adds the letter, anything else puts them away
+      let w = growWord
+      if c in growOpts:
+        stopIt(ev)
+        ev.preventDefault()
+        grow(w, c)
+        return
+      clearOpts()
+    if c < 0: return
+    var w = -1
+    for i in 0 ..< wpath.len:
+      if wpath[i].len > 0 and wpath[i].len < puz.clues[i].word.len and wpath[i][^1] == c: w = i
+    if w < 0: return
+    stopIt(ev)
+    ev.preventDefault()
+    capture2(host, ev)
+    growing = w
+    growDown = clientXY(ev)
+    growMoved = false
+    growTimer = setTimer(proc () =
+      growTimer = 0
+      if growing >= 0: showOpts(growing), 260), true)
+  host.addEventListener("pointermove", proc (ev: Event) =
+    if growing < 0: return
+    if not growMoved and norm(clientXY(ev) - growDown) > 6:
+      growMoved = true
+      if growWord != growing: showOpts(growing)
+    if growMoved:
+      let p = localOf(ev)
+      let ch = puz.clues[growing].word[wpath[growing].len]
+      let li = puz.letters.find(ch)
+      let t = nearestOpt(p)
+      var g = ""
+      if t >= 0:
+        let q = cellPos(t)
+        g.add &"""<rect class="target" x="{q.x - 36}" y="{q.y - 36}" width="72" height="72" rx="13"/>"""
+      g.add &"""<g class="growtile" transform="translate({p.x:.1f},{p.y:.1f})"><circle r="31" style="fill:var(--g{li})"/>""" &
+        &"""<text y="12" text-anchor="middle" font-size="34" class="glyph i{li}">{ch}</text></g>"""
+      stage.ghosts.innerHTML = cstring(g))
+  proc growUp(ev: Event) =
+    if growing < 0: return
+    let w = growing
+    growing = -1
+    if growTimer != 0:
+      clearTimer(growTimer)
+      growTimer = 0
+    if not growMoved:
+      if growWord == w: return               # held still: the options stay, tap one
+      # a quick tap: two of them take the letter (and the ones after it) off
+      let c = wpath[w][^1]
+      let t = now()
+      if tailTapCell == c and t - tailTapAt < 400:
+        tailTapCell = -1
+        if not isGiven(c): stage.setState(stage.state.cutAt(c))
+      else:
+        tailTapCell = c
+        tailTapAt = t
+      return
+    let t = nearestOpt(localOf(ev))
+    if t >= 0: grow(w, t)
+    else: clearOpts()
+  host.addEventListener("pointerup", growUp)
+  host.addEventListener("pointercancel", proc (ev: Event) =
+    growing = -1
+    clearOpts())
+
   # ---- after every change: find the words, redo the pencil marks and the count
-  var history: seq[(Board, seq[Given])]
+  var history: seq[(Board, seq[Given], seq[seq[int]])]
   var last = stage.state
   var lastGivens: seq[Given]
+  var lastPaths = wpath
   proc refresh() =
     analyze(stage.state)
     stage.draw(stage.state)
     showClues(stage.state)
     showPanel(stage.state)
   stage.onCommit = proc () =
-    if stage.state.cells != last.cells or puz.givens != lastGivens:
-      history.add (last, lastGivens)
+    if stage.state.cells != last.cells or puz.givens != lastGivens or wpath != lastPaths:
+      history.add (last, lastGivens, lastPaths)
       last = stage.state
     refresh()
     lastGivens = puz.givens
+    lastPaths = wpath
     undoBtn.setDisabled(history.len == 0)
   undoBtn.addEventListener("click", proc (ev: Event) =
     if history.len == 0: return
-    let (b, gv) = history.pop
+    let (b, gv, wp) = history.pop
     puz.givens = gv
     lastGivens = gv
+    wpath = wp
+    lastPaths = wp
     last = b
     stage.state = b
     refresh()
     undoBtn.setDisabled(history.len == 0))
   document.getElementById("reset").addEventListener("click", proc (ev: Event) =
     puz.givens = @[]
+    for p in wpath.mitems: p.setLen(0)
     stage.setState(emptyBoard()))
 
   # ---- tap a word: its outline on the board wiggles
@@ -1043,9 +1238,10 @@ nbJsFromCode:
     setPuzzle(ws)
     history = @[]
     lastGivens = @[]
+    lastPaths = wpath
     last = emptyBoard()
     undoBtn.setDisabled(true)
-    say "Trascina le lettere sulla griglia per scrivere le parole."
+    say "Trascina il cerchietto di una parola sulla griglia, poi tieni premuta la sua ultima lettera per allungarla."
     stage.setState(emptyBoard())
 
   var setsHtml = ""
