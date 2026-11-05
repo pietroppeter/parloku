@@ -1303,6 +1303,29 @@ nbJsFromCode:
       tapKey = $k
       tapAt = t)
 
+  # ---- letters in conflict tremble like restless marbles: they roll a little left and right (turning as they go),
+  # gently at first and more for 3 seconds. An SVG transform set every frame, so it is the same in every browser
+  proc nextFrame(cb: proc (t: float)) {.importjs: "requestAnimationFrame(#)".}
+  proc shaking(): seq[Element] {.importjs: "Array.from(document.querySelectorAll('.shake'))".}
+  proc lessMotion(): bool {.importjs: "matchMedia('(prefers-reduced-motion: reduce)').matches".}
+  proc isHeld(e: Element): bool {.importjs: "!!#.closest('.dragging')".}
+  proc unset(e: Element, k: cstring) {.importjs: "#.removeAttribute(#)".}
+  const rollMax = 4.0                  # board units side to side at most (a tile's radius is 32)
+  const rollRamp = 3000.0              # ms to grow from a fifth to all of it
+  proc roll(t: float) =
+    for g in shaking():
+      if g.attr("data-t0").isNil: g.setAttr("data-t0", cstring($t))
+      if lessMotion() or g.isHeld:
+        g.unset("transform")
+        g.setAttr("data-t0", cstring($t))
+        continue
+      let k = min(1.0, 0.2 + 0.8 * (t - parseFloat($g.attr("data-t0"))) / rollRamp)
+      let dx = rollMax * k * sin(t / 1000 * 2 * PI * 2.2)
+      let turn = dx / 32 * 180 / PI       # rolling, not sliding: the turn matches the distance
+      g.setAttr("transform", cstring(&"translate({dx:.2f} 0) rotate({turn:.2f})"))
+    nextFrame(roll)
+  nextFrame(roll)
+
   # ---- on the game page, only the game: tap an empty spot to show the rest, and again to hide it
   proc interactive(ev: Event): bool {.importjs:
     "!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')".}
@@ -1762,27 +1785,5 @@ The game speaks English and Italian (EN / IT at the top, or `?lang=it`), and `?t
 
 Built with [nimib](https://github.com/pietroppeter/nimib). Hit *show source* below for the whole notebook.
 """
-
-nbRawHtml: """<script>
-// letters in conflict tremble: they shake side to side, gently at first and more for 3 seconds, then steady.
-// Driven from JavaScript (an SVG transform attribute each frame), so it looks the same in every browser
-(() => {
-  const still = matchMedia('(prefers-reduced-motion: reduce)');
-  const A = 6, ramp = 3000;                       // at most 6 board units (a cell is 78) side to side
-  function frame(t) {
-    for (const g of document.querySelectorAll('.shake')) {
-      if (!g.dataset.t0) g.dataset.t0 = t;
-      const held = g.closest('.dragging');
-      if (still.matches || held) { g.removeAttribute('transform'); if (held) g.dataset.t0 = t; continue; }
-      const k = Math.min(1, 0.2 + 0.8 * (t - g.dataset.t0) / ramp);
-      const dx = A * k * Math.sin(t / 1000 * 2 * Math.PI * 3.6);
-      const dy = 0.35 * A * k * Math.sin(t / 1000 * 2 * Math.PI * 2.7);
-      g.setAttribute('transform', `translate(${dx.toFixed(2)} ${dy.toFixed(2)})`);
-    }
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-})();
-</script>"""
 
 nbSave
