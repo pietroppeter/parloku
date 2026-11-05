@@ -50,6 +50,9 @@ svg.pin circle.hi{fill:rgba(255,255,255,.65);stroke:none}
 .wig{animation:wig .65s ease-in-out}
 @keyframes wig{0%,100%{transform:none}15%{transform:rotate(-5deg) scale(1.04)}35%{transform:rotate(4deg) scale(1.04)}55%{transform:rotate(-3deg)}75%{transform:rotate(2deg)}}
 @media (prefers-reduced-motion: reduce){.wig{animation:none}}
+.sol{font:600 14px var(--font-body);color:var(--muted);margin-left:10px}
+.sol b{font:800 20px var(--font-head);color:var(--ink);margin-right:4px;vertical-align:-2px}
+.sol.zero,.sol.zero b{color:var(--w0)}
 .panel{margin:16px 0;padding:12px 14px;border:var(--border) solid var(--ink);border-radius:var(--radius);background:var(--card)}
 .panel .verdict{font:600 16px var(--font-body);color:var(--muted)}
 .panel .verdict b{font:800 34px var(--font-head);margin-right:6px;vertical-align:-4px;color:var(--ink)}

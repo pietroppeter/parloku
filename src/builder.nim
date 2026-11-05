@@ -36,6 +36,7 @@ nbRawHtml: """
   <div class="stage" id="board"></div>
   <div class="status"><span class="acts">
     <button class="btn" id="undo" disabled>↶ annulla</button>
+    <span class="sol" id="sol" title="griglie complete con queste lettere e tutte e tre le parole"></span>
   </span></div>
 </div>
 <div class="panel" id="panel"></div>
@@ -46,6 +47,7 @@ nbRawHtml: """
 <p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
 <p><b>Ordine delle lettere.</b> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.</p>
 <p><b>Icone.</b> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.</p>
+<p><b>Soluzioni.</b> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+.</p>
 <p><b>Annotazioni.</b> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><b>Indizi.</b> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
 </details>
@@ -712,6 +714,26 @@ nbJsFromCode:
       if wpath[i].len > 0: p.clues.add clue
     p.encode
 
+  # ---- the real solver: complete grids that keep every letter on the board and fit all three words,
+  # trying every start for the words not on the board yet (up to 10 different grids)
+  var fits = 0                 # grids found (10 = 10 or more)
+  var fitsCut = false          # the search hit its budget before deciding
+  proc findFits(p: pt.Problem, rest: seq[string], found: var seq[pt.Grid], budget: var int) =
+    if found.len >= 10 or budget <= 0: return
+    if rest.len == 0:
+      dec budget
+      let r = ps.solve(p, ps.defaultOptions(limit = 10, keep = 10))
+      for g in r.solutions:
+        if g notin found and found.len < 10: found.add g
+      return
+    let w = rest[0]
+    for cell in 0 ..< 36:
+      if found.len >= 10 or budget <= 0: return
+      let q = ps.withWord(p, (row: cell div 6, col: cell mod 6), w)
+      dec budget
+      if ps.solve(q, ps.defaultOptions(limit = 1, keep = 0)).count == 0: continue
+      findFits(q, rest[1 .. ^1], found, budget)
+
   proc analyze(b: Board) =
     let g = b.grid
     # pinned clues follow their tiles: a pin whose cell was emptied or changed goes away
@@ -739,6 +761,14 @@ nbJsFromCode:
         for ch in puz.letters:
           if peersOf[c].allIt(g[it] != ch): marks[c].add ch
     for c in 0 ..< 36: noneCell[c] = g[c] == '.' and marks[c].len == 0
+    var rest: seq[string]
+    for i, clue in puz.clues:
+      if wpath[i].len == 0: rest.add clue.word
+    var found: seq[pt.Grid]
+    var budget = 4000
+    if complete: findFits(p, rest, found, budget)
+    fits = found.len
+    fitsCut = budget <= 0 and fits < 10
     let r = ps.solve(toProblem(g, allTiles = false), ps.defaultOptions(limit = 1000, keep = 0))
     count = r.count
     countDone = r.complete
@@ -761,6 +791,23 @@ nbJsFromCode:
       let tick = if full: "✓" else: ""
       html.add &"""<span class="ok">{tick}</span></div>"""
     cluesEl.innerHTML = cstring(html)
+
+  let solEl = document.getElementById("sol")
+  proc showFits() =
+    var s = ""
+    if fits == 0 and not fitsCut:
+      s = """<b>0</b> soluzioni: così le parole non ci stanno"""
+    elif fitsCut:
+      s = &"""<b>≥ {fits}</b> soluzioni (ricerca interrotta)"""
+    elif fits >= 10:
+      s = """<b>10+</b> soluzioni"""
+    elif fits == 1:
+      s = """<b>1</b> soluzione"""
+    else:
+      s = &"""<b>{fits}</b> soluzioni"""
+    let cls = if fits == 0 and not fitsCut: "sol zero" else: "sol"
+    solEl.className = cstring(cls)
+    solEl.innerHTML = cstring(s)
 
   proc showPanel(b: Board) =
     var s = ""
@@ -1237,6 +1284,7 @@ nbJsFromCode:
     stage.draw(stage.state)
     showClues(stage.state)
     showPanel(stage.state)
+    showFits()
   stage.onCommit = proc () =
     if stage.state.cells != last.cells or puz.givens != lastGivens or wpath != lastPaths:
       history.add (last, lastGivens, lastPaths)
