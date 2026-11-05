@@ -66,8 +66,8 @@ set of three words. Each word is listed with a ring: drag the ring onto a cell t
 letter. Hold the word's last letter to see where the next one can go, then drag there (or tap one) to add it. A double
 tap on a letter sends it back, together with the rest of its word after it; a double tap on the ring removes the word.
 Every empty cell shows in pencil the letters some complete grid can still put there, and a cell with none turns red.
-A double tap on an empty cell with a single pencil mark puts that letter there. A double tap on a letter below makes the six
-letters wiggle so they can be reordered by dragging one onto another; another double tap ends it. Four round tools sit next to the
+A double tap on an empty cell with a single pencil mark puts that letter there. Holding a letter below makes the six
+letters wiggle so they can be reordered by dragging one onto another; a double tap on a letter ends it. Four round tools sit next to the
 words: 📌 drag the pin onto a placed letter to fix it as a clue (hold a pinned letter to unpin it), ↺ restart,
 💾 copy a link that reopens the builder in this exact state (`builder.html?s=...`), and 🔗 copy the link to play. A panel counts the solutions of
 the puzzle a player would get (word starts and pinned letters only), with a link to play it.

@@ -44,7 +44,7 @@ nbRawHtml: """
 <p><b>Lettere forzate.</b> Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.</p>
 <p><b>Togliere.</b> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
 <p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
-<p><b>Ordine delle lettere.</b> Doppio tocco su una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un altro doppio tocco le rimette a posto.</p>
+<p><b>Ordine delle lettere.</b> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.</p>
 <p><b>Icone.</b> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.</p>
 <p><b>Annotazioni.</b> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><b>Indizi.</b> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
@@ -653,7 +653,7 @@ nbJsFromCode:
   from parloku/solver as ps import nil
 
   proc now(): float {.importjs: "Date.now()".}
-  proc copyText(s: cstring) {.importjs: "(s => { try { navigator.clipboard.writeText(s) } catch (e) {} })(#)".}
+  proc copyText(s: cstring) {.importjs: """(s => { const old = () => { const t = document.createElement('textarea'); t.value = s; document.body.appendChild(t); t.select(); try { document.execCommand('copy') } catch (e) {} t.remove() }; try { navigator.clipboard.writeText(s).catch(old) } catch (e) { old() } })(#)""".}
   proc setHidden(e: Element, h: bool) {.importjs: "#.hidden = #".}
   proc setDisabled(e: Element, d: bool) {.importjs: "#.disabled = #".}
   proc dataOf(ev: Event, k: cstring): cstring {.importjs: "((e, k) => e.target.closest('[data-' + k + ']')?.getAttribute('data-' + k) ?? null)(#, #)".}
@@ -1248,7 +1248,7 @@ nbJsFromCode:
     for p in wpath.mitems: p.setLen(0)
     stage.setState(emptyBoard()))
 
-  # ---- double tap a letter below: the six letters wiggle and can be reordered (drag one onto another to swap them)
+  # ---- hold a letter below: the six letters wiggle and can be reordered (drag one onto another to swap them)
   proc addClass(e: Element, c: cstring) {.importjs: "#.classList.add(#)".}
   proc dropClass(e: Element, c: cstring) {.importjs: "#.classList.remove(#)".}
   proc inHost(ev: Event): bool {.importjs: "(e => e.target instanceof Node && document.getElementById('board').contains(e.target))(#)".}
@@ -1328,7 +1328,7 @@ nbJsFromCode:
     if keep:
       jiggling = false
       startJiggle()
-  # a double tap on a letter below starts the wiggling, another double tap ends it
+  # holding a letter below starts the wiggling, a double tap on a letter ends it
   var stackTap = -1
   var stackTapAt = 0.0
   var downStack = -1
@@ -1345,7 +1345,13 @@ nbJsFromCode:
     let li = stackUnder(localOf(ev))
     pressAt = clientXY(ev)
     downStack = li
-    if not jiggling: return
+    if not jiggling:
+      if li >= 0:
+        pressTimer = setTimer(proc () =
+          pressTimer = 0
+          pressStarted = true
+          startJiggle(), 450)
+      return
     stopIt(ev)
     ev.preventDefault()
     capture2(host, ev)
@@ -1353,17 +1359,25 @@ nbJsFromCode:
     jigDown = clientXY(ev)
     jigMoved = false, true)
   document.addEventListener("pointermove", proc (ev: Event) =
+    if pressTimer != 0 and norm(clientXY(ev) - pressAt) > 8:
+      clearTimer(pressTimer)
+      pressTimer = 0
     if not jiggling or jigHeld < 0: return
     if norm(clientXY(ev) - jigDown) > 6: jigMoved = true
     if jigMoved: drawJig(localOf(ev)), true)
   document.addEventListener("pointerup", proc (ev: Event) =
     let li = downStack
     downStack = -1
-    let tap = norm(clientXY(ev) - pressAt) <= 8
-    if not jiggling:
-      if tap and doubleTap(li): startJiggle()
-      return
+    if pressTimer != 0:
+      clearTimer(pressTimer)
+      pressTimer = 0
+    if not jiggling: return
     stopIt(ev)
+    if pressStarted:               # the release of the press that started the wiggling
+      pressStarted = false
+      jigHeld = -1
+      drawJig()
+      return
     let held = jigHeld
     jigHeld = -1
     if not jigMoved:
@@ -1376,6 +1390,18 @@ nbJsFromCode:
       buzz2()
       swapLetters(held, t)
     else: drawJig(), true)
+
+  document.addEventListener("pointercancel", proc (ev: Event) =
+    pressStarted = false
+    if jiggling:
+      jigHeld = -1
+      drawJig(), true)
+  # no text selection, callout or context menu on the game: presses are for the tiles
+  proc noMenus(e: Element) {.importjs: """((e) => { e.addEventListener('contextmenu', ev => ev.preventDefault()); e.addEventListener('selectstart', ev => { if (!(ev.target instanceof HTMLInputElement)) ev.preventDefault() }) })(#)""".}
+  proc noTouchDefaults(e: Element) {.importjs: """((e) => e.addEventListener('touchstart', ev => { if (ev.cancelable) ev.preventDefault() }, { passive: false }))(#)""".}
+  noMenus(document.getElementById("bld"))
+  noTouchDefaults(host)
+  noTouchDefaults(cluesEl)
 
   # ---- tap a word: its outline on the board wiggles
   cluesEl.addEventListener("click", proc (ev: Event) =
