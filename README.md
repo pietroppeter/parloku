@@ -27,7 +27,11 @@ or with `?skin=tullet`. The Nim view only names classes, so a skin can change pa
 The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in Nim and compiled to JavaScript.
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
+Specs: [how Parloku behaves](specs/), written down with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in
+`openspec/`. The gameplay scenarios run against the game's code and play as small animations.
+
 Devlog:
+- [Specs that play](devlog/openspec/): adopting OpenSpec, and drag scenarios that are animations and tests at once.
 - [A daily hello and a first lesson](devlog/splash/): the daily splash screen and the animated lesson for first-time players.
 - [Back to basics](devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
 - [Ten skins for a letter game](devlog/pastel-skins/): how the skins were chosen and checked.
@@ -41,6 +45,12 @@ Devlog:
 - `src/style.nim`: the page CSS (ten skins plus the original maiolica), inlined in place of nimib's default theme.
 - `src/devlog_pastel_skins.nim` → `devlog/pastel-skins/index.html`: devlog post on how the skins were picked, built and
   audited (contrast and colour distance computed at build time). Build `src/parloku.nim` first, the post embeds its game.
+- `openspec/`: the specs (`specs/`) and the open changes (`changes/`); `openspec/config.yaml` has the project's rules.
+  `AGENTS.md` has the working rules.
+- `tools/specdrag.nim`: runs the ```` ```drag ```` scenarios of the specs against the game's code
+  (`nim r tools/specdrag.nim`); `tools/specview.nim` draws specs and changes for the pages below.
+- `src/specs_page.nim` → `specs/index.html`: the living spec page. `src/devlog_openspec.nim` →
+  `devlog/openspec/index.html`: the post on adopting OpenSpec.
 - `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
   At build time the solver checks each puzzle has a unique solution that matches its key.
 - `src/deps.sh`, `src/config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/`.
@@ -55,6 +65,9 @@ nim c -r -d:release src/parloku.nim   # writes index.html
 nim c -r -d:release src/devlog_pastel_skins.nim   # writes devlog/pastel-skins/index.html
 nim c -r -d:release src/devlog_basics.nim         # writes devlog/basics/index.html (picture: src/devlog_basics/before.js)
 nim c -r -d:release src/devlog_splash.nim         # writes devlog/splash/index.html
+nim r tools/specdrag.nim                          # runs the drag scenarios in openspec/
+nim c -r -d:release src/specs_page.nim            # writes specs/index.html (runs the scenarios too)
+nim c -r -d:release src/devlog_openspec.nim       # writes devlog/openspec/index.html
 ```
 
 ## Links to a puzzle
