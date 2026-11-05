@@ -3,7 +3,7 @@
 ## then who inspired it, what was borrowed, links, and a small gallery. All drawing happens here at build time:
 ## the page is plain HTML and SVG with no script. Colours are checked while the page builds.
 ## Build: sh src/deps.sh && nim c -r -d:release src/devlog_styles.nim   (writes devlog/styles/index.html)
-import std/[json, os, strutils, strformat, math, sequtils, uri, hashes]
+import std/[json, os, strutils, strformat, math, sequtils, uri, hashes, tables]
 import std/xmltree as xt
 import nimib
 import devlog_styles/artists
@@ -405,21 +405,28 @@ proc pageCss(): string =
 [hidden]{display:none!important}
 :root{--page:#fbfaf7;--text:#2a2a2a;--soft:#6b665c;--rule:#e6e1d6;
   padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
-html{background:var(--page)}
+html{background:var(--page);overflow-x:clip}
 body{margin:0 auto;max-width:720px;padding:0 0 60px;color:var(--text);font:17px/1.6 Nunito,system-ui,sans-serif;background:var(--page)}
 header,footer .nb-box{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font:13px "JetBrains Mono",monospace;color:var(--soft);padding:12px 16px}
 header a,footer a{color:var(--soft)}
-main>*:not(.st){margin-left:16px;margin-right:16px}
+main>*:not(.st):not(.strip):not(.cols){margin-left:16px;margin-right:16px}
 h1,h2,h3{font-family:"Space Grotesk",system-ui,sans-serif;line-height:1.1;letter-spacing:-.01em}
 h1{font-size:clamp(38px,9vw,60px);margin:14px 0 6px}
 .kicker{font:700 12px "JetBrains Mono",monospace;letter-spacing:.12em;color:var(--soft);margin:20px 0 0}
 .lede{font-size:19px;color:var(--soft)}
 a{color:#2c5aa0;text-underline-offset:3px}
 code{font:13.5px "JetBrains Mono",monospace;background:#f0ede5;padding:1px 5px;border-radius:4px}
-.toc{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 6px;padding:0;list-style:none}
-.toc a{display:inline-block;font:700 13px Nunito,sans-serif;text-decoration:none;color:var(--text);background:#fff;border:1.5px solid var(--rule);border-radius:999px;padding:3px 10px}
-/* one style */
-.st{background:var(--bg);color:var(--ink);padding:26px 16px 30px;margin:34px 0 0;border-top:1px solid var(--rule)}
+.strip{position:sticky;top:0;z-index:5;display:flex;gap:5px;overflow-x:auto;padding:8px 12px;background:color-mix(in srgb,var(--page) 92%,transparent);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-bottom:1px solid var(--rule);scrollbar-width:none;width:100vw;margin-left:calc(50% - 50vw)}
+.strip::-webkit-scrollbar{display:none}
+.strip a{flex:none;display:flex;align-items:center;gap:5px;font:700 12px/1 Nunito,sans-serif;text-decoration:none;color:var(--text);
+  background:#fff;border:1.5px solid var(--rule);border-radius:999px;padding:4px 9px 4px 5px;white-space:nowrap}
+.strip a i{width:14px;height:14px;border-radius:50%;background:conic-gradient(var(--d0) 0 33%,var(--d1) 0 66%,var(--d2) 0)}
+.strip a.on{background:var(--c);border-color:var(--c);color:#fff}
+.cols{display:flex;align-items:flex-start;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;
+  width:100vw;margin-left:calc(50% - 50vw);scrollbar-width:thin}
+.cols>.st{flex:0 0 min(100vw,440px);scroll-snap-align:start;min-height:100vh}
+.st{background:var(--bg);color:var(--ink);padding:22px 16px 30px;margin:0;border-right:1px solid var(--rule)}
 .st h2{margin:0 0 2px;font-size:30px;color:var(--ink)}
 .st h2 .n{display:block;font:600 12px "JetBrains Mono",monospace;letter-spacing:.12em;color:var(--muted);margin-bottom:6px}
 .st .sub{margin:0 0 14px;color:var(--muted);font-size:15px}
@@ -474,11 +481,89 @@ nb.backend.partials["header"] = pageHeader
 nbRawHtml: """
 <p class="kicker">DEVLOG · STYLES</p>
 <h1>Twenty styles for Parloku</h1>
-<p class="lede">Twenty artists and designers, none of them from the first round of skins. Each gets a play area in the new
-layout, then a note on who they are and what I borrowed, with links and a small gallery. Just scroll.</p>
+<p class="lede">Twenty artists and designers, none of them from the first round of skins. Swipe left and right to change
+artist, or tap a name on the strip. Scroll down to read who they are, what I borrowed, and to see their work.</p>
 """
 
+const shortNames = {"mari": "Mari", "kusama": "Kusama", "dufy": "Dufy", "albers": "Albers", "morandi": "Morandi",
+  "anno": "Anno", "niki": "Saint Phalle", "burlemarx": "Burle Marx", "depero": "Depero", "tanaka": "Tanaka",
+  "gree": "Grée", "mahlangu": "Mahlangu", "luzzati": "Luzzati", "afklint": "af Klint", "corita": "Corita",
+  "memphis": "Memphis", "barragan": "Barragán", "buscher": "Buscher", "martin": "Martin", "shyam": "Shyam"}.toTable
+
+var problems: seq[string]
+var strip = """<nav class="strip" aria-label="artists">"""
+var cols = """<div class="cols" id="cols">"""
+for i, st in styles:
+  let a = audit(st)
+  if a.ink < 4.5: problems.add &"{st.id}: letter contrast {a.ink:.2f}"
+  if a.wordsOnCard < 4.5: problems.add &"{st.id}: word colour contrast on card {a.wordsOnCard:.2f}"
+  if a.words < 25: problems.add &"{st.id}: word colours too close (ΔE {a.words:.1f})"
+  if a.tiles < 10: problems.add &"{st.id}: tiles too close (ΔE {a.tiles:.1f})"
+  var links = """<ul class="links">"""
+  for l in st.links: links &= &"""<li><a href="{l.url}" target="_blank" rel="noopener">{l.label} ↗</a></li>"""
+  links &= "</ul>"
+  strip &= &"""<a href="#{st.id}" data-id="{st.id}" style="--c:{st.w[0]};--d0:{st.g[0]};--d1:{st.g[2]};--d2:{st.g[4]}"><i></i>{shortNames[st.id]}</a>"""
+  cols &= &"""
+<section class="st" id="{st.id}" data-skin="{st.id}">
+<h2><span class="n">{i + 1:02} / 20 · {st.flag} {st.place}</span>{st.name}</h2>
+<p class="sub">{st.role} · {st.life}</p>
+<div class="play">{cluesHtml(st)}{playSvg(st)}</div>
+<p class="checks">letters {a.ink:.1f}:1 · tiles ΔE ≥ {int(a.tiles)} · words ΔE ≥ {int(a.words)}, {a.wordsOnCard:.1f}:1 · {st.font}</p>
+<div class="insp">
+<h3>Who</h3><p>{st.who}</p>
+<p class="took"><b>What I took.</b> {st.took}</p>
+<p><b>Why for Parloku.</b> {st.why}</p>
+{links}
+{galleryHtml(st)}
+<details class="css"><summary>this style as game CSS</summary><pre>{skinCss(st)}</pre></details>
+</div></section>"""
+
+const syncScript = """<script>
+(() => {
+  const cols = document.getElementById('cols'), strip = document.querySelector('.strip');
+  const chips = [...strip.querySelectorAll('a')], secs = [...cols.querySelectorAll('.st')];
+  let current = null;
+  function mark(id) {
+    if (id === current) return;
+    current = id;
+    for (const c of chips) {
+      const on = c.dataset.id === id;
+      c.classList.toggle('on', on);
+      if (on) strip.scrollTo({left: c.offsetLeft - (strip.clientWidth - c.offsetWidth) / 2, behavior: 'smooth'});
+    }
+    try { history.replaceState(null, '', '#' + id); } catch (e) {}
+  }
+  function show(id, smooth) {
+    const s = document.getElementById(id);
+    if (!s) return;
+    cols.scrollTo({left: s.offsetLeft - cols.offsetLeft, behavior: smooth ? 'smooth' : 'auto'});
+    const top = cols.getBoundingClientRect().top + scrollY - strip.offsetHeight;
+    if (scrollY > top) scrollTo({top, behavior: smooth ? 'smooth' : 'auto'});
+    mark(id);
+  }
+  chips.forEach(c => c.addEventListener('click', e => { e.preventDefault(); show(c.dataset.id, true); }));
+  let t = 0;
+  cols.addEventListener('scroll', () => {
+    cancelAnimationFrame(t);
+    t = requestAnimationFrame(() => {
+      const x = cols.scrollLeft + cols.clientWidth / 2;
+      const s = secs.find(s => s.offsetLeft - cols.offsetLeft <= x && x < s.offsetLeft - cols.offsetLeft + s.offsetWidth);
+      if (s) mark(s.id);
+    });
+  }, {passive: true});
+  const start = location.hash.slice(1);
+  if (start && document.getElementById(start)) show(start, false); else mark(secs[0].id);
+})();
+</script>"""
+
+nbRawHtml: "</main>" & strip & "</nav>" & cols & "</div>" & syncScript & "<main>"
+
+if problems.len > 0:
+  echo "colour checks:\n  " & problems.join("\n  ")
+
 nbText: """
+## About this page
+
 Every play area shows the same moment of puzzle 1 (ITALIA · PASTA · ALPI). ITALIA is spelled, PASTA is half done, and
 ALPI has not started, so its start cell has only the ring. Each area has the parts of the new layout and nothing else:
 
@@ -503,41 +588,7 @@ linked from there, not copied here. The credit under each one names the author a
 for many of these works, since most are still under copyright, and claude.ai pages block remote images altogether. Wherever
 a picture is missing, the card shows a small abstract sketch in the style's own palette instead. Tap any card to open an
 image search for the real work, or "about" for its page.
-"""
 
-var toc = """<ul class="toc">"""
-for i, st in styles: toc &= &"""<li><a href="#{st.id}">{i + 1:02} {st.name.replace(" and Memphis", "")}</a></li>"""
-nbRawHtml: toc & "</ul>"
-
-var problems: seq[string]
-for i, st in styles:
-  let a = audit(st)
-  if a.ink < 4.5: problems.add &"{st.id}: letter contrast {a.ink:.2f}"
-  if a.wordsOnCard < 4.5: problems.add &"{st.id}: word colour contrast on card {a.wordsOnCard:.2f}"
-  if a.words < 25: problems.add &"{st.id}: word colours too close (ΔE {a.words:.1f})"
-  if a.tiles < 10: problems.add &"{st.id}: tiles too close (ΔE {a.tiles:.1f})"
-  var links = """<ul class="links">"""
-  for l in st.links: links &= &"""<li><a href="{l.url}" target="_blank" rel="noopener">{l.label} ↗</a></li>"""
-  links &= "</ul>"
-  nbRawHtml: &"""
-</main><section class="st" id="{st.id}" data-skin="{st.id}">
-<h2><span class="n">{i + 1:02} / 20 · {st.flag} {st.place}</span>{st.name}</h2>
-<p class="sub">{st.role} · {st.life}</p>
-<div class="play">{cluesHtml(st)}{playSvg(st)}</div>
-<p class="checks">letters {a.ink:.1f}:1 · tiles ΔE ≥ {int(a.tiles)} · words ΔE ≥ {int(a.words)}, {a.wordsOnCard:.1f}:1 · {st.font}</p>
-<div class="insp">
-<h3>Who</h3><p>{st.who}</p>
-<p class="took"><b>What I took.</b> {st.took}</p>
-<p><b>Why for Parloku.</b> {st.why}</p>
-{links}
-{galleryHtml(st)}
-<details class="css"><summary>this style as game CSS</summary><pre>{skinCss(st)}</pre></details>
-</div></section><main>"""
-
-if problems.len > 0:
-  echo "colour checks:\n  " & problems.join("\n  ")
-
-nbText: """
 ## Where next
 
 The variables are the ones the game is moving to (`--g0`…`--g5` for the letters, `--w0`…`--w2` for the words, plus the
