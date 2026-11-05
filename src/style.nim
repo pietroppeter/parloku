@@ -37,7 +37,7 @@ const pageStyle* = """
   --bg:#fff8ef; --card:#ffffff; --ink:#1e1e1e; --muted:#5b5348; --line:#f0e2cf; --soft:#fff1e0; --accent:#ffe066; --accent-ink:#1e1e1e;
   --g0:#ffb3c6; --g1:#ffe066; --g2:#8fd2ff; --g3:#b5f0a0; --g4:#ffb98a; --g5:#d9b5ff;
   --i0:#1e1e1e; --i1:#1e1e1e; --i2:#1e1e1e; --i3:#1e1e1e; --i4:#1e1e1e; --i5:#1e1e1e;
-  --w0:#1b3f9e; --w1:#c01c3a; --w2:#0a7552;
+  --w0:#c01c3a; --w1:#0a7552; --w2:#1b3f9e;   /* red, green, blue: in RGB order */
   --frame:transparent; --ca:#ffffff; --cb:#fff1e0; --boxline:#1e1e1e; --tstroke:#1e1e1e; --tsw:2.5px;
   --font-head:"Baloo 2",system-ui,sans-serif; --font-body:"Baloo 2",Nunito,system-ui,sans-serif;
   --font-glyph:"Baloo 2",system-ui,sans-serif; --glyph-weight:800; --coach:#1e1e1e; --hl:#fff3b0;
