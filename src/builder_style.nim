@@ -31,7 +31,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .pm{font:700 15px "JetBrains Mono",monospace;fill:color-mix(in srgb,var(--ink) 50%,transparent);pointer-events:none}
 .dragging .pm{opacity:.5}
 .pm.on{font-weight:800;font-size:17px}
-.pm.on.w0{fill:var(--w0)} .pm.on.w1{fill:var(--w1)} .pm.on.w2{fill:var(--w2)}
+.pm.on.w0{fill:var(--w0)} .pm.on.w1{fill:var(--w1)} .pm.on.w2{fill:var(--w2)} .pm.on.sk{fill:var(--ink)}
 .status .acts{align-items:center}
 .nou{font:600 13px var(--font-body);color:var(--muted);margin-left:8px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .tool.dice{width:38px;height:38px;font-size:18px;margin-left:6px}

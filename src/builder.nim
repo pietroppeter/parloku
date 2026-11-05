@@ -408,6 +408,7 @@ nbJsFromCode:
           if l in marks[c]:
             var cls = "pm"
             if solWord[c] >= 0 and solGrid[c] == l: cls = &"pm on w{solWord[c] mod 3}"
+            elif solGrid[c] == l: cls = "pm on sk"     # the rest of the solution, in black
             let s = slotOf[k]
             result.add &"""<text class="{cls}" x="{p.x - 22 + float(s mod 3) * 22:.0f}" y="{p.y - 6 + float(s div 3) * 24:.0f}" text-anchor="middle">{l}</text>"""
     for i in 1 .. 2:
