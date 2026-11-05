@@ -118,11 +118,10 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .badline{fill:none;stroke:var(--bad-line);stroke-width:3}
 /* no red while a tile is held: only once it is let go */
 /* two letters in conflict tremble, gently at first and more over a few seconds (no red); not while a tile is held */
-@property --amp{syntax:'<number>';inherits:true;initial-value:0}
-.shake{transform-box:fill-box;transform-origin:50% 50%;animation:amp 3s ease-in forwards,shake .3s ease-in-out infinite}
-@keyframes amp{from{--amp:.12}to{--amp:1}}
-@keyframes shake{0%,100%{transform:none}25%{transform:translateX(calc(var(--amp) * -2px)) rotate(calc(var(--amp) * -6deg))}
-  75%{transform:translateX(calc(var(--amp) * 2px)) rotate(calc(var(--amp) * 6deg))}}
+/* (amplitudes written out: Safari does not re-read var() inside keyframes) */
+.shake{transform-box:fill-box;transform-origin:50% 50%;animation:grow 3s linear,shake .3s linear 3s infinite}
+@keyframes grow{0.0%{transform:none}2.5%{transform:translateX(-1.67px) rotate(-2.96deg)}7.5%{transform:translateX(1.67px) rotate(2.96deg)}10.0%{transform:none}12.5%{transform:translateX(-1.98px) rotate(-3.52deg)}17.5%{transform:translateX(1.98px) rotate(3.52deg)}20.0%{transform:none}22.5%{transform:translateX(-2.29px) rotate(-4.08deg)}27.5%{transform:translateX(2.29px) rotate(4.08deg)}30.0%{transform:none}32.5%{transform:translateX(-2.61px) rotate(-4.64deg)}37.5%{transform:translateX(2.61px) rotate(4.64deg)}40.0%{transform:none}42.5%{transform:translateX(-2.92px) rotate(-5.20deg)}47.5%{transform:translateX(2.92px) rotate(5.20deg)}50.0%{transform:none}52.5%{transform:translateX(-3.24px) rotate(-5.76deg)}57.5%{transform:translateX(3.24px) rotate(5.76deg)}60.0%{transform:none}62.5%{transform:translateX(-3.55px) rotate(-6.32deg)}67.5%{transform:translateX(3.55px) rotate(6.32deg)}70.0%{transform:none}72.5%{transform:translateX(-3.87px) rotate(-6.88deg)}77.5%{transform:translateX(3.87px) rotate(6.88deg)}80.0%{transform:none}82.5%{transform:translateX(-4.18px) rotate(-7.44deg)}87.5%{transform:translateX(4.18px) rotate(7.44deg)}90.0%{transform:none}92.5%{transform:translateX(-4.50px) rotate(-8.00deg)}97.5%{transform:translateX(4.50px) rotate(8.00deg)}100%{transform:none}}
+@keyframes shake{0%,100%{transform:none}25%{transform:translateX(-4.5px) rotate(-8deg)}75%{transform:translateX(4.5px) rotate(8deg)}}
 .dragging .shake{animation:none}
 .dragging .cell.bad.ca{fill:var(--ca)} .dragging .cell.bad.cb{fill:var(--cb)} .dragging .cell.bad.tint{fill:var(--hl)} .dragging .badline{display:none}
 @media (prefers-reduced-motion: reduce){.shake{animation:none} .shake .tile rect,.shake .tile circle,.shake .tile path{stroke:var(--bad-line)}}
