@@ -1189,7 +1189,7 @@ nbJsFromCode:
   stage.svg.addEventListener("pointerup", snakeUp)
   stage.svg.addEventListener("pointercancel", snakeUp)
 
-  # ---- a double tap on a tile on the board sends it back to its letter below; on an empty cell with only one possible letter (a start ring, or the last gap of a row, column or box), it fills that letter in
+  # ---- a double tap on a tile on the board sends it (and the rest of its snake) back to its letter below; on an empty cell with only one possible letter (a start ring, or the last gap of a row, column or box), it fills that letter in
   var tapKey = ""
   var tapAt = 0.0
   var downAt = vec(0, 0)
@@ -1250,11 +1250,25 @@ nbJsFromCode:
       return
     let id = parseInt(($k)[1 .. ^1])
     let at = stage.state.cells.find(id)
-    if at < 0 or isGiven(at): return
+    if at < 0: return
+    # the whole snake goes: every word whose outline passes through this letter sends all its letters
+    # back below (givens stay where they are)
+    var gone: seq[int]
+    let g = stage.state.grid
+    for clue in puz.clues:
+      let path = g.trace(clue)
+      if path.len >= 2 and at in path:
+        for c in path:
+          if c notin gone: gone.add c
+    if gone.len == 0: gone.add at
+    if gone.allIt(isGiven(it)): return
     let t = now()
     if tapKey == $k and t - tapAt < 400:
       tapKey = ""
-      stage.setState(stage.state.home(id))
+      var b = stage.state
+      for c in gone:
+        if not isGiven(c) and b.cells[c] >= 0: b = b.home(b.cells[c])
+      stage.setState(b)
     else:
       tapKey = $k
       tapAt = t)
