@@ -1082,9 +1082,9 @@ nbJsFromCode:
   let playEl = document.getElementById("play")
   if not playEl.isNil:
     setMode("focus")
-    # one menu bar, at the top only: tutorial, puzzles and styles, scrolled sideways
+    # one menu bar, at the top only: the puzzles and restart
     let bar = document.querySelector(".picker")
-    bar.appendChild(document.getElementById("skins"))
+    bar.appendChild(document.getElementById("reset"))
     for ev in ["pointerdown", "scroll"]:
       bar.addEventListener(cstring(ev), proc (e: Event) = armHide())
     document.addEventListener("click", proc (ev: Event) =
@@ -1274,24 +1274,6 @@ nbJsFromCode:
     for c in 0 ..< 36:
       if solution[c] != '.' and g[c] != solution[c]: wrong.add c
     if wrong.len > 0: placeCorrect(wrong[int(rnd() * wrong.len.float) mod wrong.len]))
-
-  cluesEl.addEventListener("pointerover", proc (ev: Event) =
-    let i = hoverIndex(ev)
-    let f = if i.isNil: -1 else: parseInt($i)
-    if f != focusClue:
-      focusClue = f
-      stage.top.innerHTML = cstring(overlay(stage.state)))
-  var pinnedClue = -1                  # a tapped clue stays highlighted: phones have no hover
-  cluesEl.addEventListener("pointerleave", proc (ev: Event) =
-    focusClue = pinnedClue
-    stage.top.innerHTML = cstring(overlay(stage.state)))
-  cluesEl.addEventListener("click", proc (ev: Event) =
-    let i = hoverIndex(ev)
-    let f = if i.isNil: -1 else: parseInt($i)
-    pinnedClue = if f == pinnedClue: -1 else: f
-    focusClue = pinnedClue
-    showClues()
-    stage.top.innerHTML = cstring(overlay(stage.state)))
 
   # ---- the 🎓 tutorial: a coach above the board that asks the logical path for the next move after every drop
 

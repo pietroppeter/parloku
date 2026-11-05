@@ -98,7 +98,6 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
 .clues{display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:center;margin:6px 0 12px;min-height:46px}
 .clue{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 6px;border-radius:var(--radius);background:var(--card);
   border:var(--border) solid var(--line);box-shadow:var(--btn-shadow);cursor:default;transition:transform .2s}
-.clue:hover,.clue.focus{transform:translateY(-2px)}
 .clue .n{width:26px;height:26px;border-radius:50%;color:#fff;font:700 14px "JetBrains Mono",monospace;display:grid;place-items:center}
 .clue .l{width:26px;height:30px;border-radius:7px;display:grid;place-items:center;font:var(--glyph-weight) 18px var(--font-glyph);
   border:1.5px dashed var(--line);color:var(--muted);transition:background .25s,color .25s}
@@ -153,7 +152,6 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .btn.num{min-width:36px;padding:6px 0;text-align:center}
 .btn:disabled{opacity:.4;cursor:default;box-shadow:none}
 .btn:disabled:active{transform:none}
-.clue{cursor:pointer}
 /* words: three dark colours, apart from the six pastel letters; one word per line, left, centre, right */
 :root{--w0:#1f5aa6;--w1:#b34700;--w2:#a3195b}
 .clues{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:8px}
@@ -188,8 +186,7 @@ body.chrome .picker{top:0;padding-top:max(10px,env(safe-area-inset-top))}
 body.chrome .picker{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0}
 body.chrome .picker::-webkit-scrollbar{display:none}
 body.chrome .picker>*{flex:none}
-body.chrome .picker .langs,body.chrome .status,body.chrome .tut .tx{display:none}
-body.chrome .picker .skins{display:flex;overflow:visible;margin:0;padding:0}
+body.chrome .picker .langs,body.chrome .status,body.chrome .picker .tut,body.chrome .play>.skins{display:none}
 body.chrome .status{bottom:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
 @media (prefers-reduced-motion: reduce){.ripple{animation:none;opacity:0}}
 .machinery-slot{margin:10px 0}
