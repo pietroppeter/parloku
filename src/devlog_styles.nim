@@ -189,9 +189,23 @@ proc playSvg(st: Style): string =
       let (x, y) = cellCentre(path[i][0], path[i][1])
       d &= (if i == 0: "M" else: "L") & f1(x) & " " & f1(y)
     if spelled[k] == 1: d &= "h.01"
+    # round joins only round the outer corners; each inner (concave) corner gets a fillet, in white for the
+    # outer edge of the band and in black for its inner edge (same construction as the game's overlay)
+    proc fillets(w, r: float, colour: string): string =
+      for i in 1 ..< spelled[k] - 1:
+        let (c, p, n) = (cellCentre(path[i][0], path[i][1]), cellCentre(path[i-1][0], path[i-1][1]), cellCentre(path[i+1][0], path[i+1][1]))
+        let a = ((c[0] - p[0]) / cs, (c[1] - p[1]) / cs)
+        let b = ((n[0] - c[0]) / cs, (n[1] - c[1]) / cs)
+        if abs(a[0] - b[0]) + abs(a[1] - b[1]) < 0.01: continue   # straight on
+        let kx = c[0] + w * (b[0] - a[0])
+        let ky = c[1] + w * (b[1] - a[1])
+        result &= &"""<path d="M{f1(kx)} {f1(ky)}L{f1(kx - a[0] * r)} {f1(ky - a[1] * r)}Q{f1(kx)} {f1(ky)} {f1(kx + b[0] * r)} {f1(ky + b[1] * r)}Z" fill="{colour}"/>"""
+    let (outer, band) = (cs * 0.47, 3.0)
     s &= &"""<mask id="wl-{st.id}-{k}" maskUnits="userSpaceOnUse" x="0" y="0" width="{f1(svgW)}" height="{f1(svgH)}">""" &
-      &"""<path d="{d}" fill="none" stroke="#fff" stroke-width="{f1(cs * 0.94)}" stroke-linecap="round" stroke-linejoin="round"/>""" &
-      &"""<path d="{d}" fill="none" stroke="#000" stroke-width="{f1(cs * 0.94 - 6)}" stroke-linecap="round" stroke-linejoin="round"/></mask>"""
+      &"""<path d="{d}" fill="none" stroke="#fff" stroke-width="{f1(2 * outer)}" stroke-linecap="round" stroke-linejoin="round"/>""" &
+      fillets(outer, 16, "#fff") &
+      &"""<path d="{d}" fill="none" stroke="#000" stroke-width="{f1(2 * (outer - band))}" stroke-linecap="round" stroke-linejoin="round"/>""" &
+      fillets(outer - band, 16 + band, "#000") & "</mask>"
   s &= "</defs>"
   # board
   s &= &"""<rect x="{f1(x0 - 4)}" y="{f1(y0 - 4)}" width="{f1(boardW + 8)}" height="{f1(boardW + 8)}" rx="12" fill="{st.card}"/>"""
