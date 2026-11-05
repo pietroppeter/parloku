@@ -548,9 +548,28 @@ nbCodeAnd(nbJsFromCode):
   proc cellPos(c: int): Vec = vec(bx + float(c mod 6) * cell + cell / 2, by + float(c div 6) * cell + cell / 2)
   proc stackPos(li: int): Vec = vec(50 + li.float * 100, 566)
 
+  proc blobPath(s: float, seed: int, amp: float): string =
+    ## a soft closed blob around the origin: 8 points with varied radii, joined by Catmull-Rom curves
+    var pts: seq[Vec]
+    for k in 0 ..< 8:
+      let a = k.float * PI / 4 + 0.3 * sin(seed.float)
+      var side = -0.6
+      if k mod 2 == 0: side = 1.0
+      let rr = s * (1 + amp * sin(seed.float * 1.7 + k.float * 2.3) * side)
+      pts.add vec(rr * cos(a), rr * sin(a))
+    result = &"M{pts[0].x:.1f} {pts[0].y:.1f}"
+    for k in 0 ..< 8:
+      let (p0, p1, p2, p3) = (pts[(k + 7) mod 8], pts[k], pts[(k + 1) mod 8], pts[(k + 2) mod 8])
+      let c1 = vec(p1.x + (p2.x - p0.x) / 6, p1.y + (p2.y - p0.y) / 6)
+      let c2 = vec(p2.x - (p3.x - p1.x) / 6, p2.y - (p3.y - p1.y) / 6)
+      result.add &"C{c1.x:.1f} {c1.y:.1f} {c2.x:.1f} {c2.y:.1f} {p2.x:.1f} {p2.y:.1f}"
+    result.add "Z"
+
   proc shapes(li: int, cls = "tile"): string =
+    ## every shape a skin may pick: square, rounded, round, and a blob of its own for each letter
     &"""<g class="{cls} s{li mod 2} g{li}"><rect class="sq" x="-31" y="-31" width="62" height="62" rx="3"/>""" &
       """<rect class="rd" x="-31" y="-31" width="62" height="62" rx="12"/><circle class="ci" r="32"/>""" &
+      &"""<path class="bl" d="{blobPath(31.5, li * 7 + 3, 0.09)}"/>""" &
       """<circle class="ring" r="21"/></g>"""
 
   proc tileSvg(li: int, given: bool): string =
@@ -1343,7 +1362,7 @@ nbJsFromCode:
     for b in skinsEl.querySelectorAll("button"):
       if $b.attr("data-skin") == name: b.classList.add("on")
       else: b.classList.remove("on")
-  var skin = "munari"
+  var skin = "niki"
   let savedSkin = lsGet("parloku:skin")
   if not savedSkin.isNil and ($savedSkin).len > 0: skin = $savedSkin
   let si = fromUrl.find("skin=")

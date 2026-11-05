@@ -280,6 +280,7 @@ let notes = {
 
 var notesHtml = ""
 for (id, label, flag) in skinList:
+  if id notin notes: continue           # skins added after this post
   let (who, where, bio, took, verdict) = notes[id]
   let a = audits[id]
   notesHtml.add &"""<article data-about="{id}" hidden><p class="kicker">{flag} {where}</p><h3>{who}</h3><p>{bio}</p>""" &

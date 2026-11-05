@@ -1,16 +1,16 @@
 ## Page CSS. Every colour, font and tile shape comes from CSS variables and classes, so a *skin*
 ## (`[data-skin=...]`) restyles the page, the board and the tiles without touching the Nim code.
-## Eleven skins: ten pastel ones after artists and illustrators, plus the original maiolica.
+## Twelve skins: Niki de Saint Phalle (the default), ten pastel ones after artists and illustrators, and the original maiolica.
 ## Inlined in place of nimib's default theme (only Google Fonts is external).
 
 const fonts = "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700" &
   "&family=Karla:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Nunito:wght@400;700;800" &
   "&family=Fredoka:wght@500;600;700&family=Patrick+Hand&family=Zen+Maru+Gothic:wght@500;700" &
-  "&family=Josefin+Sans:wght@400;600;700&family=DM+Serif+Display&family=Space+Grotesk:wght@400;500;700&display=swap"
+  "&family=Josefin+Sans:wght@400;600;700&family=DM+Serif+Display&family=Space+Grotesk:wght@400;500;700&family=Baloo+2:wght@600;800&display=swap"
 
 const skinList* = [
   # (id, label, origin) — the switcher shows them in this order
-  ("munari", "Munari", "🇮🇹"), ("tullet", "Tullet", "🇫🇷"), ("lionni", "Lionni", "🇮🇹"),
+  ("niki", "Niki", "🇫🇷"), ("munari", "Munari", "🇮🇹"), ("tullet", "Tullet", "🇫🇷"), ("lionni", "Lionni", "🇮🇹"),
   ("miro", "Miró", "🇪🇸"), ("gomi", "Gomi", "🇯🇵"), ("wagashi", "Wagashi", "🇯🇵"),
   ("delaunay", "Delaunay", "🇫🇷"), ("bruna", "Bruna", "🇳🇱"), ("matisse", "Matisse", "🇫🇷"),
   ("isola", "Isola", "🇫🇮"), ("maiolica", "Maiolica", "🏺")]
@@ -32,6 +32,18 @@ const pageStyle* = """
   --font-glyph:"Space Grotesk",system-ui,sans-serif; --glyph-weight:700; --shine:0;
   --radius:16px; --border:1.5px; --shadow:none; --btn-shadow:none; --coach:#2b2b2b; --coach-ink:#fbfaf6;
 }
+/* ---------- Niki de Saint Phalle (France): bright Nanas, soft blobs with a black outline ---------- */
+[data-skin=niki]{
+  --bg:#fff8ef; --card:#ffffff; --ink:#1e1e1e; --muted:#5b5348; --line:#f0e2cf; --soft:#fff1e0; --accent:#ffe066; --accent-ink:#1e1e1e;
+  --g0:#ffb3c6; --g1:#ffe066; --g2:#8fd2ff; --g3:#b5f0a0; --g4:#ffb98a; --g5:#d9b5ff;
+  --i0:#1e1e1e; --i1:#1e1e1e; --i2:#1e1e1e; --i3:#1e1e1e; --i4:#1e1e1e; --i5:#1e1e1e;
+  --w0:#1b3f9e; --w1:#c01c3a; --w2:#0a7552;
+  --frame:transparent; --ca:#ffffff; --cb:#fff1e0; --boxline:#1e1e1e; --tstroke:#1e1e1e; --tsw:2.5px;
+  --font-head:"Baloo 2",system-ui,sans-serif; --font-body:"Baloo 2",Nunito,system-ui,sans-serif;
+  --font-glyph:"Baloo 2",system-ui,sans-serif; --glyph-weight:800; --coach:#1e1e1e; --hl:#fff3b0;
+}
+[data-skin=niki] .tile .rd,[data-skin=niki] .layer .rd{display:none}
+[data-skin=niki] .tile .bl,[data-skin=niki] .layer .bl{display:inline}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 :root{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
@@ -105,8 +117,8 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 /* board and tiles, drawn by the Nim view; skins pick colours and shapes */
 .g0{fill:var(--g0)} .g1{fill:var(--g1)} .g2{fill:var(--g2)} .g3{fill:var(--g3)} .g4{fill:var(--g4)} .g5{fill:var(--g5)}
 .i0{fill:var(--i0)} .i1{fill:var(--i1)} .i2{fill:var(--i2)} .i3{fill:var(--i3)} .i4{fill:var(--i4)} .i5{fill:var(--i5)}
-.tile .sq,.tile .ci,.layer .sq,.layer .ci,.ring,.gv{display:none}
-.tile rect,.tile circle,.layer rect,.layer circle{stroke:var(--tstroke);stroke-width:var(--tsw)}
+.tile .sq,.tile .ci,.tile .bl,.layer .sq,.layer .ci,.layer .bl,.ring,.gv{display:none}
+.tile rect,.tile circle,.tile path,.layer rect,.layer circle,.layer path{stroke:var(--tstroke);stroke-width:var(--tsw)}
 .layer{filter:brightness(.88)}
 .tile .ring{fill:none;stroke:rgba(255,255,255,.6);stroke-width:5}
 .sh{fill:#fff;opacity:var(--shine)}
