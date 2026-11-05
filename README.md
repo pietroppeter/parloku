@@ -24,6 +24,7 @@ The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
 Devlog:
+- [A daily hello and a first lesson](devlog/splash/): the daily splash screen and the animated lesson for first-time players.
 - [Back to basics](devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
 - [Ten skins for a letter game](devlog/pastel-skins/): how the skins were chosen and checked.
 
@@ -31,6 +32,8 @@ Devlog:
 
 - `index.html`: the generated page (served by GitHub Pages from `main`, root). Don't edit it by hand.
 - `src/parloku.nim`: the notebook. Model, rules, solver and drag spec run natively at build time and in the browser.
+- `src/splash.nim`: the daily splash screen and the animated first lesson (game page only; `?splash=first`, `?learn`, `?nosplash`).
+- `src/devlog_splash.nim` → `devlog/splash/index.html`: devlog post on the splash and the lesson.
 - `src/style.nim`: the page CSS (ten skins plus the original maiolica), inlined in place of nimib's default theme.
 - `src/devlog_pastel_skins.nim` → `devlog/pastel-skins/index.html`: devlog post on how the skins were picked, built and
   audited (contrast and colour distance computed at build time). Build `src/parloku.nim` first, the post embeds its game.
@@ -47,6 +50,7 @@ sh src/deps.sh
 nim c -r -d:release src/parloku.nim   # writes index.html
 nim c -r -d:release src/devlog_pastel_skins.nim   # writes devlog/pastel-skins/index.html
 nim c -r -d:release src/devlog_basics.nim         # writes devlog/basics/index.html (picture: src/devlog_basics/before.js)
+nim c -r -d:release src/devlog_splash.nim         # writes devlog/splash/index.html
 ```
 
 ## Links to a puzzle

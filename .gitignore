@@ -4,4 +4,5 @@ src/parloku
 src/parloku.html
 src/devlog_pastel_skins
 src/*.out
+src/devlog_splash
 src/builder

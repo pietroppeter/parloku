@@ -150,6 +150,7 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .status .meta b{color:var(--ink)}
 .status .acts{display:flex;gap:8px;flex-wrap:wrap}
 .btn.num{min-width:36px;padding:6px 0;text-align:center}
+.picker .btn.num{min-width:0;padding:6px 14px;letter-spacing:.04em;font-weight:700}
 .btn:disabled{opacity:.4;cursor:default;box-shadow:none}
 .btn:disabled:active{transform:none}
 /* words: three dark colours, apart from the six pastel letters; one word per line, left, centre, right */
@@ -195,6 +196,7 @@ body.chrome .status{bottom:0;padding-bottom:max(10px,env(safe-area-inset-bottom)
 @media (pointer:coarse){
   .btn{min-height:44px;padding:8px 16px;font-size:14px}
   .btn.num{min-width:44px;padding:8px 0}
+  .picker .btn.num{min-width:0;padding:8px 14px}
   .langs .btn{min-height:40px;padding:6px 12px}
   .skins button{min-height:40px}
 }
