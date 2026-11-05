@@ -21,7 +21,7 @@ nbRawHtml: """
 <h1><span class="tile">P</span>arloku</h1>
 <p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste.">A mini sudoku spelled in letters, with words hidden in it.</p>
 <div class="game">
-  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓 tutorial">🎓 tutorial</button><span id="picker"></span>
+  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><span id="picker"></span>
 <div class="langs" id="langs"><button class="btn" data-lang="en">EN</button><button class="btn" data-lang="it">IT</button></div>
   </div>
   <div class="coach" id="coach" hidden>
@@ -1065,18 +1065,28 @@ nbJsFromCode:
     "!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')".}
   proc scrollTop() {.importjs: "window.scrollTo(0, 0)".}
   proc inPlay(ev: Event): bool {.importjs: "!!#.target.closest('.play')".}
+  proc setTimer(cb: proc (), ms: int): int {.importjs: "setTimeout(#, #)".}
+  proc clearTimer(t: int) {.importjs: "clearTimeout(#)".}
+  var hideTimer = 0
+  proc setMode(m: string)
+  proc armHide() =
+    ## the menu bar goes away by itself after a few idle seconds
+    clearTimer(hideTimer)
+    hideTimer = setTimer(proc () =
+      if document.body.classList.contains("chrome"): setMode("focus"), 4000)
   proc setMode(m: string) =
     for k in ["focus", "chrome", "explain"]:
       if k == m: document.body.classList.add(cstring(k))
       else: document.body.classList.remove(cstring(k))
+    if m == "chrome": armHide()
   let playEl = document.getElementById("play")
   if not playEl.isNil:
     setMode("focus")
-    let moreBtn = document.getElementById("more")
-    moreBtn.setHidden(false)
-    moreBtn.addEventListener("click", proc (ev: Event) =
-      setMode("explain")
-      document.querySelector(".rules").scrollIntoView())
+    # one menu bar, at the top only: tutorial, puzzles and styles, scrolled sideways
+    let bar = document.querySelector(".picker")
+    bar.appendChild(document.getElementById("skins"))
+    for ev in ["pointerdown", "scroll"]:
+      bar.addEventListener(cstring(ev), proc (e: Event) = armHide())
     document.addEventListener("click", proc (ev: Event) =
       if interactive(ev): return
       if document.body.classList.contains("focus"): setMode("chrome")

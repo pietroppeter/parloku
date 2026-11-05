@@ -184,6 +184,12 @@ body.chrome .play>.skins{display:none}
 body.chrome .picker,body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
   padding:10px 16px;background:color-mix(in srgb,var(--bg) 94%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
 body.chrome .picker{top:0;padding-top:max(10px,env(safe-area-inset-top))}
+/* the menu bar: one row, scrolled sideways; only tutorial, puzzles and styles */
+body.chrome .picker{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0}
+body.chrome .picker::-webkit-scrollbar{display:none}
+body.chrome .picker>*{flex:none}
+body.chrome .picker .langs,body.chrome .status,body.chrome .tut .tx{display:none}
+body.chrome .picker .skins{display:flex;overflow:visible;margin:0;padding:0}
 body.chrome .status{bottom:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
 @media (prefers-reduced-motion: reduce){.ripple{animation:none;opacity:0}}
 .machinery-slot{margin:10px 0}
