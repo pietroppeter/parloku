@@ -37,6 +37,7 @@ nbRawHtml: """
 <div class="panel" id="panel"></div>
 <details class="how"><summary>come funziona</summary>
 <p><b>Parole.</b> Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta.</p>
+<p><b>Lettere forzate.</b> Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.</p>
 <p><b>Togliere.</b> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
 <p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
 <p><b>Annotazioni.</b> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
@@ -658,9 +659,9 @@ nbJsFromCode:
 
   const playUrl = "https://pietroppeter.github.io/parloku/?p="
   const sets = [
-    "ITALIA PASTA ALPI", "AMICA GIOCO MAGIA", "IMPARA PRIMA MATITA", "PAROLE PERLE OPERA",
-    "LOGICA GIOCA CALCOLI", "ALBA LUNA NUBE", "CENA PANE PERA", "ESTATE MARE SERATA",
-    "CANE PESCE APE", "NERO ROSA ORO", "CANTO NOTE TONO", "PROVA TROVA PORTA"]
+    "IMPARA PRIMA MATITA", "PAROLE PERLE OPERA", "LOGICA GIOCA CALCOLI", "ALBA LUNA NUBE",
+    "CENA PANE PERA", "ESTATE MARE SERATA", "CANE PESCE APE", "NERO ROSA ORO",
+    "CANTO NOTE TONO", "PROVA TROVA PORTA", "ITALIA PASTA ALPI", "AMICA GIOCO MAGIA"]
 
   let host = document.getElementById("board")
   let cluesEl = document.getElementById("clues")
@@ -1162,6 +1163,45 @@ nbJsFromCode:
     if t >= 0: grow(w, t)
     else: clearOpts()
   host.addEventListener("pointerup", growUp)
+  # a double tap on an empty cell whose pencil marks leave one letter puts that letter there;
+  # if it is the next letter of a word ending next to it, the word takes it
+  var emptyTapCell = -1
+  var emptyTapAt = 0.0
+  var emptyDown = -1
+  var emptyDownAt = vec(0, 0)
+  host.addEventListener("pointerdown", proc (ev: Event) =
+    let c = cellUnder(ev)
+    emptyDown = if c >= 0 and stage.state.cells[c] < 0: c else: -1
+    emptyDownAt = clientXY(ev))
+  host.addEventListener("pointerup", proc (ev: Event) =
+    let c = emptyDown
+    emptyDown = -1
+    if c < 0 or stage.dragKey.len > 0 or norm(clientXY(ev) - emptyDownAt) > 8: return
+    if stage.state.cells[c] >= 0: return
+    let t = now()
+    if emptyTapCell != c or t - emptyTapAt > 400:
+      emptyTapCell = c
+      emptyTapAt = t
+      return
+    emptyTapCell = -1
+    if marks[c].len != 1:
+      say &"Qui ci sono ancora {marks[c].len} possibilità."
+      return
+    let ch = marks[c][0]
+    var b = stage.state
+    if b.freeTile(ch) < 0: return
+    b.putAt(c, ch)
+    for i in 0 ..< wpath.len:
+      let p = wpath[i]
+      let word = puz.clues[i].word
+      if p.len > 0 and p.len < word.len and word[p.len] == ch:
+        let (r1, c1, r2, c2) = (p[^1] div 6, p[^1] mod 6, c div 6, c mod 6)
+        if abs(r1 - r2) + abs(c1 - c2) == 1:
+          wpath[i].add c
+          break
+    buzz2()
+    stage.setState(b))
+
   host.addEventListener("pointercancel", proc (ev: Event) =
     growing = -1
     clearOpts())
