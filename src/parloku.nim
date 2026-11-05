@@ -658,7 +658,8 @@ nbCodeAnd(nbJsFromCode):
       let (r, col) = (c div 6, c mod 6)
       let base = if (r div 2 + col div 3) mod 2 == 0: "ca" else: "cb"
       let tinted = if c in coachTint: "tint" else: base
-      let fill = if c in bad: "bad" else: tinted
+      var fill = tinted
+      if c in bad: fill = tinted & " bad"       # while a tile is held, the page's CSS hides the red
       result.add &"""<rect class="cell {fill}" x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7"/>"""
       if c in bad:
         result.add &"""<rect x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7" class="badline"/>"""
@@ -776,6 +777,9 @@ nbCodeDisplay(nbJsFromCode):
     showGhosts: bool
     onCommit: proc ()
     onMove: proc ()               # after every pointer move and drop: effects drawn outside the view
+    redirect: proc (s: S, key: string): string   # grabbing `key` may lift another item instead ("" = nothing)
+    origin: Vec                   # where the held item was grabbed
+    redirected: bool
 
   proc tr(p: Vec): cstring = cstring(&"translate({p.x:.2f}px, {p.y:.2f}px)")
 
@@ -821,20 +825,36 @@ nbCodeDisplay(nbJsFromCode):
     st.draw(shown)
     if not st.onMove.isNil: st.onMove()
 
-  proc start[S](st: Stage[S], key: string, p: Vec) =
+  proc start[S](st: Stage[S], grabbed: string, p: Vec) =
+    var key = grabbed
+    if not st.redirect.isNil: key = st.redirect(st.state, grabbed)
+    if key.len == 0: return
     let behavior = st.spec(st.state, key)
     if behavior.isNil: return
     st.dragKey = key
-    st.grab = p - st.render.locate(st.state, key)
+    st.redirected = key != grabbed
+    st.origin = st.render.locate(st.state, grabbed)
+    st.grab = p - st.origin               # a redirected item starts where the grabbed one is
     st.picker = behavior(st.render, key)   # speculative renders happen here
     st.fg.appendChild(st.nodes[key])       # float above the others
+    st.svg.classList.add("dragging")
     st.move(p)
 
   proc finish[S](st: Stage[S]) =
     if st.dragKey.len == 0: return
+    let key = st.dragKey
+    let was = st.render.locate(st.state, key)
     if st.choice.ok: st.state = st.choice.state
+    let now = st.render.locate(st.state, key)
     st.dragKey = ""
+    st.svg.classList.remove("dragging")
+    let n = st.nodes[key]
+    let snap = st.redirected and now.x == was.x and now.y == was.y
+    if snap: n.setStyle("transition", "none")   # a copy let go nowhere melts back into the grabbed one: no glide
     st.draw(st.state)                      # the held tile glides home
+    if snap:
+      discard rectOf(n)
+      n.setStyle("transition", "")
     if not st.onMove.isNil: st.onMove()
     if not st.onCommit.isNil: st.onCommit()
 
@@ -927,6 +947,13 @@ nbJsFromCode:
   proc emptyBoard(): Board = puz.boardOf(puz.startGrid)
   puz = decode(code)
   let stage = mount(host, 500, 664, emptyBoard(), renderBoard, tileSpec, backdrop, overlay, 50)   # cropped to the board: bigger on a phone
+  # letters on the board stay put: grabbing one pulls out a copy of it (a double tap sends it back)
+  stage.redirect = proc (b: Board, key: string): string =
+    let id = parseInt(key[1 .. ^1])
+    if b.cells.find(id) < 0: return key
+    for k in 0 .. 5:
+      if b.cells.find((id div 6) * 6 + k) < 0: return &"t{(id div 6) * 6 + k}"
+    ""
   block:
     let slot = document.getElementById("machinery-slot")
     let toggle = host.querySelector(".ghost-toggle")
@@ -991,12 +1018,13 @@ nbJsFromCode:
       let id = parseInt(held[1 .. ^1])
       li = id div 6
       let fromCell = stage.state.cells.find(id)
-      let home = stackPos(li)
+      let home = stage.origin              # the letter it was pulled from: below, or on the board
       let dd = norm(stage.at - home)
       let atHome = stage.choice.ok and stage.choice.state.cells.find(id) < 0
       var others = false                 # copies left under the held one: then it divides, else it moves whole
       for k in 0 .. 5:
         if li * 6 + k != id and stage.state.cells.find(li * 6 + k) < 0: others = true
+      if stage.redirected: others = true   # the board letter it came from stays
       if fromCell < 0 and others and atHome:
         pulling = true
         d = neckPath(home, stage.at, 31, waist(dd, 31))
