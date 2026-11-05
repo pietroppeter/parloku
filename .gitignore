@@ -2,3 +2,4 @@ deps/
 js_file_nbCodeToJs_*.nim
 src/parloku
 src/parloku.html
+src/garden_cells
