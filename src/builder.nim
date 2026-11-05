@@ -48,7 +48,7 @@ nbRawHtml: """
 <p><b>Gioco.</b> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
 <p><b>Ordine delle lettere.</b> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.</p>
 <p><b>Icone.</b> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia un link che riapre il builder esattamente in questo stato; 🔗 copia il link per giocare il puzzle.</p>
-<p><b>Soluzioni.</b> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le tre parole non si sovrappongono. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.</p>
+<p><b>Soluzioni.</b> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.</p>
 <p><b>Annotazioni.</b> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><b>Indizi.</b> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
 </details>
@@ -735,6 +735,7 @@ nbJsFromCode:
   proc noShare(limit, keep: int): ps.SolveOptions =
     result = ps.defaultOptions(limit = limit, keep = keep)
     result.allowShared = false
+    result.allowRevisit = false
   proc findFits(p: pt.Problem, rest: seq[int], starts: var seq[int], found: var seq[Fit], budget: var int) =
     if found.len >= 10 or budget <= 0: return
     if rest.len == 0:
@@ -757,10 +758,12 @@ nbJsFromCode:
     var options: seq[seq[seq[int]]]
     for i, clue in puz.clues:
       var o: seq[seq[int]]
-      for path in ps.wordPaths(f.grid, pt.HintWord(pos: (row: f.starts[i] div 6, col: f.starts[i] mod 6), word: clue.word)):
+      for path in ps.wordPaths(f.grid, pt.HintWord(pos: (row: f.starts[i] div 6, col: f.starts[i] mod 6), word: clue.word), allowRevisit = false):
         var cells: seq[int]
         for q in path: cells.add idx(q.row, q.col)
-        o.add cells
+        # a path that follows the word's container on the board comes first
+        if cells.len >= wpath[i].len and cells[0 ..< wpath[i].len] == wpath[i]: o.insert(cells, 0)
+        else: o.add cells
       options.add o
     var pick: seq[seq[int]]
     proc rec(i: int): bool =
@@ -897,7 +900,9 @@ nbJsFromCode:
       if b.cells.find(li * 6 + k) < 0: return li * 6 + k
     -1
   proc canPut(b: Board, c: int, ch: char): bool =
-    ## a word's letter can go in cell c: it is there already, or the cell is empty and the letter clashes with nothing
+    ## a word's letter can go in cell c: it is there already, or the cell is empty and the letter clashes with nothing;
+    ## for now no word runs through a cell twice, and no two words share one
+    if wpath.anyIt(c in it): return false
     let g = b.grid
     if g[c] == ch: return true
     g[c] == '.' and peersOf[c].allIt(g[it] != ch) and b.freeTile(ch) >= 0

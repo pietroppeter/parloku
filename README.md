@@ -71,7 +71,7 @@ letters wiggle so they can be reordered by dragging one onto another; a double t
 words: 📌 drag the pin onto a placed letter to fix it as a clue (hold a pinned letter to unpin it), ↺ restart,
 💾 copy a link that reopens the builder in this exact state (`builder.html?s=...`), and 🔗 copy the link to play. Next to undo, a solver looks for up to 10 complete grids that keep every letter on the board and fit all three
 words, trying every start for the words not placed yet: it shows 0 when the words no longer fit, the exact number
-up to 9, or 10+. For now it only looks for solutions where the three words share no cell. In the pencil marks, the letters of the three
+up to 9, or 10+. For now it only looks for solutions where no word overlaps another or itself. In the pencil marks, the letters of the three
 words in one of them take their word's colour; 🎲 shows another. A panel counts the solutions of
 the puzzle a player would get (word starts and pinned letters only), with a link to play it.
 The solver is [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)'s `parloku/solver`, fetched by `deps.sh`
