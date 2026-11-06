@@ -458,6 +458,18 @@ nbJsFromCode:
   proc overlay(b: Board): string =
     let g = b.grid
     let n = puz.clues.len
+    # builder: in the solution shown, a word not on the board yet gets a start mark on its first letter, in its colour
+    for i in 0 ..< min(solPaths.len, puz.clues.len):
+      if wpath[i].len == 0 and solPaths[i].len > 0:
+        # a small, thin square round the word's first letter among the pencil marks (a big one would look like a word
+        # placed on the board, which is the builder's own choice)
+        let c = solPaths[i][0]
+        let p = cellPos(c)
+        let k = puz.letters.find(solGrid[c])
+        if k < 0: continue
+        let s = slotOf[k]
+        let (x, y) = (p.x - 22 + float(s mod 3) * 22, p.y - 12 + float(s div 3) * 24)
+        result.add &"""<rect class="wo w{i mod 3} solstart" x="{x - 10:.1f}" y="{y - 11:.1f}" width="20" height="22" rx="5" stroke-width="1.5"/>"""
     for i, clue in puz.clues:
       if wpath[i].len == 0: continue      # builder: a word's outline follows its container
       # each word is an outline in its own dark colour: a ring on its start cell that grows around its letters
