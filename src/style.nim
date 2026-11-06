@@ -225,6 +225,16 @@ body.chrome .picker{transform:none;visibility:visible}
 body.chrome .play .clues{transform:translateY(var(--drop,0px));gap:3px}
 body.chrome .play .stage{transform:translateY(calc(var(--drop,0px) - 10px))}
 .menu-only{display:none}
+/* ↶ and ↷: two round buttons that come down with the menu, at the top right, next to the first word */
+.undos{display:none}
+body.chrome .undos{display:flex;gap:10px;position:fixed;z-index:20;top:calc(var(--barh,60px) + 8px);
+  right:max(16px,calc((100vw - 760px) / 2 + 16px));animation:undos-in .35s ease both}
+@keyframes undos-in{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
+.undos .btn{width:46px;height:46px;min-width:0;min-height:0;padding:0;border-radius:50%;justify-content:center;
+  font:800 22px/1 var(--font-glyph,inherit);background:var(--card);box-shadow:0 2px 0 var(--ink)}
+.undos .btn .tx{display:none}
+.undos .btn:disabled{opacity:.3;box-shadow:none}
+.undos .btn:not(:disabled):active{transform:translateY(2px);box-shadow:none}
 body.focus .picker .menu-only,body.chrome .picker .menu-only{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
 body.focus .picker #picker,body.chrome .picker #picker{display:none}
 body.focus .picker.listing,body.chrome .picker.listing{justify-content:flex-start}

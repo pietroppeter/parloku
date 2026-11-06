@@ -52,6 +52,19 @@ const code = 'ACGIMO_41I.42O.54I.55O_00AMICA.11GIOCO.05MAGIA';
   check('restart keeps the size', await small(), true);
   await p.click('#reset'); await p.waitForTimeout(400);
   check('undo restart brings them back', await notes(), 'm14-0 m14-1');
+  // undo / redo cover notes, and keep the letters' size (the menu holds ↶ and ↷)
+  await p.mouse.click(6, 30); await p.waitForTimeout(400)
+  if (await p.$('#undo')) {
+    await p.mouse.click(195, 800); await p.waitForTimeout(400)
+    await drag([300, 546], cell(20)); await drag([225, 640], [225, 520])
+    const before = await notes()
+    await p.mouse.click(6, 30); await p.waitForTimeout(400)
+    await p.click('#undo'); await p.waitForTimeout(400)
+    check('undo rubs out the last note', await notes(), before.replace(' m20-1', '').replace('m20-1 ', ''))
+    check('undo keeps the letters big', await small(), false)
+    await p.click('#redo'); await p.waitForTimeout(400)
+    check('redo writes it again', await notes(), before)
+  }
   if (errs.length) { bad++; console.log('page errors:', errs); }
   await b.close();
   process.exit(bad ? 1 : 0);
