@@ -89,7 +89,7 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
   border:var(--border) solid var(--line);box-shadow:var(--btn-shadow);cursor:default;transition:transform .2s}
 .clue .n{width:26px;height:26px;border-radius:50%;color:#fff;font:700 14px "JetBrains Mono",monospace;display:grid;place-items:center}
 .clue .l{width:26px;height:30px;border-radius:7px;display:grid;place-items:center;font:var(--glyph-weight) 18px var(--font-glyph);
-  border:1.5px dashed var(--line);color:var(--muted);transition:background .25s,color .25s}
+  border:1.5px solid var(--line);color:var(--muted);transition:background .25s,color .25s}
 /* a clue letter already on the board: bold, dark, with a thick dark edge; the ones still to place stay light */
 .clue.done{border-color:var(--ink)}
 .clue .ok{font-size:18px;width:18px;text-align:center;color:var(--c4);font-weight:700}
@@ -117,8 +117,13 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .cell{stroke:color-mix(in srgb,var(--ink) 16%,transparent);stroke-width:1.5} .cell.ca{fill:var(--ca)} .cell.cb{fill:var(--cb)} .cell.tint{fill:var(--hl)} .cell.bad{fill:var(--bad)}
 .badline{fill:none;stroke:var(--bad-line);stroke-width:3}
 /* no red while a tile is held: only once it is let go */
+/* two letters in conflict tremble, gently at first and more over a few seconds (no red); not while a tile is held */
 .dragging .cell.bad.ca{fill:var(--ca)} .dragging .cell.bad.cb{fill:var(--cb)} .dragging .cell.bad.tint{fill:var(--hl)} .dragging .badline{display:none}
+@media (prefers-reduced-motion: reduce){.shake .tile rect,.shake .tile circle,.shake .tile path{stroke:var(--bad-line)}}
 .boxline{fill:var(--boxline)}
+.thin{stroke:color-mix(in srgb,var(--boxline) 35%,transparent);stroke-width:1.5}
+.edge{fill:none;stroke:var(--boxline);stroke-width:5}
+
 .lbl{fill:var(--muted);display:none} .tutoring .lbl{display:inline}
 .glow{fill:var(--hl);stroke:var(--c0);stroke-width:3}
 .empty{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 5} .done{fill:var(--c4)}
@@ -164,7 +169,7 @@ body.focus,body.chrome{padding-bottom:0}
 body.focus .play,body.chrome .play{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:8px 0}
 body.focus .play>h1,body.focus .play>.lede,body.focus .play>.rules,body.focus .play>.skins,
 body.chrome .play>h1,body.chrome .play>.lede,body.chrome .play>.rules,
-body.focus .picker,body.focus .status{display:none}
+body.focus .status{display:none}
 body.focus .game,body.chrome .game{margin:0}
 body.chrome .play>.skins{display:none}
 .clue .ok:empty{display:none}
@@ -173,15 +178,32 @@ body.chrome .play>.skins{display:none}
 @keyframes wig{0%,100%{transform:none}15%{transform:rotate(-5deg) scale(1.04)}35%{transform:rotate(4deg) scale(1.04)}55%{transform:rotate(-3deg)}75%{transform:rotate(2deg)}}
 @media (prefers-reduced-motion: reduce){.wig{animation:none}}
 @media (max-width:440px){body.chrome .status .tx{display:none} body.chrome .status .btn{min-width:48px}}
-body.chrome .picker,body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
+body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
   padding:10px 16px;background:color-mix(in srgb,var(--bg) 94%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-body.chrome .picker{top:0;padding-top:max(10px,env(safe-area-inset-top))}
-/* the menu bar: one row, scrolled sideways; only tutorial, puzzles and styles */
-body.chrome .picker{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0}
-body.chrome .picker::-webkit-scrollbar{display:none}
-body.chrome .picker>*{flex:none}
-body.chrome .picker .langs,body.chrome .status,body.chrome .picker .tut,body.chrome .play>.skins{display:none}
-body.chrome .status{bottom:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+body.chrome .picker .langs,body.chrome .status,body.chrome .picker .tut,body.chrome .play>.skins,body.focus .picker .langs,body.focus .picker .tut{display:none}
+/* the menu: a bar that slides down from the top, while words, grid and letters shrink a little to make room;
+   it slides back up after a few idle seconds or a tap in the game. "again!" swaps its buttons for the puzzles, scrolled sideways */
+body.focus .picker,body.chrome .picker{display:flex;position:fixed;top:0;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
+  padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));flex-wrap:nowrap;justify-content:center;gap:8px;
+  overflow-x:auto;scrollbar-width:none;background:color-mix(in srgb,var(--bg) 94%,transparent);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:transform .35s ease,visibility .35s}
+body.focus .picker{transform:translateY(-105%);visibility:hidden}
+body.chrome .picker{transform:none;visibility:visible}
+.picker::-webkit-scrollbar{display:none}
+.picker>*{flex:none}
+.play .clues,.play .stage{transition:transform .35s ease,gap .35s ease}
+body.chrome .play .clues{transform:translateY(var(--drop,0px));gap:3px}
+body.chrome .play .stage{transform:translateY(calc(var(--drop,0px) - 10px))}
+.menu-only{display:none}
+body.focus .picker .menu-only,body.chrome .picker .menu-only{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
+body.focus .picker #picker,body.chrome .picker #picker{display:none}
+body.focus .picker.listing,body.chrome .picker.listing{justify-content:flex-start}
+body.focus .picker.listing>:not(#picker),body.chrome .picker.listing>:not(#picker){display:none}
+body.focus .picker.listing #picker,body.chrome .picker.listing #picker{display:contents}
+#picker .btn{white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+#picker .ck{color:var(--w1);font-weight:800}
+#picker .ck:empty{display:none}
+@media (max-width:400px){body.chrome .picker{gap:6px;padding-left:8px;padding-right:8px} body.chrome .picker .menu-only{padding:6px 11px;font-size:13px}}
 @media (prefers-reduced-motion: reduce){.ripple{animation:none;opacity:0}}
 .machinery-slot{margin:10px 0}
 .machinery-slot .ghost-toggle{position:static;font-size:14px}
@@ -364,9 +386,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .clue{cursor:pointer}
 /* words sit on the left, each after its ring: drag the ring onto the board to start the word */
 .bld .clue,.bld .clue:nth-child(3n+2),.bld .clue:nth-child(3n){align-self:flex-start}
-.clue .wring{flex:none;width:22px;height:22px;border-radius:50%;border:4px solid var(--wc);background:var(--card);cursor:grab;touch-action:none;margin-right:2px}
+.clue .wring{flex:none;width:22px;height:22px;border-radius:7px;border:4px solid var(--wc);background:var(--card);cursor:grab;touch-action:none;margin-right:2px}
 .clue .wring.on{background:color-mix(in srgb,var(--wc) 25%,var(--card))}
-.ringghost{position:fixed;left:0;top:0;width:48px;height:48px;box-sizing:border-box;border-radius:50%;border:6px solid var(--wc);pointer-events:none;z-index:60}
+.ringghost{position:fixed;left:0;top:0;width:48px;height:48px;box-sizing:border-box;border-radius:13px;border:5px solid var(--wc);pointer-events:none;z-index:60}
 .opt{fill:none;stroke-width:4;animation:optp 1s ease-in-out infinite alternate}
 .opt.w0{stroke:var(--w0)} .opt.w1{stroke:var(--w1)} .opt.w2{stroke:var(--w2)}
 @keyframes optp{from{opacity:.45}to{opacity:1}}
@@ -383,7 +405,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .pm{font:700 15px "JetBrains Mono",monospace;fill:color-mix(in srgb,var(--ink) 50%,transparent);pointer-events:none}
 .dragging .pm{opacity:.5}
 .pm.on{font-weight:800;font-size:17px}
-.pm.on.w0{fill:var(--w0)} .pm.on.w1{fill:var(--w1)} .pm.on.w2{fill:var(--w2)}
+.pm.on.w0{fill:var(--w0)} .pm.on.w1{fill:var(--w1)} .pm.on.w2{fill:var(--w2)} .pm.on.sk{fill:var(--ink)}
 .status .acts{align-items:center}
 .nou{font:600 13px var(--font-body);color:var(--muted);margin-left:8px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .tool.dice{width:38px;height:38px;font-size:18px;margin-left:6px}
@@ -435,7 +457,7 @@ pre > code{font-size:12.5px!important}
   font:600 13px/1.35 var(--font-body);padding:7px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.2);min-height:0;margin:0}
 .bld .game{margin:0}
 .bld .clues{gap:4px;margin:0}
-.bld .clue{padding:2px 3px 2px 8px;gap:3px;border-width:2.5px}
+.bld .clue{cursor:grab;touch-action:none;padding:2px 3px 2px 8px;gap:3px;border-width:2.5px}
 .bld .clue .l{width:19px;height:23px;font-size:14px;border-radius:5px}
 .bld .clue .wring{width:20px;height:20px;border-width:3.5px;margin:0 0 0 2px;position:relative}
 .bld .clue .wring::after{content:'';position:absolute;inset:-11px -14px;border-radius:50%}
@@ -444,6 +466,16 @@ pre > code{font-size:12.5px!important}
 .bld .tools{grid-template-columns:repeat(2,38px);gap:6px}
 .bld .tool{width:38px;height:38px;font-size:17px}
 .bld .stage{margin:4px auto 0;max-width:min(100%,calc((100svh - 272px) * 500 / 664));min-width:250px}
+.bld .say:empty{display:none}
+.bld .sols{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,34px);grid-auto-columns:34px;gap:5px;overflow-x:auto;overflow-y:hidden;
+  padding:4px 2px 6px;margin:4px 0 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+.bld .sols::-webkit-scrollbar{display:none}
+.bld .sols .sc{width:34px;height:34px;border-radius:50%;border:2px solid var(--ink);background:var(--card);color:var(--ink);
+  font:700 13px var(--font-body);padding:0;display:grid;place-items:center;cursor:pointer}
+.bld .sols .sc.on{background:var(--ink);color:var(--card)}
+.bld .sols .sc.more{border-style:solid;border-color:var(--line);color:var(--muted)}
+.bld .sols .none{grid-row:1 / span 2;align-self:center;white-space:nowrap;font:600 14px var(--font-body);color:var(--muted);padding:0 6px}
+.bld .sols .none.zero{color:var(--bad-line)}
 .bld .status{margin:2px 0 0;padding:0}
 .bld .status .acts{gap:4px;flex-wrap:nowrap;justify-content:center}
 .bld .status .btn{padding:4px 10px;font-size:13px}
@@ -504,13 +536,13 @@ figcaption {
 <main>
 <h1 id="parloku-builder:-come-funziona">Parloku builder: come funziona</h1>
 <p><a href="builder.html">← torna al builder</a></p>
-<p><strong>Parole.</strong> Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.</p>
+<p><strong>Parole.</strong> Ogni parola in alto ha un quadratino alla fine: trascina la parola (da qualunque punto della sua riga) su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.</p>
 <p><strong>Lettere forzate.</strong> Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.</p>
-<p><strong>Togliere.</strong> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.</p>
+<p><strong>Togliere.</strong> Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sulla riga della parola in alto (o sulla sua prima lettera) toglie tutta la parola.</p>
 <p><strong>Gioco.</strong> Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.</p>
 <p><strong>Ordine delle lettere.</strong> Tieni premuta una lettera sotto: le sei lettere si mettono a vibrare e puoi trascinarne una su un'altra per scambiarle (per esempio PIM / ART). Un doppio tocco su una lettera le rimette a posto.</p>
 <p><strong>Icone.</strong> 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia il puzzle in JSON (lettere nell'ordine di sotto, indizi, inizi delle parole, soluzione, e sotto &quot;builder&quot; il link che riapre il builder esattamente in questo stato): incollalo in chat per aggiungerlo ai puzzle del gioco; 🔗 copia il link per giocare il puzzle.</p>
-<p><strong>Soluzioni.</strong> Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Con «niente U» scarta anche le parole che girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra); una parola lunga può comunque toccarsi più avanti. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.</p>
+<p><strong>Soluzioni.</strong> Sotto la griglia il builder elenca, con un cerchio numerato ciascuna, fino a 100 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe (due file che scorrono a destra e sinistra; «0 soluzioni» se così le parole non ci stanno, «…» se la ricerca si è fermata prima). Una soluzione vale solo se ogni parola si legge in un modo solo dalla sua casella di partenza: con M A / A R e una parola che comincia con MAR, entrambe le A andrebbero bene, e la soluzione è scartata. Per ora le parole non si sovrappongono, né tra loro né con se stesse, e non girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra). Tocca un cerchio per vedere quella soluzione: nelle annotazioni, le lettere delle tre parole sono colorate come la loro parola e le altre lettere della soluzione sono in nero.</p>
 <p><strong>Annotazioni.</strong> Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.</p>
 <p><strong>Indizi.</strong> Le lettere messe sono solo gioco. Trascina la puntina su una lettera per fissarla come indizio; tieni premuta una lettera fissata per toglierle la puntina. Il puzzle è fatto delle caselle iniziali delle parole e degli indizi fissati: il riquadro sotto ne conta le soluzioni, e quando è 1 è pronto.</p>
 <p>The builder is a <a href="https://github.com/pietroppeter/nimib">nimib</a> notebook. Board, tiles and gestures are the game's;
@@ -575,11 +607,11 @@ nbText: <span class="hljs-string">&quot;&quot;&quot;
 
 [← torna al builder](builder.html)
 
-**Parole.** Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.
+**Parole.** Ogni parola in alto ha un quadratino alla fine: trascina la parola (da qualunque punto della sua riga) su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.
 
 **Lettere forzate.** Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.
 
-**Togliere.** Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.
+**Togliere.** Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sulla riga della parola in alto (o sulla sua prima lettera) toglie tutta la parola.
 
 **Gioco.** Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.
 
@@ -587,7 +619,7 @@ nbText: <span class="hljs-string">&quot;&quot;&quot;
 
 **Icone.** 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia il puzzle in JSON (lettere nell'ordine di sotto, indizi, inizi delle parole, soluzione, e sotto &quot;builder&quot; il link che riapre il builder esattamente in questo stato): incollalo in chat per aggiungerlo ai puzzle del gioco; 🔗 copia il link per giocare il puzzle.
 
-**Soluzioni.** Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Con «niente U» scarta anche le parole che girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra); una parola lunga può comunque toccarsi più avanti. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.
+**Soluzioni.** Sotto la griglia il builder elenca, con un cerchio numerato ciascuna, fino a 100 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe (due file che scorrono a destra e sinistra; «0 soluzioni» se così le parole non ci stanno, «…» se la ricerca si è fermata prima). Una soluzione vale solo se ogni parola si legge in un modo solo dalla sua casella di partenza: con M A / A R e una parola che comincia con MAR, entrambe le A andrebbero bene, e la soluzione è scartata. Per ora le parole non si sovrappongono, né tra loro né con se stesse, e non girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra). Tocca un cerchio per vedere quella soluzione: nelle annotazioni, le lettere delle tre parole sono colorate come la loro parola e le altre lettere della soluzione sono in nero.
 
 **Annotazioni.** Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.
 
