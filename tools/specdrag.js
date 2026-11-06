@@ -52,7 +52,7 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
     }
     for (const g of puz.givens) if (s.start[g.r * 6 + g.c] !== g.v) problems.push(`start board misses the given ${g.v} at ${cellName(g.r * 6 + g.c)}`)
     const ctx = await browser.newContext({ ...devices['iPhone 13'] })
-    await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); localStorage.setItem('parloku:look', 'niki') } catch (e) {} },
+    await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); localStorage.setItem('parloku:look', 'niki'); localStorage.setItem('parloku:menu', '1') } catch (e) {} },
       ['parloku:' + code, cells.join(',') + ';0;0;0'])
     const p = await ctx.newPage()
     const errs = []; p.on('pageerror', e => errs.push(e.message))

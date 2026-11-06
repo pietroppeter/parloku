@@ -229,6 +229,36 @@ body.chrome .picker{transform:none;visibility:visible}
 body.chrome .play .clues{transform:translateY(var(--drop,0px));gap:3px}
 body.chrome .play .stage{transform:translateY(calc(var(--drop,0px) - 10px))}
 .menu-only{display:none}
+/* the menu hint: a little snake spelling MENU crawls into the empty space at the top and says where the menu is */
+.hint-snake{position:fixed;left:0;top:0;width:100%;height:0;z-index:15;pointer-events:none}
+.hs-body{position:absolute;display:flex;transform:translateX(-240px);transition:transform 2.4s cubic-bezier(.4,.1,.3,1)}
+.hint-snake.in .hs-body{transform:none}
+.hint-snake.away .hs-body{transform:translateX(110vw);transition-duration:1.8s}
+.hint-snake.corner .hs-body{transform:scale(.3);opacity:0;transition:transform .5s cubic-bezier(.3,1.5,.5,1),opacity .3s}
+.hint-snake.corner.in .hs-body{transform:none;opacity:1}
+.hint-snake.corner.away .hs-body{transform:scale(.3);opacity:0}
+.hs-body i{font:var(--glyph-weight) 16px/30px var(--font-glyph);font-style:normal;width:30px;height:30px;text-align:center;
+  border-radius:50%;box-shadow:inset 0 0 0 2px var(--ink);color:var(--ink);margin-right:-3px;animation:hs-wave 1s ease-in-out infinite}
+.hs-body i:nth-child(1){animation-delay:-.75s;background:var(--g0)}
+.hs-body i:nth-child(2){animation-delay:-.5s;background:var(--g1)}
+.hs-body i:nth-child(3){animation-delay:-.25s;background:var(--g2)}
+.hs-body i:nth-child(4){background:var(--g3);position:relative;width:36px;border-radius:16px 50% 50% 16px;text-indent:-4px}
+.hs-body i:nth-child(4)::before,.hs-body i:nth-child(4)::after{content:"";position:absolute;right:4px;width:5px;height:5px;
+  border-radius:50%;background:var(--ink)}
+.hs-body i:nth-child(4)::before{top:7px}
+.hs-body i:nth-child(4)::after{bottom:7px}
+.hint-snake.rest .hs-body i{animation-play-state:paused}
+@keyframes hs-wave{50%{transform:translateY(-6px)}}
+.hs-say{position:absolute;opacity:0;transform:scale(.6);transform-origin:left center;
+  background:var(--card);border:2px solid var(--ink);border-radius:14px;padding:6px 10px;white-space:nowrap;
+  font:600 14px/1.25 var(--font-body);color:var(--ink);transition:opacity .3s,transform .3s}
+.hs-say::before{content:"";position:absolute;left:-9px;top:50%;margin-top:-6px;border:6px solid transparent;
+  border-right:8px solid var(--ink);border-left:0}
+.hint-snake.talk .hs-say{opacity:1;transform:none}
+.hint-snake.corner .hs-say{transform-origin:70% top;font-size:13px}
+.hint-snake.corner .hs-say::before{left:auto;right:30px;top:-9px;margin:0;border:6px solid transparent;
+  border-bottom:8px solid var(--ink);border-top:0}
+@media (prefers-reduced-motion:reduce){.hs-body,.hint-snake.away .hs-body{transition:none}.hs-body i{animation:none}}
 /* ↶ and ↷: two round buttons that come down with the menu, at the top right, next to the first word */
 .undos{display:none}
 body.chrome .undos{display:flex;gap:10px;position:fixed;z-index:20;top:calc(var(--barh,60px) + 8px);
