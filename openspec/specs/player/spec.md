@@ -41,14 +41,6 @@ an empty or wrong cell), ↺ reset (starts the puzzle again) and 🔗 link (copi
 - **WHEN** one tile is wrong and the player taps 💡
 - **THEN** a correct tile glides into a cell that was empty or wrong
 
-### Requirement: Two languages
-The page SHALL speak English and Italian, chosen with the EN / IT switch or `?lang=`, then the last choice, then the
-browser's language. Every text the game shows, including the tutorial's explanations, SHALL exist in both.
-
-#### Scenario: An Italian browser
-- **WHEN** a browser set to Italian opens the page for the first time
-- **THEN** the page is in Italian
-
 ### Requirement: Winning
 A solved board SHALL show a Bravo! banner with the moves and the time taken, and letter confetti.
 

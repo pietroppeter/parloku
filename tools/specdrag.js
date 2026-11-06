@@ -134,9 +134,14 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
       const wi = puz.words.findIndex(w => w.v === o.word)
       if (wi < 0) { problems.push(`no word ${o.word} in this puzzle`); continue }
       const got = await p.evaluate(i => {
-        const m = document.querySelector(`#board svg .overlay mask[id$="${i}"] path.wm`)
-        if (!m) return null
-        return [...m.getAttribute('d').matchAll(/([-\d.]+),([-\d.]+)/g)].map(x => [+x[1], +x[2]])
+        // the outline's mask: either a stroked path through the cell centres, or one rounded square per cell
+        const mask = document.querySelector(`#board svg .overlay mask[id$="${i}"]`)
+        if (!mask) return null
+        const m = mask.querySelector('path.wm')
+        if (m) return [...m.getAttribute('d').matchAll(/([-\d.]+),([-\d.]+)/g)].map(x => [+x[1], +x[2]])
+        return [...mask.querySelectorAll('rect[fill="#fff"]')]
+          .filter(r => Math.abs(+r.getAttribute('width') - +r.getAttribute('height')) < 0.5)
+          .map(r => [+r.getAttribute('x') + +r.getAttribute('width') / 2, +r.getAttribute('y') + +r.getAttribute('height') / 2])
       }, wi)
       let cellsGot
       if (got) cellsGot = got.map(([x, y]) => cellName(Math.floor((y - 16) / 78) * 6 + Math.floor((x - 66) / 78)))
