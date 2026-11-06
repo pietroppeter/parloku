@@ -1,0 +1,99 @@
+name: Pages
+
+# Builds every page (game, builder, how-to, devlog posts) on each push and pull request,
+# and deploys the site to GitHub Pages from main. The HTML is not committed: it is built
+# here, so it always matches the sources. Pages must use "GitHub Actions" as its source
+# (Settings > Pages).
+on:
+  push:
+    branches: [main]
+    paths-ignore: [README.md, LICENSE, .gitignore, CLAUDE.md, AGENTS.md, ".claude/**"]
+  pull_request:
+    paths-ignore: [README.md, LICENSE, .gitignore, CLAUDE.md, AGENTS.md, ".claude/**"]
+  workflow_dispatch:
+
+# A new push to a pull request cancels the run of the previous one; main runs one at a time.
+concurrency:
+  group: pages-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # Generated pages must not be committed again (a branch from before CI may bring them back).
+      - name: No committed HTML
+        run: |
+          html=$(git ls-files '*.html')
+          if [ -n "$html" ]; then
+            for f in $html; do echo "::error file=$f::generated page committed: CI builds it, remove it with git rm --cached $f"; done
+            exit 1
+          fi
+
+      - uses: jiro4989/setup-nim-action@v2
+        with:
+          nim-version: "2.2.4"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # libpcre3 for nimib's markdown. Its .deb is cached: the Ubuntu mirror alone can
+      # take from 6 s to 60 s per run (a trick from nanuq-book).
+      - uses: actions/cache@v4
+        with:
+          path: ~/debs
+          key: libpcre3-ubuntu-24.04
+      - run: |
+          if ! ls ~/debs/libpcre3_*.deb > /dev/null 2>&1; then
+            mkdir -p ~/debs && cd ~/debs
+            apt-get download libpcre3 || (sudo apt-get update && apt-get download libpcre3)
+          fi
+          sudo dpkg -i ~/debs/libpcre3_*.deb
+
+      # nimib, puzzlepaw and friends at the commits pinned in deps.sh
+      - uses: actions/cache@v4
+        with:
+          path: src/deps
+          key: deps-${{ hashFiles('src/deps.sh') }}
+      - run: sh src/deps.sh
+
+      # Nim's C cache: Nim recompiles only the C files that changed, so a warm cache turns
+      # the ~20 s compile into ~3 s. The key moves with every source change; restore-keys
+      # starts from the latest cache, which is always safe to reuse.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/nim
+          key: nimcache-2.2.4-${{ hashFiles('src/**/*.nim', '*.nims', 'src/*.nims', 'src/deps.sh') }}
+          restore-keys: nimcache-2.2.4-
+
+      # every page in one program: one compile, one link (src/all.nim)
+      - name: Build the pages
+        run: nim c -r -d:release -o:"$RUNNER_TEMP/allpages" src/all.nim
+
+      - name: Assemble site
+        run: |
+          mkdir -p "$RUNNER_TEMP/site"
+          tar -c --exclude=./.git --exclude=./.github --exclude=./src/deps --exclude='js_file_nbCodeToJs_*' . | tar -x -C "$RUNNER_TEMP/site"
+          mv "$RUNNER_TEMP/site" _site
+          find _site -name '*.html' | sort
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

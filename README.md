@@ -34,7 +34,9 @@ Devlog:
 
 ## Files
 
-- `index.html`: the generated page (served by GitHub Pages from `main`, root). Don't edit it by hand.
+- The HTML pages (`index.html`, `builder.html`, `devlog/*/index.html`, ...) are not committed: CI builds them on every
+  push and pull request and deploys them to GitHub Pages from `main` (`.github/workflows/pages.yml`).
+- `src/all.nim`: builds every page in one program (any `src/*.nim` that calls `nbInit`, the game first).
 - `src/parloku.nim`: the notebook. Model, rules, solver and drag spec run natively at build time and in the browser.
 - `src/istruzioni.nim` → `istruzioni.html`: how to play (rules, then gestures), linked from the game menu.
 - `src/splash.nim`: the daily splash screen and the animated first lesson (game page only; `?splash=first`, `?learn`, `?nosplash`).
@@ -44,7 +46,7 @@ Devlog:
   audited (contrast and colour distance computed at build time). Build `src/parloku.nim` first, the post embeds its game.
 - `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
   At build time the solver checks each puzzle has a unique solution that matches its key.
-- `src/deps.sh`, `src/config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/`.
+- `src/deps.sh`, `src/config.nims`, `config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/` and put them on the path (the root one is for the `nim js` compiles nimib runs from the repo root).
 
 ## Build
 
@@ -52,11 +54,12 @@ Needs Nim 2.x (built with 2.2.4) and libpcre (PCRE1). From the repo root:
 
 ```sh
 sh src/deps.sh
-nim c -r -d:release src/parloku.nim   # writes index.html
-nim c -r -d:release src/devlog_pastel_skins.nim   # writes devlog/pastel-skins/index.html
-nim c -r -d:release src/devlog_basics.nim         # writes devlog/basics/index.html (picture: src/devlog_basics/before.js)
-nim c -r -d:release src/devlog_splash.nim         # writes devlog/splash/index.html
+nim c -r -d:release src/all.nim       # every page, in one program (about 20 s, 3 s once Nim's cache is warm)
+nim c -r -d:release src/parloku.nim   # or one page: writes index.html (devlog posts embed it, so build it first)
 ```
+
+The pages are written next to the sources (`index.html`, `devlog/<post>/index.html`, ...) and ignored by git.
+CI does the same build, keeps Nim's C cache between runs, and publishes the site from `main`.
 
 ## Links to a puzzle
 
