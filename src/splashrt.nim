@@ -571,8 +571,14 @@ proc start() =
     if ev.isTarget(root) and card.querySelector("#tu-stage").isNil: close())
   expose(proc (first: bool) = (open(); splash(first)), proc () = (open(); lesson()), proc (d: JsDate): cstring = cstring(lineOf(d)))
   if root.hasAttr("data-manual") or "nosplash" in q or "tutorial" in q: return
+  # the daily splash greets only the day's first visit: the day it was shown is kept (?day= and ?splash=first
+  # always show it, and so does the first-visit splash until the player closes it)
+  let first = "splash=first" in q or lsGet("parloku:seen").isNil
+  let day = $newDate().dayNumber
+  if "learn" notin q and not first and "day=" notin q and $lsGet("parloku:splashday") == day: return
+  lsSet("parloku:splashday", cstring(day))
   open()
   if "learn" in q: lesson()
-  else: splash("splash=first" in q or lsGet("parloku:seen").isNil)
+  else: splash(first)
 
 document.addEventListener("DOMContentLoaded", proc (ev: Event) = start())
