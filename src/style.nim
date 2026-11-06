@@ -125,10 +125,11 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .item .body{transition:transform .25s ease}
 .small .item.home .body{transform:scale(.42)}
 .small .item.home.lifted .body{transform:scale(.5)}
+.item.mark .note{transform:scale(.42)}
+.item.mark.side .note{transform:scale(.36)}
 .was{fill:none;stroke:color-mix(in srgb,var(--ink) 30%,transparent);stroke-width:1.5}
-/* the notes in the empty cells: the builder's pencil-mark look */
-svg text.pm{font:700 15px "JetBrains Mono",monospace;fill:color-mix(in srgb,var(--ink) 50%,transparent);pointer-events:none}
-.item.mark .hit{pointer-events:none}
+/* the notes in the empty cells: small tiles, up to four, which only small letters can touch */
+.item.mark{pointer-events:none}
 .small .item.mark .hit{pointer-events:auto}
 /* board and tiles, drawn by the Nim view; skins pick colours and shapes */
 .g0{fill:var(--g0)} .g1{fill:var(--g1)} .g2{fill:var(--g2)} .g3{fill:var(--g3)} .g4{fill:var(--g4)} .g5{fill:var(--g5)}

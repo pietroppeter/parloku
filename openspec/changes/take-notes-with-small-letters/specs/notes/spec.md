@@ -49,11 +49,12 @@ end small: off
 ```
 
 ### Requirement: Writing a note
-With small letters, dropping a letter on an empty cell SHALL write that letter there as a note, small, in the
-letter's own spot of the cell (two rows of three, in the order of the letters below, as the builder's pencil marks).
+With small letters, dropping a letter on an empty cell SHALL write that letter there as a note: a small coloured
+tile, the size of the small letters below. A cell's notes SHALL sit two by two, in the order of the letters below.
 The letter SHALL come from below, from any letter on the board (a given or a word's head too) or from a note, and
 SHALL always be a copy: no tile moves, no word grows or shrinks, and the snake rules (see `word-snakes`) do not
-apply. A cell SHALL hold any number of notes; writing a note the cell already has SHALL change nothing. A cell with a
+apply. A cell SHALL hold at most four notes: a fifth letter dropped there SHALL write nothing. Writing a note the cell
+already has SHALL change nothing. A cell with a
 letter SHALL take no notes. A letter whose six tiles are all on the board gives no notes.
 
 #### Scenario: A note from below
@@ -98,6 +99,25 @@ start:
   . . . . I O
 drag: below M -> r3c3
 end notes: r3c3 AM
+```
+
+#### Scenario: No fifth note
+- **WHEN** r3c3 has the notes A, C, G and M and the player drags the O onto it
+- **THEN** r3c3 keeps its four notes
+
+```drag
+puzzle: 2
+small: on
+notes: r3c3 ACGM
+start:
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . I O . . .
+  . . . . I O
+drag: below O -> r3c3
+end notes: r3c3 ACGM
 ```
 
 #### Scenario: The same note twice
@@ -204,6 +224,105 @@ start:
   . I O . . .
   . . . . I O
 drag: below A -> r5c2
+end notes: none
+```
+
+### Requirement: Notes between two cells
+With small letters, a letter dropped on the edge between two empty cells side by side (nearer the middle of the edge
+than to either cell's centre) SHALL write a note on that edge, a bit smaller than a cell's notes: the letter is in one
+of the two cells (Snyder notation), and the edge shows which way it lies. An edge SHALL hold at most two notes, side
+by side along it. An edge note SHALL be copied and rubbed out like a cell's notes, and SHALL hide while either of
+its cells holds a letter.
+
+#### Scenario: A note between two cells
+- **WHEN** the letters are small and the player drags the A onto the edge between r3c3 and r3c4
+- **THEN** that edge has the note A, and neither cell has a note
+
+```drag
+puzzle: 2
+small: on
+start:
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . I O . . .
+  . . . . I O
+drag: below A -> r3c3-r3c4
+end notes: r3c3-r3c4 A
+```
+
+#### Scenario: Between two cells one above the other
+- **WHEN** the letters are small and the player drags the M onto the edge between r2c6 and r3c6
+- **THEN** that edge has the note M
+
+```drag
+puzzle: 2
+small: on
+start:
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . I O . . .
+  . . . . I O
+drag: below M -> r2c6-r3c6
+end notes: r2c6-r3c6 M
+```
+
+#### Scenario: No third note on an edge
+- **WHEN** the edge between r3c3 and r3c4 has the notes A and M and the player drags the O onto it
+- **THEN** the edge keeps its two notes
+
+```drag
+puzzle: 2
+small: on
+notes: r3c3-r3c4 AM
+start:
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . I O . . .
+  . . . . I O
+drag: below O -> r3c3-r3c4
+end notes: r3c3-r3c4 AM
+```
+
+#### Scenario: Rub out a note on an edge
+- **WHEN** the edge between r3c3 and r3c4 has the notes A and M and the player double taps the M
+- **THEN** only the A is left
+
+```drag
+puzzle: 2
+small: on
+notes: r3c3-r3c4 AM
+start:
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . I O . . .
+  . . . . I O
+double-tap: note M r3c3-r3c4
+end notes: r3c3-r3c4 A
+```
+
+#### Scenario: A letter in one of the two cells hides the edge note
+- **WHEN** the edge between r3c3 and r3c4 has the note A, the letters are big, and the player drags the A onto r3c3
+- **THEN** r3c3 holds A and the edge note is hidden
+
+```drag
+puzzle: 2
+notes: r3c3-r3c4 A
+start:
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . . . . . .
+  . I O . . .
+  . . . . I O
+drag: below A -> r3c3
 end notes: none
 ```
 

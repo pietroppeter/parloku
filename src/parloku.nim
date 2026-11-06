@@ -101,7 +101,8 @@ nbCodeAnd(nbJsFromCode):
     Board = object
       cells: array[36, int]  # tile id in each cell, -1 when empty
       moves: int
-      marks: array[36, int]  # notes: bit li set when the cell has letter li pencilled in
+      marks: array[96, int]  # notes: bit li set when spot s has letter li noted; spots 0..35 are the cells,
+                             # 36..95 the edges between two cells side by side (a Snyder note: in one of the two)
       small: bool            # small letters (notes): drags write notes instead of placing letters
 
   func idx(r, c: int): int = r * 6 + c
@@ -634,13 +635,46 @@ nbCodeAnd(nbJsFromCode):
     result = """<rect class="hit" x="-31" y="-31" width="62" height="62"/><g class="body">""" & shapes(li, cls) &
       &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{letter}</text></g>"""
 
-  proc markPos(c, li: int): Vec =
-    ## where letter li's note sits in cell c: two rows of three, as the builder draws them
-    let p = cellPos(c)
-    vec(p.x - 22 + float(li mod 3) * 22, p.y - 11 + float(li div 3) * 24)
+  proc notesIn(marks: int): int =
+    for j in 0 .. 5:
+      if (marks and (1 shl j)) != 0: inc result
 
-  proc markSvg(li: int): string =
-    &"""<rect class="hit" x="-11" y="-12" width="22" height="24"/><text class="pm" y="5.5" text-anchor="middle">{puz.letters[li]}</text>"""
+  proc edgeCells(s: int): (int, int) =
+    ## the two cells either side of edge spot s (36..95): first 30 between a cell and the one on its right, then 30
+    ## between a cell and the one below
+    let e = s - 36
+    if e < 30: ((e div 5) * 6 + e mod 5, (e div 5) * 6 + e mod 5 + 1)
+    else: (e - 30, e - 30 + 6)
+
+  proc maxNotes(s: int): int = (if s < 36: 4 else: 2)   # four in a cell, two by two; two on an edge
+
+  proc spotCentre(s: int): Vec =
+    if s < 36: return cellPos(s)
+    let (a, b) = edgeCells(s)
+    vec((cellPos(a).x + cellPos(b).x) / 2, (cellPos(a).y + cellPos(b).y) / 2)
+
+  proc spotOpen(b: Board, s: int): bool =
+    ## a spot can show and take notes while its cell, or both cells of its edge, are empty
+    if s < 36: return b.cells[s] < 0
+    let (c1, c2) = edgeCells(s)
+    b.cells[c1] < 0 and b.cells[c2] < 0
+
+  proc markPos(marks, s, li: int): Vec =
+    ## where letter li's note sits in spot s, given the spot's notes, in the order of the letters below:
+    ## in a cell two by two, on an edge one or two along it
+    var k = 0
+    for j in 0 ..< li:
+      if (marks and (1 shl j)) != 0: inc k
+    let p = spotCentre(s)
+    if s < 36: return vec(p.x - 15 + float(k mod 2) * 30, p.y - 15 + float(k div 2) * 30)
+    let along = if notesIn(marks) < 2: 0.0 else: float(k) * 24 - 12
+    if s - 36 < 30: vec(p.x, p.y + along) else: vec(p.x + along, p.y)
+
+  proc markSvg(li: int, edge: bool): string =
+    ## a note is the letter's tile, small: the size of the small letters below the board (a bit smaller on an edge)
+    let h = if edge: 12 else: 15
+    &"""<rect class="hit" x="-{h}" y="-{h}" width="{2 * h}" height="{2 * h}"/><g class="note">{shapes(li)}""" &
+      &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{puz.letters[li]}</text></g>"""
 
   proc renderBoard(b: Board): seq[Item] =
     var at: array[36, int]
@@ -656,11 +690,12 @@ nbCodeAnd(nbJsFromCode):
       let where = if c < 0: "home" else: ""
       result.add Item(key: &"t{id}", pos: pos, svg: svg, cls: where)
     # notes (small letters), in the empty cells only (a letter on the cell hides them; they come back when it goes)
-    for c in 0 ..< 36:
-      if b.cells[c] < 0 and b.marks[c] != 0:
+    for s in 0 ..< 96:
+      if b.marks[s] != 0 and b.spotOpen(s):
         for li in 0 .. 5:
-          if (b.marks[c] and (1 shl li)) != 0:
-            result.add Item(key: &"m{c}-{li}", pos: markPos(c, li), svg: markSvg(li), cls: "mark")
+          if (b.marks[s] and (1 shl li)) != 0:
+            let cls = if s < 36: "mark" else: "mark side"
+            result.add Item(key: &"m{s}-{li}", pos: markPos(b.marks[s], s, li), svg: markSvg(li, s >= 36), cls: cls)
 
 nbText: """
 And here is the entire interaction. Grabbing tile `id` lists one future per empty cell (a tile never replaces a letter already placed), snaps to the nearest within
@@ -701,17 +736,25 @@ nbCodeAnd(nbJsFromCode):
   proc noteSpec(b: Board, li: int): Behavior[Board] =
     ## small letters: the held letter writes itself small into the empty cell it is over (a copy: no tile moves);
     ## anywhere else it goes back to its letter and nothing changes
-    var cells: seq[int]
-    for c in 0 ..< 36:
-      if b.cells[c] < 0: cells.add c
+    ## (a cell, or the edge between two empty cells side by side: a Snyder note, the letter is in one of the two)
+    var spots: seq[int]
+    for s in 0 ..< 96:                     # open spots with room for this note (or that have it already)
+      if b.spotOpen(s) and (notesIn(b.marks[s]) < maxNotes(s) or (b.marks[s] and (1 shl li)) != 0): spots.add s
     result = proc (render: Render[Board], key: string): Picker[Board] =
-      result.lands = cells.mapIt(markPos(it, li))
+      result.lands = spots.mapIt(markPos(b.mark(it, li).marks[it], it, li))
       result.pick = proc (p: Vec): Choice[Board] =
         result = Choice[Board](ok: true, state: b, land: vec(NaN, NaN), dist: Inf)
-        for c in cells:
-          let d = norm(cellPos(c) - p)
-          if d < cell * 0.6 and d < result.dist:
-            result = Choice[Board](ok: true, state: b.mark(c, li), land: markPos(c, li), dist: d)
+        # the nearest cell centre or edge middle wins: over the line between two cells, it is the edge
+        var best = -1
+        var bestD = Inf
+        for s in 0 ..< 96:
+          let d = norm(spotCentre(s) - p)
+          if d < bestD and (s < 36 or b.spotOpen(s)):
+            best = s
+            bestD = d
+        if best >= 0 and bestD < cell * 0.6 and best in spots:
+          let nb = b.mark(best, li)
+          result = Choice[Board](ok: true, state: nb, land: markPos(nb.marks[best], best, li), dist: bestD)
 
   proc tileSpec(b: Board, key: string): Behavior[Board] =
     if key[0] == 'm': return nil           # a note is never lifted itself: grabbing it pulls a copy
@@ -784,8 +827,8 @@ nbCodeAnd(nbJsFromCode):
       if b.cells.find(id) < 0: inc left[id div 6]
     for li in 0 .. 5:
       let s = stackPos(li)
-      if b.small and left[li] > 0:       # small letters: a thin outline keeps the size of the big letter (and its grab area)
-        result.add &"""<rect class="was" x="{s.x - 31}" y="{s.y - 31}" width="62" height="62" rx="12"/>"""
+      if b.small and left[li] > 0:       # small letters: a thin round outline where the big letter was (its grab area too)
+        result.add &"""<circle class="was" cx="{s.x}" cy="{s.y}" r="31"/>"""
       if left[li] == 0:
         result.add &"""<rect class="empty" x="{s.x - 31}" y="{s.y - 31}" width="62" height="62" rx="12"/>"""
         result.add &"""<text class="done" x="{s.x}" y="{s.y + 9}" text-anchor="middle" font-size="26">✓</text>"""
@@ -918,6 +961,7 @@ nbCodeDisplay(nbJsFromCode):
     holdMs: int                   # how long a press on a redirected item waits before lifting the item itself
     targetAt: proc (p: Vec): bool # whether a landing spot gets the drop-target outline (nil: always)
     targetHalf: float             # half the size of the drop-target outline
+    centreGrab: bool              # the held item sits right under the pointer, wherever it was grabbed
 
   proc tr(p: Vec): cstring = cstring(&"translate({p.x:.2f}px, {p.y:.2f}px)")
 
@@ -985,6 +1029,7 @@ nbCodeDisplay(nbJsFromCode):
     st.redirected = key != grabbed
     st.origin = st.render.locate(st.state, grabbed)
     st.grab = p - st.origin               # a redirected item starts where the grabbed one is
+    if st.centreGrab: st.grab = vec(0, 0)
     st.picker = behavior(st.render, key)   # speculative renders happen here
     st.fg.appendChild(st.nodes[key])       # float above the others
     st.svg.classList.add("dragging")
@@ -1642,10 +1687,12 @@ nbJsFromCode:
   stage.onCommit = proc () =
     if stage.state.small:
       stage.svg.classList.add("small")
-      stage.targetHalf = 13                # the drop target is the note's own spot
+      stage.targetHalf = 16                # the drop target is the note's own spot
+      stage.centreGrab = true              # a small letter grabbed anywhere in its outline comes under the finger
     else:
       stage.svg.classList.remove("small")
       stage.targetHalf = 36
+      stage.centreGrab = false
     if started == 0 and stage.state.moves > 0: started = now()
     if undoable and not quiet and stage.state.cells != last.cells: endUndoCb()   # a move: no going back to before the restart
     if stage.state.cells != last.cells:
@@ -1689,8 +1736,8 @@ nbJsFromCode:
         wonAt = parseFloat(parts[3])
         if parts.len == 6:                 # the notes and the small-letter mode
           let ms = parts[4].split(',')
-          if ms.len == 36:
-            for i in 0 ..< 36: b.marks[i] = parseInt(ms[i])
+          if ms.len in [36, 96]:
+            for i in 0 ..< ms.len: b.marks[i] = parseInt(ms[i])
           b.small = parts[5] == "1"
     celebrated = solved(puz, b.grid)     # don't throw confetti again on reload
     confetti.innerHTML = ""
@@ -1778,7 +1825,9 @@ nbJsFromCode:
     ## restart is only offered once a letter is down (or while its undo is on offer)
     var placed = false
     for c in 0 ..< 36:
-      if (stage.state.cells[c] >= 0 and not isGiven(c)) or stage.state.marks[c] != 0: placed = true
+      if stage.state.cells[c] >= 0 and not isGiven(c): placed = true
+    for m in stage.state.marks:
+      if m != 0: placed = true
     resetBtn.setHidden(not placed and not undoable)
   proc resetLabel() =
     if undoable: resetBtn.innerHTML = cstring(L("↶ undo restart", "↶ annullo rifaccio"))
@@ -1813,7 +1862,9 @@ nbJsFromCode:
       return
     var had = false                     # nothing to undo on an untouched board
     for c in 0 ..< 36:
-      if (stage.state.cells[c] >= 0 and not isGiven(c)) or stage.state.marks[c] != 0: had = true
+      if stage.state.cells[c] >= 0 and not isGiven(c): had = true
+    for m in stage.state.marks:
+      if m != 0: had = true
     before = stage.state
     beforeHistory = history
     beforeStarted = started

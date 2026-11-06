@@ -16,8 +16,8 @@
 ## Waypoints are cells (`r2c6`), a letter's tile below the board (`below A`), a note (`note A r2c6`, a small
 ## letter written in a cell) or `off`; `double-tap: r3c6` taps a cell twice.
 ##
-## Notes (small letters): `small: on` starts with the letters small, `notes: r1c1 AI, r2c2 I` writes notes on the
-## start board; `end small: on|off` and `end notes: r1c1 AI` (or `none`) check them after the gesture.
+## Notes (small letters): `small: on` starts with the letters small, `notes: r1c1 AI, r2c2-r2c3 I` writes notes on
+## the start board (`r2c2-r2c3`: on the edge between two cells, also a waypoint); `end small: on|off` and `end notes: r1c1 AI` (or `none`) check them after the gesture.
 ## `swipe: down` (or `up`) swipes in the empty space between the letters below the board.
 ##
 ## This tool collects the scenarios; `tools/specdrag.js` plays them on the built page (`index.html`, so build
