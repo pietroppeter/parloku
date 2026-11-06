@@ -597,7 +597,7 @@ nbCodeAnd(nbJsFromCode):
     ## all three shapes are drawn; the page's skin (CSS) shows one, and sets the colours
     var cls = "tile"
     if given: cls = "tile given"
-    result = shapes(li, cls) & """<rect class="sh" x="-25" y="-26" width="50" height="20" rx="8"/>""" &
+    result = shapes(li, cls) &
       &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{letter}</text>"""
 
   proc renderBoard(b: Board): seq[Item] =
