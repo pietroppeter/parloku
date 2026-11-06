@@ -466,8 +466,8 @@ proc play() {.async.} =
   for c in [31, 32]:
     cellT[c].place(c)
     await sleep(250)
-  say(T("<b>The last free cell</b> of a row, a column or a box: double tap it, and the missing letter goes in by itself. Here the bottom row has five letters.\nOn any other cell a double tap does nothing: there, the letter is for you to find.",
-        "<b>L'ultima casella libera</b> di una riga, di una colonna o di un riquadro: doppio tocco, e la lettera che manca si mette da sola. Qui la riga in basso ha già cinque lettere.\nSulle altre caselle il doppio tocco non fa niente: lì la lettera la trovi tu."), 6)
+  say(T("<b>The last free cell</b> of a row, column or box: double tap it and the missing letter comes. On other cells a double tap does nothing.",
+        "<b>L'ultima casella libera</b> di una riga, colonna o riquadro: doppio tocco e arriva la lettera che manca. Sulle altre caselle il doppio tocco non fa niente."), 6)
   highlight(0, 5, 6, 1)
   pointCell(34)
   await sleep(900)

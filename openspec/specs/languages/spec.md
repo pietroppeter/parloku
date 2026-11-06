@@ -6,9 +6,8 @@ Parloku speaks English and Italian: how the language is chosen and what must exi
 ## Requirements
 
 ### Requirement: Choosing the language
-The pages SHALL speak English and Italian, chosen by `?lang=`, then the last choice, then the browser's language. The
-EN / IT switch is in the page but SHALL NOT show while playing (since #13), so a player gets the browser's language
-unless a link says otherwise.
+The game SHALL speak Italian. English is a draft, chosen with `?lang=en` and then remembered; `?lang=it` goes back
+to Italian. The browser's language SHALL NOT change it, and there SHALL be no language switch in the menu.
 
 #### Scenario: An Italian browser
 - **WHEN** a browser set to Italian opens the game for the first time
@@ -18,10 +17,14 @@ unless a link says otherwise.
 - **WHEN** the game is opened with `?lang=en` in an Italian browser
 - **THEN** the page is in English
 
+#### Scenario: An English browser
+- **WHEN** a browser set to English opens the game for the first time, with no `?lang=`
+- **THEN** the page is in Italian
+
 ### Requirement: Everything in both languages
-Every text a player reads SHALL exist in both languages: the game, the rules, the tutorial's explanations, the
-splash and the how-to-play page. Words of the puzzles stay as they are (they are Italian words). The istruzioni page
-SHALL stay in Italian only for now (Pietro, 6 November 2026).
+Every text a player reads SHALL exist in Italian: the game, the rules, the tutorial's explanations, the splash and
+the istruzioni page. The English draft SHOULD follow, and MAY lag behind (the istruzioni page is Italian only for
+now). Words of the puzzles stay as they are (they are Italian words).
 
 #### Scenario: A tutorial step
 - **WHEN** the tutorial explains a forced letter in Italian

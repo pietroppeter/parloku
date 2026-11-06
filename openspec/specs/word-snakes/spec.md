@@ -201,13 +201,13 @@ outline AMICA: r1c1 r2c1 r3c1 r3c2 r3c3
 ```
 
 ### Requirement: Sending a snake back
-A double tap on a letter of a word's outline SHALL cut the word there: that letter and every letter after it along the
-word (those that are not givens) go back below, and the letters before it stay. A double tap on the word's start letter
-sends the whole word back. A letter outside every outline goes back alone.
+A double tap on a letter of a word's outline SHALL send that letter and every later letter of the word back below;
+the letters before it SHALL stay, and givens SHALL always stay. A double tap on the word's first letter therefore
+clears the whole word. A letter outside every outline goes back alone.
 
 #### Scenario: Double tap inside MAGIA
 - **WHEN** MAGIA is spelled down the last column and the player double taps its G
-- **THEN** G, I and A go back below, and M A stay as the start of MAGIA
+- **THEN** G, I and A go back below, and M A stay with the outline on them
 
 ```drag
 puzzle: 2
@@ -229,9 +229,9 @@ end:
 outline MAGIA: r1c6 r2c6
 ```
 
-#### Scenario: Double tap on the start of MAGIA
+#### Scenario: Double tap on the first letter
 - **WHEN** MAGIA is spelled down the last column and the player double taps its M
-- **THEN** all five letters go back below and MAGIA's start ring is empty again
+- **THEN** all five letters go back below and MAGIA's start mark is empty again
 
 ```drag
 puzzle: 2
