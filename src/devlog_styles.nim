@@ -13,14 +13,22 @@ let root = currentSourcePath().parentDir.parentDir
 # ---------------------------------------------------------------- the position shown in every play area
 const
   letters = "AILPST"
-  solution = ["TSIPLA", "ALPTIS", "LITASP", "PASLTI", "SPLIAT", "ITASPL"]
-  words = [("ITALIA", @[(5, 0), (5, 1), (5, 2), (4, 2), (4, 3), (4, 4)]),
-           ("PASTA", @[(3, 0), (3, 1), (3, 2), (2, 2), (2, 3)]),
-           ("ALPI", @[(1, 0), (1, 1), (1, 2), (0, 2)])]
+  words = [("ITALIA", @[(0, 0), (0, 1), (0, 2), (1, 2), (1, 3), (1, 4)]),
+           ("PASTA", @[(2, 0), (2, 1), (2, 2), (3, 2), (3, 3)]),
+           ("ALPI", @[(4, 0), (4, 1), (4, 2), (5, 2)])]
   spelled = [6, 3, 0]                                  # how far each word is spelled in the position shown
-  givens = [(0, 1), (3, 3), (5, 4)]
-  extra = [(0, 5), (2, 5)]                             # a couple of loose placements, to look mid-game
+  extra = [(5, 5), (3, 5)]                             # a couple of loose placements, to look mid-game
   budLetter = 1                                        # the letter being pulled: I
+
+# puzzle 1 as the game has it in data/; the paths above must spell its words from its start cells
+let puzzle1 = parseFile(currentSourcePath().parentDir.parentDir / "data" / "puzzle1-ITALIA-PASTA-ALPI.json")
+let solution = block:
+  var rows: seq[string]
+  for row in puzzle1["solution"]: rows.add row.getElems.mapIt(it.getStr).join
+  rows
+let givens = puzzle1["problem"]["letterHints"].getElems.mapIt((it["pos"][0].getInt, it["pos"][1].getInt))
+for k, h in puzzle1["problem"]["wordHints"].getElems:
+  doAssert h["word"].getStr == words[k][0] and (h["pos"][0].getInt, h["pos"][1].getInt) == words[k][1][0], "data/ puzzle 1 changed"
 
 func idx(c: char): int = letters.find(c)
 
@@ -174,9 +182,15 @@ const
   x0 = 10.0
   y0 = 10.0
   boardW = 6 * cs
-  rowY = y0 + boardW + 50
+  sc = cs / 78         # the game's board is 78 units a cell
+  band = 4 * sc        # word outline thickness
+  rr = cs / 2 - 3 * sc - band   # inner half-width of the outline: it stays inside its cells
+  corner = 14 * sc
+  fil = 10 * sc
+  rowY = y0 + boardW + 62 * sc   # two rows of three letters under the board, as in the game
+  rowGap = 74 * sc
   svgW = boardW + 2 * x0
-  svgH = rowY + 34
+  svgH = rowY + rowGap + 34
 
 proc cellCentre(r, c: int): (float, float) = (x0 + (c.float + 0.5) * cs, y0 + (r.float + 0.5) * cs)
 
@@ -188,68 +202,71 @@ proc playSvg(st: Style): string =
       &"""<feDisplacementMap in="SourceGraphic" scale="3.2"/></filter>"""
   for k, (w, path) in words:
     if spelled[k] == 0: continue
-    var d = ""
-    for i in 0 ..< spelled[k]:
-      let (x, y) = cellCentre(path[i][0], path[i][1])
-      d &= (if i == 0: "M" else: "L") & f1(x) & " " & f1(y)
-    if spelled[k] == 1: d &= "h.01"
-    # round joins only round the outer corners; each inner (concave) corner gets a fillet, in white for the
-    # outer edge of the band and in black for its inner edge (same construction as the game's overlay)
+    # the game's outline (overlay() in src/parloku.nim), scaled: a rounded square per cell and a band between
+    # neighbours, kept inside the cells; the inner (concave) corners get a fillet, for the outer edge in white
+    # and for the inner edge in black
+    let k0 = k
+    proc squares(w, r: float, col: string): string =
+      for i in 0 ..< spelled[k0]:
+        let (x, y) = cellCentre(path[i][0], path[i][1])
+        result &= &"""<rect x="{f1(x - w)}" y="{f1(y - w)}" width="{f1(2 * w)}" height="{f1(2 * w)}" rx="{f1(r)}" fill="{col}"/>"""
+        if i > 0:
+          let (qx, qy) = cellCentre(path[i-1][0], path[i-1][1])
+          let (mx, my, dx, dy) = (min(x, qx), min(y, qy), abs(x - qx), abs(y - qy))
+          if dx > dy: result &= &"""<rect x="{f1(mx)}" y="{f1(my - w)}" width="{f1(dx)}" height="{f1(2 * w)}" fill="{col}"/>"""
+          else: result &= &"""<rect x="{f1(mx - w)}" y="{f1(my)}" width="{f1(2 * w)}" height="{f1(dy)}" fill="{col}"/>"""
     proc fillets(w, r: float, colour: string): string =
-      for i in 1 ..< spelled[k] - 1:
+      for i in 1 ..< spelled[k0] - 1:
         let (c, p, n) = (cellCentre(path[i][0], path[i][1]), cellCentre(path[i-1][0], path[i-1][1]), cellCentre(path[i+1][0], path[i+1][1]))
         let a = ((c[0] - p[0]) / cs, (c[1] - p[1]) / cs)
         let b = ((n[0] - c[0]) / cs, (n[1] - c[1]) / cs)
-        if abs(a[0] - b[0]) + abs(a[1] - b[1]) < 0.01: continue   # straight on
+        if abs(a[0] * b[0] + a[1] * b[1]) > 0.5: continue   # straight on
         let kx = c[0] + w * (b[0] - a[0])
         let ky = c[1] + w * (b[1] - a[1])
         result &= &"""<path d="M{f1(kx)} {f1(ky)}L{f1(kx - a[0] * r)} {f1(ky - a[1] * r)}Q{f1(kx)} {f1(ky)} {f1(kx + b[0] * r)} {f1(ky + b[1] * r)}Z" fill="{colour}"/>"""
-    let (outer, band) = (cs * 0.47, 3.0)
     s &= &"""<mask id="wl-{st.id}-{k}" maskUnits="userSpaceOnUse" x="0" y="0" width="{f1(svgW)}" height="{f1(svgH)}">""" &
-      &"""<path d="{d}" fill="none" stroke="#fff" stroke-width="{f1(2 * outer)}" stroke-linecap="round" stroke-linejoin="round"/>""" &
-      fillets(outer, 16, "#fff") &
-      &"""<path d="{d}" fill="none" stroke="#000" stroke-width="{f1(2 * (outer - band))}" stroke-linecap="round" stroke-linejoin="round"/>""" &
-      fillets(outer - band, 16 + band, "#000") & "</mask>"
+      squares(rr + band, corner, "#fff") & fillets(rr + band, fil, "#fff") &
+      squares(rr, corner - band, "#000") & fillets(rr, fil + band, "#000") & "</mask>"
   s &= "</defs>"
-  # board
-  s &= &"""<rect x="{f1(x0 - 4)}" y="{f1(y0 - 4)}" width="{f1(boardW + 8)}" height="{f1(boardW + 8)}" rx="12" fill="{st.card}"/>"""
-  for r in 0..5:
-    for c in 0..5:
-      let fill = if ((r div 2) + (c div 3)) mod 2 == 0: st.ca else: st.cb
-      s &= &"""<rect x="{f1(x0 + c.float * cs)}" y="{f1(y0 + r.float * cs)}" width="{f1(cs)}" height="{f1(cs)}" fill="{fill}" stroke="{mix(st.boxline, st.card, 0.82)}" stroke-width="1"/>"""
-  for c in [3]:
-    s &= &"""<rect x="{f1(x0 + c.float * cs - 1.25)}" y="{f1(y0)}" width="2.5" height="{f1(boardW)}" fill="{st.boxline}" opacity=".85"/>"""
+  # board: a classic mini sudoku, as the game draws it (thin lines between cells, thick round boxes and edge)
+  s &= &"""<rect x="{f1(x0 - 6)}" y="{f1(y0 - 6)}" width="{f1(boardW + 12)}" height="{f1(boardW + 12)}" rx="10" fill="{st.card}"/>"""
+  s &= &"""<rect x="{f1(x0)}" y="{f1(y0)}" width="{f1(boardW)}" height="{f1(boardW)}" fill="{st.ca}"/>"""
+  let thin = mix(st.boxline, st.ca, 0.65)
+  for i in 1..5:
+    s &= &"""<line x1="{f1(x0)}" y1="{f1(y0 + i.float * cs)}" x2="{f1(x0 + boardW)}" y2="{f1(y0 + i.float * cs)}" stroke="{thin}" stroke-width="1"/>"""
+    s &= &"""<line x1="{f1(x0 + i.float * cs)}" y1="{f1(y0)}" x2="{f1(x0 + i.float * cs)}" y2="{f1(y0 + boardW)}" stroke="{thin}" stroke-width="1"/>"""
   for r in [2, 4]:
-    s &= &"""<rect x="{f1(x0)}" y="{f1(y0 + r.float * cs - 1.25)}" width="{f1(boardW)}" height="2.5" fill="{st.boxline}" opacity=".85"/>"""
-  s &= &"""<rect x="{f1(x0)}" y="{f1(y0)}" width="{f1(boardW)}" height="{f1(boardW)}" fill="none" stroke="{st.boxline}" stroke-width="2.5" rx="3"/>"""
+    s &= &"""<rect x="{f1(x0)}" y="{f1(y0 + r.float * cs - 1.7)}" width="{f1(boardW)}" height="3.4" fill="{st.boxline}"/>"""
+  s &= &"""<rect x="{f1(x0 + 3 * cs - 1.7)}" y="{f1(y0)}" width="3.4" height="{f1(boardW)}" fill="{st.boxline}"/>"""
+  s &= &"""<rect x="{f1(x0)}" y="{f1(y0)}" width="{f1(boardW)}" height="{f1(boardW)}" fill="none" stroke="{st.boxline}" stroke-width="3.4"/>"""
   # tiles on the board
   for (r, c) in placedCells():
     let (x, y) = cellCentre(r, c)
     let ch = solution[r][c]
-    s &= tileSvg(st, x, y, cs * 0.38, idx(ch), ch)
-    if (r, c) in givens:
-      s &= &"""<circle cx="{f1(x)}" cy="{f1(y)}" r="{f1(cs * 0.31)}" fill="none" stroke="{st.ink}" stroke-width="1" stroke-dasharray="1.5 2.5" opacity=".45"/>"""
-  # word outlines: a ring before the first letter, then the outline of the spelled path
+    s &= tileSvg(st, x, y, cs * 0.4, idx(ch), ch)
+  # word outlines: a rounded square on the start cell before the first letter, then the outline of the spelled path
   for k, (w, path) in words:
     if spelled[k] == 0:
       let (x, y) = cellCentre(path[0][0], path[0][1])
-      s &= &"""<circle cx="{f1(x)}" cy="{f1(y)}" r="{f1(cs * 0.44)}" fill="none" stroke="{st.w[k]}" stroke-width="3.2"/>"""
+      let h = rr + band / 2
+      s &= &"""<rect x="{f1(x - h)}" y="{f1(y - h)}" width="{f1(2 * h)}" height="{f1(2 * h)}" rx="{f1(corner - band / 2)}" fill="none" stroke="{st.w[k]}" stroke-width="{f1(band)}"/>"""
     else:
       s &= &"""<rect x="0" y="0" width="{f1(svgW)}" height="{f1(svgH)}" fill="{st.w[k]}" mask="url(#wl-{st.id}-{k})"/>"""
   # six budding letters below the board, one of them mid-division
-  let r0 = 21.0
+  let r0 = 31 * sc
   for i in 0..5:
-    let (x, _) = cellCentre(0, i)
+    let x = x0 + (84 + float(i mod 3) * 150) * sc
+    let y = rowY + float(i div 3) * rowGap
     if i == budLetter:
-      let mother = (x, rowY)
-      let bud = (x + 22, rowY - 31)
+      let mother = (x, y)
+      let bud = (x + 20, y - 30)
       let rb = r0 * 0.86
       let filt = if st.rough: " filter=\"url(#rough-" & st.id & ")\"" else: ""
       s &= &"""<g{filt}><path d="{neckPath(mother, r0 * 0.96, bud, rb, 6.5)}" fill="{st.g[i]}"/></g>"""
       s &= tileSvg(st, mother[0], mother[1], r0 * 0.96, i, letters[i])
       s &= &"""<g opacity=".96">{tileSvg(st, bud[0], bud[1], rb, i, letters[i])}</g>"""
     else:
-      s &= tileSvg(st, x, rowY, r0, i, letters[i])
+      s &= tileSvg(st, x, y, r0, i, letters[i])
   s & "</svg>"
 
 proc cluesHtml(st: Style): string =
@@ -575,13 +592,13 @@ nbText: """
 ## About this page
 
 Every play area shows the same moment of puzzle 1 (ITALIA · PASTA · ALPI). ITALIA is spelled, PASTA is half done, and
-ALPI has not started, so its start cell has only the ring. Each area has the parts of the new layout and nothing else:
+ALPI has not started, so its start cell only has its outline. Each area has the parts of the new layout and nothing else:
 
 - **Three clue words**, one per line, aligned left, centre and right, each in a dark frame. No numbers: the frame's
   colour is the word's colour on the board.
-- **The board**, with the outline of each spelled word drawn in its colour, and a **ring** on the start cell of a word
-  that has no letters yet. A dotted ring marks the three given letters, as in the game.
-- **Six budding letters** below the board, one per symbol. The **I** is being pulled, so a copy buds off it on a neck,
+- **The board**, a classic mini sudoku grid as in the game, with the outline of each spelled word drawn in its colour, and a **rounded square** on the start cell of a word
+  that has no letters yet. The three given letters are already on the board.
+- **Six budding letters** below the board in two rows of three, one per symbol. The **I** is being pulled, so a copy buds off it on a neck,
   as in the cell-division prototype.
 
 Each style picks **six pastel colours** for the letters, **three dark colours** for the words, a tile shape and one
