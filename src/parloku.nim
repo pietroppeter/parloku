@@ -21,7 +21,7 @@ nbRawHtml: """
 <h1><span class="tile">P</span>arloku</h1>
 <p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste.">A mini sudoku spelled in letters, with words hidden in it.</p>
 <div class="game">
-  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><a class="btn menu-only" id="howto" href="istruzioni.html" data-it="istruzioni">how to play</a><button class="btn menu-only" id="again" aria-haspopup="true" aria-expanded="false" data-it="ancora! ▾">again! ▾</button><span id="picker"></span>
+  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><a class="btn menu-only" id="howto" href="istruzioni.html" data-it="istruzioni">how to play</a><button class="btn menu-only" id="again" aria-haspopup="true" aria-expanded="false" data-it="ancora!">again!</button><span id="picker"></span>
 <div class="langs" id="langs"><button class="btn" data-lang="en">EN</button><button class="btn" data-lang="it">IT</button></div>
   </div>
   <div class="coach" id="coach" hidden>
@@ -1332,6 +1332,7 @@ nbJsFromCode:
   proc scrollTop() {.importjs: "window.scrollTo(0, 0)".}
   proc inPlay(ev: Event): bool {.importjs: "!!#.target.closest('.play')".}
   proc inBar(ev: Event): bool {.importjs: "!!#.target.closest('.picker')".}
+  proc setVar(e: Element, k, v: cstring) {.importjs: "#.style.setProperty(#, #)".}
   proc onClue(ev: Event): bool {.importjs: "!!#.target.closest('.clue,button,a')".}
   proc inStage(ev: Event): bool {.importjs: "!!#.target.closest('.stage')".}
   var hideTimer = 0
@@ -1342,10 +1343,18 @@ nbJsFromCode:
     hideTimer = setTimer(proc () =
       if document.body.classList.contains("chrome"): setMode("focus"), 4000)
   proc setMode(m: string) =
+    var drop = -1.0                    # -1: already down, keep the drop it has
+    if m == "chrome" and not document.body.classList.contains("chrome"):
+      let (_, barTop, _, barH) = rectOf(document.querySelector(".picker"))
+      discard barTop
+      let (_, cluesTop, _, _) = rectOf(document.getElementById("clues"))
+      drop = max(0.0, barH + 6 - cluesTop)
     for k in ["focus", "chrome", "explain"]:
       if k == m: document.body.classList.add(cstring(k))
       else: document.body.classList.remove(cstring(k))
     if m == "chrome":
+      # move words, grid and letters down only as much as the bar needs (none if there is room above already)
+      if drop >= 0: setVar(document.body, "--drop", cstring(&"{drop:.0f}px"))
       armHide()
     else:
       discard setTimer(proc () =          # back to the three buttons once the bar is out of sight
@@ -1529,6 +1538,10 @@ nbJsFromCode:
     armHide())
 
   # ---- changing puzzle: words, grid and letters leave to the left one at a time, and the new ones come in from the right
+  proc slideOutSvg(e: Element, dx: float, delay: int) {.importjs:
+    "#.animate([{transform: 'translateX(0px)'}, {transform: 'translateX(' + # + 'px)'}], {duration: 260, delay: #, easing: 'ease-in', fill: 'both'})".}
+  proc slideInSvg(e: Element, dx: float, delay: int) {.importjs:
+    "#.animate([{transform: 'translateX(' + # + 'px)'}, {transform: 'translateX(0px)'}], {duration: 300, delay: #, easing: 'ease-out', fill: 'both'})".}
   proc slideOut(e: Element, dx: float, delay: int) {.importjs:
     "#.animate([{transform: 'translateX(0px)', opacity: 1}, {transform: 'translateX(' + # + 'px)', opacity: 0}], {duration: 260, delay: #, easing: 'ease-in', fill: 'both'})".}
   proc slideIn(e: Element, dx: float, delay: int) {.importjs:
@@ -1565,14 +1578,14 @@ nbJsFromCode:
     let gone = pieces()
     for j, (els, svg) in gone:
       for e in els:
-        if svg: e.slideOut(-640, j * step)
+        if svg: e.slideOutSvg(-640, j * step)
         else: e.slideOut(-viewW(), j * step)
     discard setTimer(proc () =
       go()
       let inn = pieces()
       for j, (els, svg) in inn:
         for e in els:
-          if svg: e.slideIn(640, j * step)
+          if svg: e.slideInSvg(640, j * step)
           else: e.slideIn(viewW(), j * step)
       discard setTimer(proc () =
         for (els, _) in pieces():

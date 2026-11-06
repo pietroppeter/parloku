@@ -202,12 +202,9 @@ body.focus .picker{transform:translateY(-105%);visibility:hidden}
 body.chrome .picker{transform:none;visibility:visible}
 .picker::-webkit-scrollbar{display:none}
 .picker>*{flex:none}
-body.focus .play,body.chrome .play{transition:padding-top .35s ease}
-body.chrome .play{padding-top:calc(66px + env(safe-area-inset-top))}
-.stage{transition:margin .35s ease}
-body.chrome .stage{margin:0 28px}
-.clues{transition:gap .35s ease}
-body.chrome .clues{gap:3px}
+.play .clues,.play .stage{transition:transform .35s ease,gap .35s ease}
+body.chrome .play .clues{transform:translateY(var(--drop,0px));gap:3px}
+body.chrome .play .stage{transform:translateY(calc(var(--drop,0px) - 10px))}
 .menu-only{display:none}
 body.focus .picker .menu-only,body.chrome .picker .menu-only{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
 body.focus .picker #picker,body.chrome .picker #picker{display:none}
