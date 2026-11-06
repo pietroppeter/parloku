@@ -1,0 +1,25 @@
+# Terne di parole per il builder: tre parole per riga, 6 lettere diverse in tutto, niente doppie.
+# Il builder mostra solo le terne che non hanno ancora un puzzle in data/puzzleN-*.json.
+# Le righe che iniziano con # sono commenti.
+IMPARA PRIMA MATITA
+PAROLE PERLE OPERA
+LOGICA GIOCA CALCOLI
+ALBA LUNA NUBE
+CENA PANE PERA
+ESTATE MARE SERATA
+CANE PESCE APE
+NERO ROSA ORO
+CANTO NOTE TONO
+PROVA TROVA PORTA
+SALE OLIO SALSA
+TEATRO OPERA PARTE
+MELA PERA PALMA
+CIELO VOLO VELOCE
+VINO UVA NUOVO
+AUTO MOTO TRAM
+PADRE MADRE AMARE
+ROMEO AMORE MORTE
+MONTE NEVE VENTO
+SCUOLA AULA SCALA
+ITALIA PASTA ALPI
+AMICA GIOCO MAGIA

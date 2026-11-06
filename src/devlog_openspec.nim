@@ -193,7 +193,8 @@ wrong and are fixed now:
 New things the check turned up, for you to decide:
 
 - **The tutorial doesn't fit the screen.** With the coach box on top, the letters end at 806 px on an iPhone 13, past
-  the 664 px that `first-principles` asks for.
+  the 664 px that `first-principles` asks for. You decided its messages go on semi-transparent white-ish blobs over
+  the board, never on the cells, letter or clue of the step: the change `fit-tutorial-on-screen`.
 - **The code notebook is invisible.** The game page is still the nimib explainer underneath, but nothing shows it
   now. You decided it moves to a devlog post: that is the change `move-notebook-to-devlog`.
 - **No way to switch language while playing.** You decided Italian is the game's language for now, English is a
@@ -223,10 +224,11 @@ which stays Italian for now, as you said.</p>
 <h4>5 · Givens give copies: confirmed</h4>
 <p>A given can't be moved or sent back, but a drag on it, quick or after holding, pulls a copy of its letter, like any
 letter on the board. You confirmed it, so <code>tiles-and-dragging</code> stays as it is.</p>
-<h4>6 · Two kinds of gesture tests</h4>
-<p><code>tests/gestures/*.js</code> check the snake and menu cases with console output you read by eye. The snake cases
-are now drag scenarios that pass or fail on their own, and they pass on main after #13 too. I'd keep
-<code>tests/gestures</code> for now and retire it once you trust the specs.</p>
+<h4>6 · Two kinds of gesture tests: settled</h4>
+<p><code>tests/gestures/*.js</code> checked the snake and menu cases with console output you read by eye. The snake
+cases are drag scenarios now, so <code>snake.js</code>, <code>gioco.js</code> and <code>unsnake.js</code> are gone, and CI
+plays the scenarios on every push: a failing one turns the build red. <code>menu.js</code> and <code>switch.js</code> stay,
+because they check taps and animations a drag scenario can't describe.</p>
 </div>"""
 
 nbRawHtml: """<h2><span class="num">06 · HOW WE WORK FROM NOW</span>Five habits</h2>"""
@@ -246,8 +248,7 @@ nbText: """
 """
 
 nbRawHtml: """<div class="ask"><b>For Pietro to check</b><ul>
-<li>The tutorial (<a href="https://pietroppeter.github.io/parloku/?tutorial">?tutorial</a>) is taller than one phone screen: fine, or trim it?</li>
-<li>Retiring <code>tests/gestures</code> once you trust the drag scenarios.</li>
+<li>A link to the tutorial on the istruzioni page (part of <code>fit-tutorial-on-screen</code>): OK?</li>
 </ul></div>"""
 
 nbRawHtml: """<h2><span class="num">07 · THE SPECS</span>All of them, as they are</h2>""" & summary(report)

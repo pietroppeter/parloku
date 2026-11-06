@@ -13,9 +13,6 @@ func pageHeader(blk: JsonNode, nb: Nb): string =
   ""                                   # the title says it all: no header line above the game
 nb.backend.partials["header"] = pageHeader
 
-var skinButtons = ""
-for (id, label, flag) in skinList:
-  skinButtons.add "<button data-skin=\"" & id & "\"><span class=\"dots\"><i></i><i></i><i></i></span>" & label & " " & flag & "</button>"
 nbRawHtml: """
 <div class="play" id="play">
 <h1><span class="tile">P</span>arloku</h1>
@@ -46,7 +43,7 @@ nbRawHtml: """
   <div data-it="<b>02 · PAROLE</b>Ogni parola parte dalla casella con il suo cerchio colorato e si scrive un passo alla volta: in su, in giù, a destra o a sinistra. Il contorno cresce con le lettere."><b>02 · WORDS</b>Each word starts in the cell ringed in its colour and is spelled one step at a time, up, down, left or right. Its outline grows with the letters.</div>
   <div data-it="<b>03 · TESSERE</b>Sotto la griglia c'è una tessera per lettera. Tirala e si divide: la copia va su una casella. Riporta una tessera alla sua lettera e si riuniscono."><b>03 · TILES</b>Below the board is one tile per letter. Pull it and it divides: the copy goes on a cell. Bring a tile back to its letter and they merge.</div>
 </div>
-<div class="skins" id="skins">""" & skinButtons & """</div>
+<div class="skins" id="skins" hidden></div>
 </div>
 """
 
@@ -682,28 +679,19 @@ nbCodeAnd(nbJsFromCode):
   var coachTint: seq[int]        # tutorial: cells to tint (the reason for a step)
   var coachTarget = -1           # tutorial: the cell to fill (or empty)
   var coachStacks: seq[int]      # tutorial: letter stacks to make glow
-  var classicGrid = true         # a classic grid (plain, lines only); ?grid=rounded for rounded cells and shaded boxes
 
   proc backdrop(b: Board): string =
     let g = b.grid
     result = &"""<rect class="frame" x="{bx - 9}" y="{by - 9}" width="{cell * 6 + 18}" height="{cell * 6 + 18}" rx="14"/>"""
-    if classicGrid:
-      # a classic mini sudoku: one plain square, thin lines between cells, thick lines round the boxes and the edge
-      result.add &"""<rect class="cell ca" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
-      for c in coachTint:
-        let p = cellPos(c)
-        result.add &"""<rect class="cell tint" x="{p.x - cell/2}" y="{p.y - cell/2}" width="{cell}" height="{cell}"/>"""
-      for i in 1 .. 5:
-        result.add &"""<line class="thin" x1="{bx}" y1="{by + i.float * cell}" x2="{bx + cell * 6}" y2="{by + i.float * cell}"/>"""
-        result.add &"""<line class="thin" x1="{bx + i.float * cell}" y1="{by}" x2="{bx + i.float * cell}" y2="{by + cell * 6}"/>"""
-      result.add &"""<rect class="edge" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
-    for c in 0 ..< 36:
-      if classicGrid: break
+    # a classic mini sudoku: one plain square, thin lines between cells, thick lines round the boxes and the edge
+    result.add &"""<rect class="cell ca" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
+    for c in coachTint:
       let p = cellPos(c)
-      let (r, col) = (c div 6, c mod 6)
-      let base = if (r div 2 + col div 3) mod 2 == 0: "ca" else: "cb"
-      let tinted = if c in coachTint: "tint" else: base
-      result.add &"""<rect class="cell {tinted}" x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7"/>"""
+      result.add &"""<rect class="cell tint" x="{p.x - cell/2}" y="{p.y - cell/2}" width="{cell}" height="{cell}"/>"""
+    for i in 1 .. 5:
+      result.add &"""<line class="thin" x1="{bx}" y1="{by + i.float * cell}" x2="{bx + cell * 6}" y2="{by + i.float * cell}"/>"""
+      result.add &"""<line class="thin" x1="{bx + i.float * cell}" y1="{by}" x2="{bx + i.float * cell}" y2="{by + cell * 6}"/>"""
+    result.add &"""<rect class="edge" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
     for i in 1 .. 2:
       let y = by + i.float * cell * 2
       result.add &"""<rect class="boxline" x="{bx}" y="{y - 2.5}" width="{cell * 6}" height="5"/>"""
@@ -1030,7 +1018,6 @@ nbJsFromCode:
   var code = games[0][0]
   var tutorial = false                 # the 🎓 tutorial runs on the first puzzle, with its own saved board
   let fromUrl = $search()
-  if fromUrl.contains("grid=rounded"): classicGrid = false
   if fromUrl.contains("p=") and decode(fromUrl).valid:
     code = decode(fromUrl).encode
     if games.allIt(it[0] != code): games.add (code, "")
@@ -1825,24 +1812,12 @@ nbJsFromCode:
     lang = $l
     applyLang())
 
-  # ---- skins: the look of the page, remembered per browser, or ?skin=name
+  # ---- the look: Niki de Saint Phalle, the game's one skin. Others only by link (?skin=name), for trying them out
   proc setSkin(e: Element, v: cstring) {.importjs: "#.dataset.skin = #".}
-  let skinsEl = document.getElementById("skins")
-  proc applySkin(name: string) =
-    document.body.setSkin(cstring(name))
-    lsSet("parloku:look", cstring(name))
-    for b in skinsEl.querySelectorAll("button"):
-      if $b.attr("data-skin") == name: b.classList.add("on")
-      else: b.classList.remove("on")
   var skin = "niki"
-  let savedSkin = lsGet("parloku:look")
-  if not savedSkin.isNil and ($savedSkin).len > 0: skin = $savedSkin
   let si = fromUrl.find("skin=")
   if si >= 0: skin = fromUrl[si + 5 .. ^1].split('&')[0]
-  applySkin(skin)
-  skinsEl.addEventListener("click", proc (ev: Event) =
-    let k = dataOf(ev, "skin")
-    if not k.isNil: applySkin($k))
+  document.body.setSkin(cstring(skin))
 
   if fromUrl.contains("tutorial"):
     tutorial = true

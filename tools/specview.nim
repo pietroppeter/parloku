@@ -348,9 +348,17 @@ proc playerJs*(r: Report): string =
 
 const svgDefs* = """<svg width="0" height="0" style="position:absolute"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs></svg>"""
 
+var lastRun: (string, JsonNode, string)   # (page, frames, report): src/all.nim builds both spec pages in one program
+
 proc runScenarios*(root: string, page = "index.html"): (JsonNode, string) =
-  ## runs tools/specdrag.nim on the built game `page` and returns its frames and its report
+  ## runs tools/specdrag.nim on the built game `page` and returns its frames and its report; run once per program.
+  ## In CI (`CI=true`) a failing scenario in the specs stops the build, so it turns red.
+  if lastRun[0] == page and not lastRun[1].isNil: return (lastRun[1], lastRun[2])
   let tmp = getTempDir() / "parloku-specframes.json"
-  let (outp, _) = execCmdEx("nim r --hints:off " & quoteShell(root / "tools" / "specdrag.nim") & " --page:" &
+  let (outp, code) = execCmdEx("nim r --hints:off " & quoteShell(root / "tools" / "specdrag.nim") & " --page:" &
     quoteShell(page) & " --json:" & quoteShell(tmp), workingDir = root)
-  (parseFile(tmp), outp.strip)
+  echo outp.strip
+  if code != 0 and getEnv("CI") == "true":
+    quit "a drag scenario in openspec/specs/ fails (see above)"
+  lastRun = (page, parseFile(tmp), outp.strip)
+  (lastRun[1], lastRun[2])

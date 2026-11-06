@@ -10,9 +10,10 @@ Notes for coding agents (and people) changing this repository. How the game beha
   (`/opsx:archive`). `openspec/config.yaml` has the rules for proposals, specs and archiving.
 - A playtest finding becomes a scenario before it is fixed. Gameplay scenarios are ```drag blocks (see the
   `way-of-working` spec); `nim r tools/specdrag.nim` plays them on the built `index.html`
-  (build `src/parloku.nim` first; needs Node and Playwright, like `tests/gestures/`). Scenarios in the specs
+  (build `src/parloku.nim` first; needs Node and Playwright; CI runs them while it builds the specs page). Scenarios in the specs
   must pass before a merge; a change's own scenarios may fail until it is built.
-- After changing specs or the game, rebuild the spec page: `nim c -r -d:release src/specs_page.nim`.
+- The pages are not committed: CI builds them all (`src/all.nim`) and plays the scenarios while it builds the spec
+  page, so a failing scenario in the specs turns the build red. Locally: `nim c -r -d:release src/all.nim`.
 
 ## Previews and PRs
 

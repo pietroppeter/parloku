@@ -31,6 +31,7 @@ Specs: [how Parloku behaves](specs/), written down with [OpenSpec](https://githu
 `openspec/`. The gameplay scenarios are played on the built game and shown as small animations.
 
 Devlog:
+- [Built in CI](devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
 - [Specs that play](devlog/openspec/): adopting OpenSpec, and drag scenarios that are animations and tests at once.
 - [A daily hello and a first lesson](devlog/splash/): the daily splash screen and the animated lesson for first-time players.
 - [Back to basics](devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
@@ -38,7 +39,10 @@ Devlog:
 
 ## Files
 
-- `index.html`: the generated page (served by GitHub Pages from `main`, root). Don't edit it by hand.
+- The HTML pages (`index.html`, `builder.html`, `devlog/*/index.html`, ...) are not committed: CI builds them on every
+  push and pull request and deploys them to GitHub Pages from `main` (`.github/workflows/pages.yml`).
+- `src/devlog_ci.nim` → `devlog/ci/index.html`: devlog post on building the pages in CI.
+- `src/all.nim`: builds every page in one program (any `src/*.nim` that calls `nbInit`, the game first).
 - `src/parloku.nim`: the notebook. Model, rules, solver and drag spec run natively at build time and in the browser.
 - `src/istruzioni.nim` → `istruzioni.html`: how to play (rules, then gestures), linked from the game menu.
 - `src/splash.nim`: the daily splash screen and the animated first lesson (game page only; `?splash=first`, `?learn`, `?nosplash`).
@@ -54,7 +58,7 @@ Devlog:
   `devlog/openspec/index.html`: the post on adopting OpenSpec.
 - `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
   At build time the solver checks each puzzle has a unique solution that matches its key.
-- `src/deps.sh`, `src/config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/`.
+- `src/deps.sh`, `src/config.nims`, `config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/` and put them on the path (the root one is for the `nim js` compiles nimib runs from the repo root).
 
 ## Build
 
@@ -62,14 +66,13 @@ Needs Nim 2.x (built with 2.2.4) and libpcre (PCRE1). From the repo root:
 
 ```sh
 sh src/deps.sh
-nim c -r -d:release src/parloku.nim   # writes index.html
-nim c -r -d:release src/devlog_pastel_skins.nim   # writes devlog/pastel-skins/index.html
-nim c -r -d:release src/devlog_basics.nim         # writes devlog/basics/index.html (picture: src/devlog_basics/before.js)
-nim c -r -d:release src/devlog_splash.nim         # writes devlog/splash/index.html
-nim r tools/specdrag.nim                          # runs the drag scenarios in openspec/
-nim c -r -d:release src/specs_page.nim            # writes specs/index.html (runs the scenarios too)
-nim c -r -d:release src/devlog_openspec.nim       # writes devlog/openspec/index.html
+nim c -r -d:release src/all.nim       # every page, in one program (about 20 s, 3 s once Nim's cache is warm)
+nim c -r -d:release src/parloku.nim   # or one page: writes index.html (devlog posts embed it, so build it first)
+nim r tools/specdrag.nim              # runs the drag scenarios in openspec/ (needs Node and Playwright)
 ```
+
+The pages are written next to the sources (`index.html`, `devlog/<post>/index.html`, ...) and ignored by git.
+CI does the same build, keeps Nim's C cache between runs, and publishes the site from `main`.
 
 ## Links to a puzzle
 
@@ -80,7 +83,7 @@ Givens are `<row><col><letter>` and words `<row><col><word>`, 0-based and separa
 ## Builder
 
 `builder.html` ([src/builder.nim](src/builder.nim)) makes new puzzles with the game's board and gestures. Pick a
-set of three words. Each word is listed with a ring: drag the ring onto a cell to start the word there with its first
+set of three words. The sets come from [`data/terne.txt`](data/terne.txt), one per line; a set that already has a puzzle in `data/` is left out of the list, so the builder only offers triples still to be made. Each word is listed with a ring: drag the ring onto a cell to start the word there with its first
 letter. Hold the word's last letter to see where the next one can go, then drag there (or tap one) to add it. The head can also be walked along the cells in one drag: each free next cell adds the next letter, stepping back onto the letter before shrinks the word, and letting go on an empty cell without a step moves the head there (as in the game). A double
 tap on a letter sends it back, together with the rest of its word after it; a double tap on the ring removes the word.
 Every empty cell shows in pencil the letters some complete grid can still put there, and a cell with none turns red.
