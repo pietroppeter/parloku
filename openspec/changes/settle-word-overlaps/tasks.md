@@ -1,9 +1,10 @@
 ## 1. Decide
 
-- [ ] 1.1 Pietro picks the rule for reusing cells within a word, across words, and U-turns
+- [x] 1.1 Pietro picks the rule for reusing cells within a word: never (6 Nov 2026); across words and U-turns stay open
 
 ## 2. Apply
 
-- [ ] 2.1 One `trace` rule in the game's solver and outlines
-- [ ] 2.2 Same rule in puzzlepaw's `parloku/solver` and the builder
+- [ ] 2.1 The game's solver uses the outlines' rule (`trace` without `revisit`)
+- [x] 2.2 Same rule in puzzlepaw's `parloku/solver` and the builder (already)
 - [ ] 2.3 Re-check the puzzles in `data/`
+- [ ] 2.4 Run `nim r tools/specdrag.nim` and rebuild specs/ (src/specs_page.nim)

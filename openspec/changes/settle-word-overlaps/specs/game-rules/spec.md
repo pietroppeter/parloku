@@ -3,7 +3,7 @@
 ### Requirement: Words are spelled one step at a time
 Every word clue SHALL have a start cell, and a solved grid SHALL spell the word from that cell by moving at each
 letter to the cell above, below, left or right of the previous one. Diagonal steps SHALL NOT count. A word SHALL NOT
-use the same cell twice (proposed: to be confirmed by Pietro).
+use the same cell twice.
 
 #### Scenario: A word down a column
 - **WHEN** AMICA starts at r1c1 and the grid has A M I in the first column and C A to the right of the I

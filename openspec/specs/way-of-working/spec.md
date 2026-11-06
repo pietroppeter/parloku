@@ -16,14 +16,18 @@ A page SHALL be a complete standalone HTML file served by GitHub Pages, with not
 - **THEN** it has a `src/<name>.nim` notebook that writes it, and a build line in the README
 
 ### Requirement: Devlog and garden
-Work SHALL be written up in two places. The devlog (`devlog/<slug>/`) SHALL hold dated posts about what changed in the
-game and why, listed newest first in the README. The digital garden (`garden/<slug>/`) SHALL hold living notes and
-prototypes of ideas that are still growing, undated, that may never reach the game; an idea leaves the garden for the
-game through an OpenSpec change.
+Work SHALL be written up in two ways. The devlog (development log, `devlog/<slug>/`) SHALL hold dated posts, each about
+one step in how the game evolves, listed newest first in the README. The digital garden (`garden/<slug>/`, after
+Maggie Appleton's idea) SHALL hold articles that stand apart from the posts: they are published before they are
+complete, and they are come back to and grown over time. How the garden works in detail is still being shaped.
 
-#### Scenario: A prototype that works out
-- **WHEN** a garden prototype (like the dividing tiles) is to become part of the game
-- **THEN** an OpenSpec change proposes it, names the garden page, and the devlog post comes when it ships
+#### Scenario: An idea that keeps growing
+- **WHEN** a topic (like tiles that divide like cells) gets explored over several sessions
+- **THEN** it lives as one garden article that is updated each time, rather than as a series of dated posts
+
+#### Scenario: A step that ships
+- **WHEN** a change reaches the game
+- **THEN** a dated devlog post tells what changed and why, and can link the garden articles behind it
 
 ### Requirement: Preview first, one clean PR
 A change SHALL be shown to Pietro as a published preview (an artifact, which opens on a phone) before anything is

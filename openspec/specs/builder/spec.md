@@ -1,13 +1,16 @@
 # builder Specification
 
 ## Purpose
-TBD - created by archiving change add-builder. Update Purpose after archive.
+The puzzle builder (`builder.html`): make a puzzle by playing it, with pencil marks and a live count of solutions
+from puzzlepaw's solver, until one solution is left.
 
 ## Requirements
 
 ### Requirement: Building by playing
-The builder SHALL use the game's board, tiles and drag gestures. Each word SHALL have a small ring at the top that is
-dragged onto a cell to start the word there, and the word SHALL grow from its head as in the game.
+The builder SHALL use the game's board, tiles and drag gestures. Each word SHALL be listed at the top with a ring on its
+right, dragged onto a cell to start the word there, and the word SHALL grow, shrink and move from its head as in the
+game. Holding a letter below the board SHALL let the author reorder the six letters like a list (the others make
+room), without touching the board.
 
 #### Scenario: Starting a word
 - **WHEN** the author drags MAGIA's ring onto r1c6
@@ -39,9 +42,15 @@ the puzzle SHALL be the word starts plus the pinned letters.
 - **THEN** the letter becomes a given in the play link
 
 ### Requirement: Save and share
-💾 SHALL copy a link that reopens the builder exactly as it is (`?s=`), and 🔗 SHALL copy the link to play the puzzle
-(`?p=`).
+💾 SHALL copy the puzzle as puzzlepaw JSON (letters in their order, pins, word starts, its solution and the builder's
+state), with a note saying whether it has one solution, none or several; the JSON is what gets pasted to add the
+puzzle to the game. A `?s=` link SHALL reopen the builder exactly as it was, and 🔗 SHALL copy the link to play the
+puzzle (`?p=`).
+
+#### Scenario: Saving a ready puzzle
+- **WHEN** the count is 1 and the author taps 💾
+- **THEN** the puzzle's JSON is copied, with a note that it can be added to the game
 
 #### Scenario: Reopening a draft
-- **WHEN** the author opens a 💾 link
+- **WHEN** the author opens a `?s=` link
 - **THEN** the builder shows the same letters, words, pins and letter order

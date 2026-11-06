@@ -55,11 +55,12 @@ Every touch SHALL get an answer right away, and a drag SHALL show what will happ
 - **THEN** it also works with a tap
 
 ### Requirement: Mistakes are cheap
-Any change to the board SHALL be undoable, and the one action that wipes the board SHALL be undoable or ask first.
+Any change to the board SHALL be undoable, and the one action that wipes the board SHALL be undoable right after it,
+without a confirmation in the way.
 
 #### Scenario: Reset
-- **WHEN** the player taps ↺ reset by mistake
-- **THEN** they can get their board back
+- **WHEN** the player taps reset by mistake
+- **THEN** they can get their board back with one tap
 
 ### Requirement: Fit fingers
 Everything tapped on a touch screen SHALL be at least 44 px tall.

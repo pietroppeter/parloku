@@ -1,17 +1,32 @@
 ## ADDED Requirements
 
 ### Requirement: Three buttons at the top
-The top of the game SHALL show only three buttons: istruzioni, which opens a page with the rules of the game and then
-the gameplay; ancora!, which lists the puzzles to pick another one, with the solved ones ticked; and rifaccio, which
-starts the puzzle again. Solved puzzles SHALL be remembered in the browser.
+While playing, the top of the game SHALL show a menu of only three buttons: istruzioni, which opens a page with the
+rules of the game and then the gameplay; ancora!, which lists the puzzles to pick another one, with the solved ones
+ticked; and rifaccio, which starts the puzzle again and shows only once a letter is down. The menu SHALL slide down on
+a tap above the grid and go back up after 4 seconds or on a tap in the game. Solved puzzles SHALL be remembered in the
+browser.
 
 #### Scenario: Picking another puzzle
 - **WHEN** the player has solved puzzle 1 and taps ancora!
 - **THEN** the list shows every puzzle, with puzzle 1 ticked
 
+#### Scenario: Opening the menu
+- **WHEN** the player taps the empty space above the grid
+- **THEN** the three buttons slide down, and go back up 4 seconds later
+
 #### Scenario: The instructions
 - **WHEN** the player taps istruzioni
 - **THEN** a page explains the rules first and then how to play, without a solving tutorial
+
+### Requirement: Changing puzzle
+ancora! SHALL show the puzzles sideways in place of the three buttons; tapping the current puzzle SHALL just close the
+menu. Changing puzzle SHALL send the words, the grid and the letters out to the left one at a time, and bring the new
+ones in from the right.
+
+#### Scenario: From puzzle 1 to puzzle 2
+- **WHEN** the player picks AMICA · GIOCO · MAGIA from the list
+- **THEN** puzzle 1's pieces leave to the left one at a time and puzzle 2's come in from the right
 
 ## MODIFIED Requirements
 

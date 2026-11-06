@@ -38,9 +38,10 @@ type
 
 const families* = [
   ("The puzzle", @["game-rules", "puzzle-format"]),
-  ("Playing", @["tiles-and-dragging", "word-snakes", "player", "logical-path"]),
   ("Looking", @["first-principles", "play-screen", "theming"]),
-  ("Making", @["solver", "builder"]),
+  ("Playing", @["tiles-and-dragging", "word-snakes", "player"]),
+  ("Telling", @["how-to-play", "languages", "logical-path"]),
+  ("Crafting", @["solver", "builder"]),
   ("Working", @["way-of-working"])]
 
 proc esc(s: string): string = s.multiReplace(("&", "&amp;"), ("<", "&lt;"), (">", "&gt;"), ("\"", "&quot;"))

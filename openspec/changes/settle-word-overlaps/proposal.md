@@ -12,9 +12,11 @@ never completes. This is a rule of the puzzle, so it is Pietro's call.
 
 ## What Changes
 
-- **Decision needed:** (a) a word never uses the same cell twice, (b) whether two different words may share a
-  cell, (c) whether U-turns are allowed.
-- Once decided: one `trace` rule in the game, the builder and puzzlepaw's solver, and the rule in `game-rules`.
+- **Decided by Pietro (6 November 2026): a word never uses the same cell twice.** That is already true of the
+  outlines and the builder; the game's solver (`solved`, `solve`) changes to match, and every shipped puzzle is
+  re-checked for a unique solution under the rule.
+- Not decided, staying as they are today: whether two different words may share a cell (the builder forbids it for
+  now), and U-turns (the builder's optional "niente U" filter).
 
 ## Capabilities
 

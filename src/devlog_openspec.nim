@@ -81,7 +81,7 @@ propose → build → archive, with the `/opsx:propose`, `/opsx:apply` and `/ops
 `openspec init` installed for Claude in `.claude/`.
 """
 
-nbRawHtml: """<h2><span class="num">02 · WHAT WAS SET UP</span>Twelve specs in five families</h2>"""
+nbRawHtml: """<h2><span class="num">02 · WHAT WAS SET UP</span>Fourteen specs in six families</h2>"""
 
 nbText: """
 The specs follow the topics we went through together, grouped the way they are used:
@@ -89,9 +89,10 @@ The specs follow the topics we went through together, grouped the way they are u
 | family | specs | what they cover |
 |---|---|---|
 | The puzzle | `game-rules`, `puzzle-format` | sudoku in six letters, words step by step, givens, one solution, word sets; JSON files and `?p=` codes |
-| Playing | `tiles-and-dragging`, `word-snakes`, `player`, `logical-path` | stacks that divide, drops, copies and moves, double taps; outlines and the head gestures; the page around the board; the tutorial's method |
 | Looking | `first-principles`, `play-screen`, `theming` | the ten design steps from "Back to basics"; the screen piece by piece; skins |
-| Making | `solver`, `builder` | build-time checks and counting; the builder page |
+| Playing | `tiles-and-dragging`, `word-snakes`, `player` | stacks that divide, drops, copies and moves, double taps; outlines and the head gestures; the menu and the page around the board |
+| Telling | `how-to-play`, `languages`, `logical-path` | rules cards, istruzioni, first lesson and tutorial; English and Italian; the tutorial's method |
+| Crafting | `solver`, `builder` | build-time checks and counting; the builder page |
 | Working | `way-of-working` | explainers, devlog and garden, previews first, specs and scenarios |
 
 Next to them:
@@ -155,7 +156,9 @@ Scenarios in the specs must pass. Scenarios in an open change may fail ("to do")
 whole loop has already run once: going on with a snake without lifting the finger, and backing a snake up, started as
 the change `drag-a-snake-in-one-go` with failing scenarios. PR #8 made them pass, and `openspec archive` merged them
 into `word-snakes`. The builder went the same way (`add-builder`, archived when PR #6 merged), and the double tap that
-sends a whole snake back (PR #10) went straight into the specs.
+sends a whole snake back (PR #10) went straight into the specs. The player menu and the new board look of PR #13
+were the change `rework-player-menu`, archived when #13 merged. The builder's alignment with the player (PR #14) is
+an open change now.
 
 **Where zogyn fits.** The game still carries its own copy of the drag engine that [zogyn](https://github.com/pietroppeter/zogyn)
 packages. The day the game imports zogyn, each scenario in the viewer can become a small zogyn stage you drag
@@ -164,27 +167,33 @@ zogyn's `dragTo`, in milliseconds instead of a browser run. I left that for a la
 the game.
 """
 
-nbRawHtml: """<h2><span class="num">04 · WHAT WRITING THEM TURNED UP</span>Four things to look at</h2>"""
+nbRawHtml: """<h2><span class="num">04 · WHAT WRITING THEM TURNED UP</span>Six things to look at</h2>"""
 
 nbRawHtml: """<div class="found">
-<h4>1 · Words and their own cells</h4>
-<p>The outlines never use a cell twice (since PR #8). The game's solver lets a word step back onto its own cells.
-The builder's solver forbids it, also forbids two words on one cell "for now", and has an optional "no U-turn" filter.
-A puzzle could be unique for the builder and not for the game. That is a rule of the puzzle, so it is your call:
-the change <code>settle-word-overlaps</code> lists the three questions.</p>
-<h4>2 · Reset doesn't ask any more</h4>
-<p>"Back to basics" made ↺ reset ask "sure?" before wiping the board. The game now restarts right away, and undo can't
-bring the board back after a reset. The <code>first-principles</code> spec keeps the rule (mistakes are cheap: the one
-action that wipes the board is undoable or asks first), so either reset gets undo or the rule changes.
-<b>Decided:</b> reset gets undo. For 8 seconds after a reset (or until the first move) the button reads "annullo
-rifaccio". That is the open change <code>rework-player-menu</code> (PR #13), with the new three-button menu.</p>
-<h4>3 · Givens give copies</h4>
-<p>A given can't be moved or sent back, but a drag on it, quick or after holding, pulls a copy of its letter, like any letter on the
-board. I wrote that down as it is; say if givens should give nothing.</p>
-<h4>4 · Two kinds of gesture tests</h4>
-<p><code>tests/gestures/*.js</code> (from PR #8 and #10) check the snake cases with console output you read by eye.
-The same cases are now drag scenarios that pass or fail on their own. I'd keep <code>tests/gestures</code> for now and
-retire it once you trust the specs.</p>
+<h4>1 · Words and their own cells: decided</h4>
+<p>The outlines and the builder never let a word use a cell twice; the game's solver did. You decided a word never
+reuses its cells, so the change <code>settle-word-overlaps</code> now says that. What's left is the small code change
+in the game's solver and a re-check of the puzzles, as its own PR. Whether two words may share a cell, and U-turns,
+stay as they are for now.</p>
+<h4>2 · Reset: decided and shipped</h4>
+<p>Reset restarts at once and offers "annullo rifaccio" for 8 seconds. It came in with PR #13, so the change
+<code>rework-player-menu</code> is archived: the menu, ancora!, the classic grid, the rolling conflicts and the thinner
+outlines are all in the specs now.</p>
+<h4>3 · Undo, hint and link are gone from the play screen</h4>
+<p>Since #13 the play screen shows only clues, board and stacks, and the menu has istruzioni, ancora! and rifaccio.
+↶ undo, 💡 hint and 🔗 link are still in the page but hidden while playing, and so are the tutorial and EN / IT.
+<code>first-principles</code> says every change to the board is undoable, and <code>player</code> still lists them.
+Is that on purpose (and the specs should drop them), or should some come back into the menu?</p>
+<h4>4 · istruzioni is only in Italian</h4>
+<p>The new <code>languages</code> spec says every text a player reads exists in English and Italian. The istruzioni
+page is Italian only for now.</p>
+<h4>5 · Givens give copies</h4>
+<p>A given can't be moved or sent back, but a drag on it, quick or after holding, pulls a copy of its letter, like any
+letter on the board. I wrote that down as it is; say if givens should give nothing.</p>
+<h4>6 · Two kinds of gesture tests</h4>
+<p><code>tests/gestures/*.js</code> check the snake and menu cases with console output you read by eye. The snake cases
+are now drag scenarios that pass or fail on their own, and they pass on main after #13 too. I'd keep
+<code>tests/gestures</code> for now and retire it once you trust the specs.</p>
 </div>"""
 
 nbRawHtml: """<h2><span class="num">05 · HOW WE WORK FROM NOW</span>Five habits</h2>"""
@@ -196,17 +205,16 @@ nbText: """
    it; `/opsx:archive` merges the deltas into the specs and adds the devlog line.
 3. **Previews first, one clean PR.** Unchanged: you see an artifact on your phone before anything merges, nothing goes
    to `main` without your go, and old branches stay.
-4. **Devlog and garden.** The devlog tells what shipped and why, dated. The garden grows ideas that may never ship,
-   like the dividing tiles. An idea leaves the garden for the game through a change. (My reading, to confirm: see
-   below.)
+4. **Devlog and garden.** The devlog is dated posts, each about one step in how the game evolves. The digital
+   garden (after Maggie Appleton) is articles that stand apart from the posts: published before they are complete,
+   then come back to and grown. How the garden works is still taking shape, and the `way-of-working` spec says so.
 5. **Specs in English, short and plain**, like the devlog. Each says SHALL for what must hold and SHOULD for what is
    preferred.
 """
 
 nbRawHtml: """<div class="ask"><b>For Pietro to check</b><ul>
-<li>The five families and twelve names: do they match how you think about Parloku?</li>
-<li>Devlog and garden: is my reading right?</li>
-<li>Words and their own cells (<code>settle-word-overlaps</code>).</li>
+<li>Undo, hint and link hidden while playing: on purpose?</li>
+<li>istruzioni in English too?</li>
 <li>Givens giving copies, and retiring <code>tests/gestures</code> later.</li>
 </ul></div>"""
 
