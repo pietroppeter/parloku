@@ -15,6 +15,11 @@ Notes for coding agents (and people) changing this repository. How the game beha
 - The pages are not committed: CI builds them all (`src/all.nim`) and plays the scenarios while it builds the spec
   page, so a failing scenario in the specs turns the build red. Locally: `nim c -r -d:release src/all.nim`.
 
+- Two kinds of pages about the specs: `specs/` (`src/specs_page.nim`) is the living spec viewer, rebuilt by CI from
+  `openspec/` on every push, and linked from the README. A devlog post (like `devlog/openspec/`) is dated: it tells one
+  step as it happened, and is not updated when the specs change. A post that shows scenario animations keeps frozen
+  runs next to its source (as `src/devlog_openspec/before.json` and `after.json`) instead of replaying the current game.
+
 ## Previews and PRs
 
 - Show Pietro a published preview (an artifact) before asking to merge; he reviews on his phone.

@@ -6,6 +6,8 @@ After you have played a few handcrafted puzzles, challenge yourself to create yo
 
 **Build it:** https://pietroppeter.github.io/parloku/builder.html
 
+**Specs:** https://pietroppeter.github.io/parloku/specs/ (how Parloku behaves today, kept current by CI)
+
 Parloku is a mini sudoku spelled in letters (a *wordoku*) with words hidden in it.
 Fill the 6×6 grid so each of six letters appears once per row, column and 2×3 box, and
 so every clue word can be spelled from its marked cell, one step at a time up, down, left or right.
@@ -27,7 +29,7 @@ or with `?skin=tullet`. The Nim view only names classes, so a skin can change pa
 The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in Nim and compiled to JavaScript.
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
-Specs: [how Parloku behaves](specs/), written down with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in
+Specs: [how Parloku behaves](https://pietroppeter.github.io/parloku/specs/), written down with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in
 `openspec/`. The gameplay scenarios are played on the built game and shown as small animations.
 
 Devlog:
@@ -55,7 +57,7 @@ Devlog:
 - `tools/specdrag.nim`: collects the ```` ```drag ```` scenarios of the specs and `tools/specdrag.js` plays
   them on the built `index.html` in headless Chromium (`nim r tools/specdrag.nim`, needs Node and Playwright); `tools/specview.nim` draws specs and changes for the pages below.
 - `src/specs_page.nim` → `specs/index.html`: the living spec page. `src/devlog_openspec.nim` →
-  `devlog/openspec/index.html`: the post on adopting OpenSpec.
+  `devlog/openspec/index.html`: the dated post on adopting OpenSpec (it does not follow later spec changes).
 - `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
   At build time the solver checks each puzzle has a unique solution that matches its key.
 - `src/deps.sh`, `src/config.nims`, `config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/` and put them on the path (the root one is for the `nim js` compiles nimib runs from the repo root).

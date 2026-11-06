@@ -1,8 +1,8 @@
-## Devlog post: adopting OpenSpec. Why Parloku now writes its behaviour down, what was set up, how a drag scenario is
-## written and checked, what writing the specs turned up, and every spec and open change in the viewer.
-## The "before" animation comes from src/devlog_openspec/before.json: the scenario run on main before PR #8, recorded by
-## the first version of tools/specdrag.nim (which drove the drag engine natively; the snake gestures later moved to
-## the browser wiring, so it now plays the built page instead).
+## Devlog post (6 Nov 2026): adopting OpenSpec. Why Parloku now writes its behaviour down, what was set up, how a drag
+## scenario is written and checked, and what writing the specs turned up. A dated post: it tells the adoption as it
+## happened and does not follow the specs as they change. The living specs are the spec page (src/specs_page.nim, specs/).
+## Its two animations are frozen runs: src/devlog_openspec/before.json (main before PR #8, recorded by the first,
+## native tools/specdrag.nim) and after.json (the game on 6 Nov 2026, from tools/specdrag.js).
 import std/[json, os, strutils, strformat]
 import nimib
 import style
@@ -26,27 +26,28 @@ pre{overflow-x:auto;font-size:12.5px;line-height:1.45}
 nb.doc.context["highlight"] = %""
 nb.doc.context["disableHighlightJs"] = %true
 func pageHeader(blk: JsonNode, nb: Nb): string =
-  """<header><span><a href="../../">parloku</a> · devlog</span><span>05 Nov 2026</span></header>"""
+  """<header><span><a href="../../">parloku</a> · devlog</span><span>06 Nov 2026</span></header>"""
 nb.backend.partials["header"] = pageHeader
 
-# ---- the scenarios, run on the game as it is now, plus the "before" run kept from main before PR #8
-let (frames, run) = runScenarios(root, getEnv("PARLOKU_PAGE", "index.html"))
+# ---- the two frozen runs of "A misplaced last letter": before PR #8, and the game on 6 Nov 2026
 let before = parseFile(root / "src" / "devlog_openspec" / "before.json")
-block:   # append the before scenarios to the frames, with their strings moved after the current ones
+let after = parseFile(root / "src" / "devlog_openspec" / "after.json")
+let frames = %*{"strings": [], "scenarios": []}
+for part in [after, before]:   # the same layout as tools/specdrag.js writes: strings, then scenarios pointing into them
   let off = frames["strings"].len
-  for s in before["strings"]: frames["strings"].add s
-  for s in before["scenarios"]:
-    for k, v in s["tiles"].pairs: s["tiles"][k] = %(v.getInt + off)
-    for b in s["boards"]:
-      b["bg"] = %(b["bg"].getInt + off)
-      b["top"] = %(b["top"].getInt + off)
-    frames["scenarios"].add s
+  for t in part["strings"]: frames["strings"].add t
+  for sc in part["scenarios"]:
+    for k, v in sc["tiles"].pairs: sc["tiles"][k] = %(v.getInt + off)
+    for bd in sc["boards"]:
+      bd["bg"] = %(bd["bg"].getInt + off)
+      bd["top"] = %(bd["top"].getInt + off)
+    frames["scenarios"].add sc
 let report = loadReport(root, frames)
 proc findScen(name: string, fromBefore: bool): int =
   let n = frames["scenarios"].len
   let first = n - before["scenarios"].len
   for k in (if fromBefore: first else: 0) ..< (if fromBefore: n else: first):
-    if frames["scenarios"][k]["scenario"].getStr == name and frames["scenarios"][k]["change"].getStr == "": return k
+    if frames["scenarios"][k]["scenario"].getStr == name: return k
   -1
 
 nbRawHtml: svgDefs & """<script>document.body.dataset.skin = localStorage.getItem('parloku:look') || 'niki'</script>
@@ -61,8 +62,10 @@ was right on its own, and nothing stopped the next fix from undoing it. Pietro a
 behaviour is written down, kept up to date and checked. That place is [OpenSpec](https://github.com/Fission-AI/OpenSpec),
 set up the way [nanuq](https://github.com/pietroppeter/nanuq) uses it, and adapted to a game.
 
-This post is the adoption, for Pietro to check. It shows what was set up, how a gameplay scenario becomes a small
-animation that is also a test, what writing the specs turned up, and at the end every spec and every open change.
+This post tells the adoption as it happened, on 5 and 6 November 2026: what was set up, how a gameplay scenario
+becomes a small animation that is also a test, and what writing the specs turned up. The specs keep changing after
+it. For how Parloku behaves today, every spec and every open change with its scenarios played on the current game,
+see the [spec page](../../specs/).
 """
 
 nbRawHtml: """<h2><span class="num">01 · THE IDEA</span>Specs say what is, changes say what's next</h2>"""
@@ -136,7 +139,7 @@ that are written by hand in the browser wiring). Nothing in the game had to chan
 and the viewer replays it with the page's own drawing of tiles and outlines: the animation is not an illustration,
 it is what the game did.
 
-Here is Pietro's first playtest case, run on `main` as it was before PR #8, and on the game now:
+Here is Pietro's first playtest case, run on `main` as it was before PR #8, and on the game on 6 November:
 """
 
 block:
@@ -144,7 +147,7 @@ block:
   let b = findScen("A misplaced last letter", false)
   var html = """<div class="pair">"""
   if a >= 0: html.add """<div><h4>main, before PR #8</h4><div class="specview">""" & report.dragFigure(a) & "</div></div>"
-  if b >= 0: html.add """<div><h4>the game now</h4><div class="specview">""" & report.dragFigure(b) & "</div></div>"
+  if b >= 0: html.add """<div><h4>the game on 6 Nov</h4><div class="specview">""" & report.dragFigure(b) & "</div></div>"
   html.add "</div>"
   nbRawHtml: html
 
@@ -170,7 +173,7 @@ the game.
 nbRawHtml: """<h2><span class="num">04 · CHECKED AGAINST THE GAME</span>A second pass, on 6 November</h2>"""
 
 nbText: """
-You were right that the first draft lagged behind the game. I went through every spec again, against the code on
+Pietro was right that the first draft lagged behind the game. I went through every spec again, against the code on
 `main` (after #13, #14 and #16), the open PRs (#15, #17, #18) and the page itself in a phone-sized browser. These were
 wrong and are fixed now:
 
@@ -190,23 +193,23 @@ wrong and are fixed now:
 - **Smaller ones.** The solver stops at 100 in the builder, the daily splash shows no puzzle, the clue cells are
   marked (not numbered), and the README still described stacks.
 
-New things the check turned up, for you to decide:
+New things the check turned up, and what Pietro decided:
 
 - **The tutorial doesn't fit the screen.** With the coach box on top, the letters end at 806 px on an iPhone 13, past
-  the 664 px that `first-principles` asks for. You decided its messages go on semi-transparent white-ish blobs over
+  the 664 px that `first-principles` asks for. Pietro decided its messages go on semi-transparent white-ish blobs over
   the board, never on the cells, letter or clue of the step: the change `fit-tutorial-on-screen`.
 - **The code notebook is invisible.** The game page is still the nimib explainer underneath, but nothing shows it
-  now. You decided it moves to a devlog post: that is the change `move-notebook-to-devlog`.
-- **No way to switch language while playing.** You decided Italian is the game's language for now, English is a
+  now. Pietro decided it moves to a devlog post: that is the change `move-notebook-to-devlog`.
+- **No way to switch language while playing.** Pietro decided Italian is the game's language for now, English is a
   draft, and there is no switch: the change `italian-first`. English stays the language of development (specs, code,
   PRs), which `way-of-working` now says.
 """
 
-nbRawHtml: """<h2><span class="num">05 · WHAT WRITING THEM TURNED UP</span>Six things you decided</h2>"""
+nbRawHtml: """<h2><span class="num">05 · WHAT WRITING THEM TURNED UP</span>Six things Pietro decided</h2>"""
 
 nbRawHtml: """<div class="found">
 <h4>1 · Words and their own cells: decided</h4>
-<p>The outlines and the builder never let a word use a cell twice; the game's solver did. You decided a word never
+<p>The outlines and the builder never let a word use a cell twice; the game's solver did. Pietro decided a word never
 reuses its cells, so the change <code>settle-word-overlaps</code> now says that. What's left is the small code change
 in the game's solver and a re-check of the puzzles, as its own PR. Whether two words may share a cell, and U-turns,
 stay as they are for now.</p>
@@ -215,17 +218,17 @@ stay as they are for now.</p>
 <code>rework-player-menu</code> is archived: the menu, ancora!, the classic grid, the rolling conflicts and the thinner
 outlines are all in the specs now.</p>
 <h4>3 · Undo, hint and link hidden while playing: on purpose</h4>
-<p>Since #13 the menu has only istruzioni, ancora! and rifaccio. You confirmed that hiding ↶ undo, 💡 hint and 🔗 link
+<p>Since #13 the menu has only istruzioni, ancora! and rifaccio. Pietro confirmed that hiding ↶ undo, 💡 hint and 🔗 link
 is on purpose, so <code>player</code> now says so, and <code>first-principles</code> says a move is taken back with the
 same gestures that made it (and a reset with "annullo rifaccio").</p>
 <h4>4 · istruzioni in Italian only, for now</h4>
 <p>The <code>languages</code> spec says every text a player reads exists in English and Italian, except istruzioni,
-which stays Italian for now, as you said.</p>
+which stays Italian for now, as Pietro said.</p>
 <h4>5 · Givens give copies: confirmed</h4>
 <p>A given can't be moved or sent back, but a drag on it, quick or after holding, pulls a copy of its letter, like any
-letter on the board. You confirmed it, so <code>tiles-and-dragging</code> stays as it is.</p>
+letter on the board. Pietro confirmed it, so <code>tiles-and-dragging</code> stays as it is.</p>
 <h4>6 · Two kinds of gesture tests: settled</h4>
-<p><code>tests/gestures/*.js</code> checked the snake and menu cases with console output you read by eye. The snake
+<p><code>tests/gestures/*.js</code> checked the snake and menu cases with console output read by eye. The snake
 cases are drag scenarios now, so <code>snake.js</code>, <code>gioco.js</code> and <code>unsnake.js</code> are gone, and CI
 plays the scenarios on every push: a failing one turns the build red. <code>menu.js</code> and <code>switch.js</code> stay,
 because they check taps and animations a drag scenario can't describe.</p>
@@ -238,8 +241,8 @@ nbText: """
    cases went in.
 2. **New work starts as a change.** `/opsx:propose` writes the proposal, the spec deltas and the tasks; the PR builds
    it; `/opsx:archive` merges the deltas into the specs and adds the devlog line.
-3. **Previews first, one clean PR.** Unchanged: you see an artifact on your phone before anything merges, nothing goes
-   to `main` without your go, and old branches stay.
+3. **Previews first, one clean PR.** Unchanged: Pietro sees an artifact on the phone before anything merges, nothing goes
+   to `main` without Pietro's go, and old branches stay.
 4. **Devlog and garden.** The devlog is dated posts, each about one step in how the game evolves. The digital
    garden (after Maggie Appleton) is articles that stand apart from the posts: published before they are complete,
    then come back to and grown. How the garden works is still taking shape, and the `way-of-working` spec says so.
@@ -247,13 +250,12 @@ nbText: """
    preferred.
 """
 
-nbRawHtml: """<div class="ask"><b>For Pietro to check</b><ul>
-<li>A link to the tutorial on the istruzioni page (part of <code>fit-tutorial-on-screen</code>): OK?</li>
-</ul></div>"""
+nbRawHtml: """<h2><span class="num">07 · FROM HERE</span>The specs live on their own page</h2>"""
 
-nbRawHtml: """<h2><span class="num">07 · THE SPECS</span>All of them, as they are</h2>""" & summary(report)
-nbRawHtml: renderSpecs(report)
-nbRawHtml: """<h2><span class="num">08 · OPEN CHANGES</span>What's next</h2>""" & renderChanges(report)
-nbRawHtml: "<details class=\"spoiler\"><summary>the scenario run, as printed by tools/specdrag.nim</summary><pre>" &
-  run.multiReplace(("&", "&amp;"), ("<", "&lt;")) & "</pre></details>" & playerJs(report)
+nbText: """
+This post stays as it is. The specs and the changes go on in `openspec/`, and the [spec page](../../specs/) shows
+them as they are now: CI rebuilds it on every push and plays each drag scenario on the game being built, so the page
+is never older than the game. Its link is in the README, next to the game and the builder.
+"""
+nbRawHtml: playerJs(report)
 nbSave

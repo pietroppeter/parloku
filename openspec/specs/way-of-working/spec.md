@@ -61,7 +61,9 @@ A gameplay scenario SHALL be written as a ```drag block where it can be (a start
 outline), and `nim r tools/specdrag.nim` SHALL play every one of them on the built game page
 (headless Chromium, real pointer events). CI SHALL play them on every push and pull request while it builds the
 spec page, and scenarios in the specs SHALL pass before a PR is merged; scenarios in an open change MAY fail until it is built. The spec viewer
-(`specs/`) SHALL play each one as an animation with its result.
+(`specs/`) SHALL play each one as an animation with its result. The spec viewer is the living page, linked from the
+README; a devlog post about the specs is dated and SHALL NOT change as the specs do (it keeps frozen runs of the
+scenarios it shows).
 
 #### Scenario: A spec scenario breaks
 - **WHEN** a change to `src/parloku.nim` makes a scenario in `openspec/specs/` fail
