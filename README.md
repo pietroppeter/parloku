@@ -6,6 +6,8 @@ After you have played a few handcrafted puzzles, challenge yourself to create yo
 
 **Build it:** https://pietroppeter.github.io/parloku/builder.html
 
+**See it explained:** https://pietroppeter.github.io/parloku/spiega.html (any puzzle, step by step: `spiega.html?p=<code>`)
+
 **Specs:** https://pietroppeter.github.io/parloku/specs/ (how Parloku behaves today, kept current by CI)
 
 Parloku is a mini sudoku spelled in letters (a *wordoku*) with words hidden in it.
@@ -36,6 +38,7 @@ Specs: [how Parloku behaves](https://pietroppeter.github.io/parloku/specs/), wri
 `openspec/`. The gameplay scenarios are played on the built game and shown as small animations.
 
 Devlog ([index](https://pietroppeter.github.io/parloku/devlog/), built from the posts):
+- [A puzzle, step by step](https://pietroppeter.github.io/parloku/devlog/steps/): the first automatic step-by-step explanation of a whole puzzle (PAROLE · PERLE · OPERA), as a gallery of boards, and what the moves say about seven puzzles.
 - [How it works](https://pietroppeter.github.io/parloku/devlog/how-it-works/): the game's own notebook. The model, the rules as code, a logical solver, the drag spec and the browser runtime.
 - [Tiles that divide like cells](https://pietroppeter.github.io/parloku/devlog/cells/): an experiment, a round tile that buds a copy and coalesces back, and how the animation is drawn.
 - [Built in CI](https://pietroppeter.github.io/parloku/devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
@@ -69,6 +72,7 @@ Devlog ([index](https://pietroppeter.github.io/parloku/devlog/), built from the 
 - `src/specs_page.nim` → `specs/index.html`: the living spec page. `src/devlog_openspec.nim` →
   `devlog/openspec/index.html`: the dated post on adopting OpenSpec (it does not follow later spec changes).
 - `src/solver.nim`: the solver the builder uses (counts and lists complete grids, exact pencil marks), moved from puzzlepaw; `tests/test_solver.nim` checks it.
+- `src/spiega.nim` → `spiega.html`: explains any puzzle (`?p=<code>`) step by step in the browser, with the step solver `src/stepsolver.nim` and the gallery `src/stepsview.nim` (shared with the devlog post `src/devlog_steps.nim`).
 - `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys, `author` and `created` date.
   At build time the solver checks each puzzle has a unique solution that matches its key.
 - `src/deps.sh`, `src/config.nims`, `config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/` and put them on the path (the root one is for the `nim js` compiles nimib runs from the repo root).
