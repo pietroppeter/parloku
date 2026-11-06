@@ -29,3 +29,19 @@ macro importPages(): untyped =
 
 {.warning[UnusedImport]: off.}
 importPages()
+
+# Every page counts a visit (way-of-working spec): each generated page must carry the Plausible snippet.
+from style import analytics
+block:
+  let root = currentSourcePath().parentDir.parentDir
+  var pages = @["index.html", "builder.html", "builder-howto.html", "istruzioni.html", "spiega.html"]
+  for d in ["devlog", "garden", "specs"]:
+    if fileExists(root / d / "index.html"): pages.add d / "index.html"
+    for kind, sub in walkDir(root / d):
+      if kind == pcDir and fileExists(sub / "index.html"): pages.add sub.relativePath(root) / "index.html"
+  var missing: seq[string]
+  for p in pages:
+    if fileExists(root / p) and analytics notin readFile(root / p): missing.add p
+  if missing.len > 0:
+    quit "these pages lack the Plausible snippet (style.analytics): " & missing.join(", ")
+  echo "analytics on ", pages.len, " pages"
