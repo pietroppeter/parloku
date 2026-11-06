@@ -14,9 +14,13 @@ const { chromium, devices } = require('playwright');
   await p.click('[data-go="play"]'); await p.waitForTimeout(500);
   console.log('after "Lo conosco":', await shown());
   await p.goto(url); await p.waitForTimeout(700);
-  console.log('coming back:', await shown(), '|', await p.textContent('.sp-acts'));
+  console.log('again the same day:', await shown());
+  await p.evaluate(() => localStorage.setItem('parloku:splashday', '1')); await p.goto(url); await p.waitForTimeout(700);
+  console.log('coming back the next day:', await shown(), '|', await p.textContent('.sp-acts'));
   await p.waitForTimeout(3300);
   console.log('3.2 s later:', await shown());
+  await p.goto(url); await p.waitForTimeout(700);
+  console.log('and again that day:', await shown());
   await p.goto(url + '?day=2026-12-25'); await p.waitForTimeout(700);
   console.log('Christmas:', await p.textContent('.sp-date'), '|', await p.textContent('.sp-line'));  // a Friday: venerdì, not venerd%ec
   await p.goto(url + '?learn'); await p.waitForTimeout(700);
