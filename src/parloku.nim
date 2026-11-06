@@ -1691,7 +1691,7 @@ nbJsFromCode:
       wiggleClue = -1
       if stage.dragKey.len == 0: stage.top.innerHTML = cstring(overlay(stage.state)), 700))
 
-  # ---- the 🎓 tutorial: a coach above the board that asks the logical path for the next move after every drop
+  # ---- the 🎓 tutorial: a coach floating over the game that asks the logical path for the next move after every drop
 
   proc buttons(acts: seq[(string, string)]): string =
     for (act, label) in acts: result.add &"""<button class="btn" data-act="{act}">{label}</button>"""
@@ -1706,6 +1706,52 @@ nbJsFromCode:
             "Le tre parole in alto sono gli indizi. Ognuna parte dalla casella con il cerchio del suo colore e procede un passo alla volta: in su, in giù, a destra o a sinistra.")
     else: L("The method: first put the first letter of every word. Then follow each word letter by letter. When the sudoku leaves only one cell for the next letter, that letter is forced. Let's start!",
             "Il metodo: prima metti la prima lettera di ogni parola. Poi segui ogni parola lettera per lettera. Quando il sudoku lascia una sola casella per la lettera dopo, quella lettera è obbligata. Cominciamo!")
+
+  # where the coach's blob goes: the free spot nearest the step's target. It must not cover the target cell,
+  # the letter to pull or the clue (weight 100), and had better not cover the cells it names (weight 1)
+  type Box = tuple[x, y, w, h: float]
+  proc toScreen(svg: Element, x, y: float): Vec {.importjs:
+    "((s, x, y) => { const m = s.getScreenCTM(); return {x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f}; })(#, #, #)".}
+  proc viewH(): float {.importjs: "(window.innerHeight)".}
+  proc svgBox(c: Vec, r: float): Box =
+    let a = toScreen(stage.svg, c.x - r, c.y - r)
+    let b = toScreen(stage.svg, c.x + r, c.y + r)
+    (a.x, a.y, b.x - a.x, b.y - a.y)
+  proc elBox(e: Element): Box =
+    let (x, y, w, h) = rectOf(e)
+    (x, y, w, h)
+  proc overlapArea(a, b: Box): float =
+    max(0.0, min(a.x + a.w, b.x + b.w) - max(a.x, b.x)) * max(0.0, min(a.y + a.h, b.y + b.h) - max(a.y, b.y))
+  proc placeCoach() =
+    if not coachEl.attr("hidden").isNil: return
+    var must, nice: seq[Box]
+    if coachTarget >= 0: must.add svgBox(cellPos(coachTarget), cell / 2)
+    for li in coachStacks: must.add svgBox(stackPos(li), 34)
+    for c in coachTint: nice.add svgBox(cellPos(c), cell / 2)
+    var clues: seq[int]
+    if tutorial and intro == 2: clues = toSeq(0 ..< puz.clues.len)
+    elif tutorial and intro >= 4 and coachStep.kind in {skStart, skWord}: clues = @[coachStep.clue]
+    for i in 0 ..< puz.clues.len:
+      let e = cluesEl.querySelector(cstring(&"[data-clue=\"{i}\"]"))
+      if e.isNil: continue
+      if i in clues: must.add elBox(e) else: nice.add elBox(e)
+    coachEl.setAttr("data-clues", cstring(clues.join(",")))   # for tests/gestures/tutorial.js
+    for b in must.mitems: b = (b.x - 8, b.y - 8, b.w + 16, b.h + 16)   # a little air round what matters
+    let me = elBox(coachEl)
+    let goal = if must.len > 0: must[0].y + must[0].h / 2 else: viewH() / 2
+    var best = 8.0
+    var bestCost = 1e18
+    var y = 8.0
+    while y + me.h <= viewH() - 8 or y == 8.0:
+      let at: Box = (me.x, y, me.w, me.h)
+      var cost = abs(y + me.h / 2 - goal) / 1000
+      for b in must: cost += 100 * overlapArea(at, b)
+      for b in nice: cost += overlapArea(at, b)
+      if cost < bestCost: (best, bestCost) = (y, cost)
+      y += 4
+    coachEl.style.top = cstring(&"{best:.0f}px")
+
+  window.addEventListener("resize", proc (ev: Event) = placeCoach())
 
   proc showCoach() =
     coachTint = @[]
@@ -1757,6 +1803,8 @@ nbJsFromCode:
     coachText.innerHTML = cstring(text)
     coachActs.innerHTML = cstring(buttons(acts))
     stage.draw(stage.state)
+    placeCoach()
+    nextFrame(proc (t: float) = placeCoach())   # once more, after the clues and the board have their final layout
 
   proc startTutorial() =
     tutorial = true
@@ -1766,7 +1814,6 @@ nbJsFromCode:
     code = games[0][0]
     lsSet(storeKey(), "")
     load(code)
-    document.getElementById("coach").scrollIntoView()
 
   coachActs.addEventListener("click", proc (ev: Event) =
     let act = dataOf(ev, "act")

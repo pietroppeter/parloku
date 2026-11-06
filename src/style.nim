@@ -88,11 +88,17 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
 .btn:active{transform:translate(1px,1px);box-shadow:none}
 .langs{display:flex;gap:6px;margin-left:auto}
 .langs .btn{padding:4px 10px}
-.coach{background:var(--coach);color:var(--coach-ink);border-radius:var(--radius);padding:12px 16px;margin:0 0 14px}
-.coach .hd{font:700 12px "JetBrains Mono",monospace;letter-spacing:.1em;opacity:.8}
-.coach p{margin:6px 0 10px;font-size:16px;line-height:1.5}
-.coach p b{background:rgba(255,255,255,.16);padding:0 4px;border-radius:4px}
+/* the tutorial's messages: a white-ish, see-through blob floating over the game, placed (in Nim) off what the step is about */
+.coach{position:fixed;z-index:15;left:0;right:0;top:0;margin:0 auto;width:min(calc(100vw - 24px),400px);box-sizing:border-box;
+  background:rgba(255,255,255,.84);-webkit-backdrop-filter:blur(1px);backdrop-filter:blur(1px);color:var(--ink);
+  border-radius:30px 24px 32px 22px / 24px 30px 22px 32px;padding:10px 16px 12px;
+  box-shadow:0 6px 24px rgba(0,0,0,.14),0 0 0 1px rgba(0,0,0,.05);transition:top .35s ease}
+.coach .hd{font:700 11px "JetBrains Mono",monospace;letter-spacing:.1em;color:var(--muted)}
+.coach p{margin:4px 0 8px;font-size:15px;line-height:1.4}
+.coach p b{background:rgba(0,0,0,.07);padding:0 4px;border-radius:4px}
 .coach .acts{display:flex;gap:8px;flex-wrap:wrap}
+.coach .acts .btn{padding:5px 12px;font-size:14px}
+@media (prefers-reduced-motion:reduce){.coach{transition:none}}
 .pulse{animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.35}}
 .clues{display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:center;margin:6px 0 12px;min-height:46px}
