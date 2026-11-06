@@ -15,10 +15,18 @@ const skinList* = [
   ("delaunay", "Delaunay", "🇫🇷"), ("bruna", "Bruna", "🇳🇱"), ("matisse", "Matisse", "🇫🇷"),
   ("isola", "Isola", "🇫🇮"), ("maiolica", "Maiolica", "🏺")]
 
+# Plausible analytics, on every page (all of them start their head with pageStyle). The pages framed inside
+# other pages (the practice boards, the dances) are not counted: only the top page loads it, and only once (a devlog post
+# that pastes in the game page brings a second copy of this tag).
+# The site in Plausible is parloku.pietroppeter.xyz, whatever address the page is opened from.
+const analytics* = """<script>if (window === window.top && !window.parlokuStats) { window.parlokuStats = true; const s = document.createElement('script'); s.defer = true;""" &
+  """ s.dataset.domain = 'parloku.pietroppeter.xyz'; s.src = 'https://plausible.io/js/script.js'; document.head.appendChild(s) }</script>"""
+
 const pageStyle* = """
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="""" & fonts & """" rel="stylesheet">
+""" & analytics & """
 <style>
 /* ---------- the default skin: Munari (also the fallback for every variable) ---------- */
 :root,[data-skin=munari]{

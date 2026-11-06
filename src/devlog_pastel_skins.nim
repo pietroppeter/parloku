@@ -52,7 +52,7 @@ let skinsRow = slice(built, """<div class="skins"""", "\n")
 let game = slice(built, """<div class="game">""", """<div class="rules">""")
 let builtinList = slice(built, """<template id="builtin">""", "\n")
 let gameScript = slice(built, "<script>", "</script>") & "</script>"
-nb.doc.context["stylesheet"] = %(slice(built, """<link rel="preconnect"""", "</style>") & "</style>" & devlogStyle)
+nb.doc.context["stylesheet"] = %(analytics & slice(built, """<link rel="preconnect"""", "</style>") & "</style>" & devlogStyle)
 
 nbRawHtml: """
 <p class="kicker">DEVLOG · 01</p>

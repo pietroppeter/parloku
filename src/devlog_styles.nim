@@ -7,6 +7,7 @@ import std/[json, os, strutils, strformat, math, sequtils, uri, hashes, tables]
 import std/xmltree as xt
 import nimib
 import devlog_styles/artists
+from style import analytics
 
 let root = currentSourcePath().parentDir.parentDir
 
@@ -502,7 +503,7 @@ details.css pre{overflow-x:auto;background:var(--card);border-radius:10px;paddin
 nbInit
 nb.doc.filename = root / "devlog" / "styles" / "index.html"
 nb.doc.context["title"] = %"Parloku devlog · thirty styles"
-nb.doc.context["stylesheet"] = %pageCss()
+nb.doc.context["stylesheet"] = %(analytics & pageCss())
 nb.doc.context["highlight"] = %""
 nb.doc.context["disableHighlightJs"] = %true
 func pageHeader(blk: JsonNode, nb: Nb): string =
