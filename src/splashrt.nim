@@ -135,7 +135,7 @@ proc splash(first: bool) =
   let d = today()
   const stay = 3200
   var html = &"""
-    <div class="sp-top"><span class="sp-date">{d.longDate(loc())}</span></div>
+    <div class="sp-top"><span class="sp-date">{$d.longDate(loc())}</span></div>
     <div class="sp-hello">{hello(d)}</div>
     <p class="sp-line">{lineOf(d)}</p>
     <div class="sp-logo">{logo()}</div>
