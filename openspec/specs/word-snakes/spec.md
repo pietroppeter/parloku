@@ -121,7 +121,9 @@ outline MAGIA: r1c6 r2c6 r3c6
 ```
 
 ### Requirement: Moving a head
-Dragging the head of a word to a cell that is not next to it SHALL move that tile, never copy it.
+Dragging the head of a word to a cell that is not next to it SHALL move that tile, never copy it. This SHALL hold
+even when the finger crosses the cell before the head on its way (Pietro, 6 November 2026: moving SERATA's last A
+up and to the right took it off the board, because the finger went over the T).
 
 #### Scenario: A misplaced last letter
 - **WHEN** MAGIA ends with an A one cell too low and the player drags that A to the right cell
@@ -147,9 +149,36 @@ end:
 outline MAGIA: r1c6 r2c6 r3c6 r4c6 r4c5
 ```
 
+#### Scenario: Past the letter before, to a far cell
+- **WHEN** MAGIA ends with an A one cell too low and the player drags that A over the I before it and on to an empty
+  cell far away
+- **THEN** the A moves to that cell, and the I stays
+
+```drag
+puzzle: 2
+start:
+  . . . . . M
+  . . . . . A
+  . . . . . G
+  . . . . . I
+  . I O . . A
+  . . . . I O
+drag: r5c6 -> r4c6 -> r2c4
+end:
+  . . . . . M
+  . . . A . A
+  . . . . . G
+  . . . . . I
+  . I O . . .
+  . . . . I O
+outline MAGIA: r1c6 r2c6 r3c6 r4c6
+```
+
 ### Requirement: Shrinking a word
 Dragging the head of a word back onto the cell before it SHALL take the head's letter off the board (back
-below), and going on backwards SHALL keep taking letters off, down to the word's first letter. Moving forward again
+below) when the player lets go there, goes on backwards, or turns from there onto a free cell next to it; going on
+backwards SHALL keep taking letters off, down to the word's first letter. Going from the cell before on to any other
+cell SHALL NOT take a letter off: the drag is then a move. Moving forward again
 in the same drag SHALL grow the word as usual, so a wrong turn is fixed in one gesture.
 
 #### Scenario: Back up two letters
