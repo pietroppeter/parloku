@@ -13,8 +13,12 @@
 ##   outline MAGIA: r1c6 r2c6 r3c6 r4c6 r4c5   # cells the word's outline covers
 ##   grab: refused                  # nothing may be picked up there
 ##   ```
-## Waypoints are cells (`r2c6`), a letter's tile below the board (`below A`) or `off`; `double-tap: r3c6` taps
-## a cell twice.
+## Waypoints are cells (`r2c6`), a letter's tile below the board (`below A`), a note (`note A r2c6`, a small
+## letter written in a cell) or `off`; `double-tap: r3c6` taps a cell twice.
+##
+## Notes (small letters): `small: on` starts with the letters small, `notes: r1c1 AI, r2c2 I` writes notes on the
+## start board; `end small: on|off` and `end notes: r1c1 AI` (or `none`) check them after the gesture.
+## `swipe: down` (or `up`) swipes in the empty space between the letters below the board.
 ##
 ## This tool collects the scenarios; `tools/specdrag.js` plays them on the built page (`index.html`, so build
 ## `src/parloku.nim` first) in headless Chromium on an iPhone 13, with real pointer events, the way
@@ -48,6 +52,9 @@ type
     start*, finish*: string       ## 36 chars each ('.' empty); finish "" when not given
     outlines*: seq[Outline]
     refused*: bool                ## `grab: refused`: nothing may be picked up at the first waypoint
+    small*: bool                  ## `small: on`: the letters start small (notes)
+    notes*, endNotes*: string     ## `notes:` on the start board, `end notes:` after ("" not checked, "none" none)
+    endSmall*: string             ## `end small:` "on", "off" or "" (not checked)
 
 proc gridOf(rows: seq[string]): string =
   for r in rows:
@@ -82,6 +89,13 @@ proc parseDragBlock*(body: seq[string]): DragScenario =
       let parts = content[8 .. ^1].split(':', maxsplit = 1)
       result.outlines.add Outline(word: parts[0].strip, cells: parts[1].splitWhitespace)
     elif content == "grab: refused": result.refused = true
+    elif content.startsWith("small:"): result.small = content[6 .. ^1].strip == "on"
+    elif content.startsWith("end small:"): result.endSmall = content[10 .. ^1].strip
+    elif content.startsWith("notes:"): result.notes = content[6 .. ^1].strip
+    elif content.startsWith("end notes:"): result.endNotes = content[10 .. ^1].strip
+    elif content.startsWith("swipe:"):
+      result.gesture = "swipe"
+      result.points = @[content[6 .. ^1].strip]
     inc i
 
 proc collectFile(path, cap, change, rel: string): seq[DragScenario] =

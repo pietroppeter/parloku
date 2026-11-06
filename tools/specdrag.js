@@ -32,6 +32,19 @@ const cellName = c => `r${Math.floor(c / 6) + 1}c${c % 6 + 1}`
 const cellOf = s => /^r[1-6]c[1-6]$/.test(s) ? (+s[1] - 1) * 6 + (+s[3] - 1) : -1
 const cellPos = c => [66 + (c % 6) * 78 + 39, 16 + Math.floor(c / 6) * 78 + 39]
 const stackPos = li => [150 + (li % 3) * 150, 546 + Math.floor(li / 3) * 74]
+// notes as text: "r1c1 AI, r2c2 I", cells in board order and letters in alphabetical order ("none" for none)
+const notesText = m => {
+  const cs = Object.keys(m).map(Number).filter(c => m[c].length).sort((a, b) => a - b)
+  return cs.length ? cs.map(c => cellName(c) + ' ' + [...m[c]].sort().join('')).join(', ') : 'none'
+}
+const parseNotes = t => {
+  const m = {}
+  if (t && t !== 'none') for (const item of t.split(',')) {
+    const [cn, ls] = item.trim().split(/\s+/)
+    m[cellOf(cn)] = (ls || '').split('')
+  }
+  return m
+}
 const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 6).split('').join(' ')).join('\n')
 
 ;(async () => {
@@ -51,9 +64,11 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
       cells.push(li >= 0 ? li * 6 + used[li]++ : -1)
     }
     for (const g of puz.givens) if (s.start[g.r * 6 + g.c] !== g.v) problems.push(`start board misses the given ${g.v} at ${cellName(g.r * 6 + g.c)}`)
+    const startNotes = parseNotes(s.notes), marks = Array(36).fill(0)
+    for (const c in startNotes) for (const ch of startNotes[c]) marks[c] |= 1 << puz.letters.indexOf(ch)
     const ctx = await browser.newContext({ ...devices['iPhone 13'] })
     await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); localStorage.setItem('parloku:look', 'niki') } catch (e) {} },
-      ['parloku:' + code, cells.join(',') + ';0;0;0'])
+      ['parloku:' + code, cells.join(',') + ';0;0;0;' + marks.join(',') + ';' + (s.small ? 1 : 0)])
     const p = await ctx.newPage()
     const errs = []; p.on('pageerror', e => errs.push(e.message))
     await p.goto(pageUrl + '?nosplash&lang=en&p=' + code)
@@ -65,6 +80,11 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
       if (c >= 0) return cellPos(c)
       const m = /^(below|stack) (\w)$/.exec(w)   // a letter's tile below the board
       if (m) return stackPos(puz.letters.indexOf(m[2]))
+      const n = /^note (\w) (r[1-6]c[1-6])$/.exec(w)   // a note: letter li's spot in the cell, two rows of three
+      if (n) {
+        const li = puz.letters.indexOf(n[1]), [x, y] = cellPos(cellOf(n[2]))
+        return [x - 22 + (li % 3) * 22, y - 11 + Math.floor(li / 3) * 24]
+      }
       if (w === 'off') return [560, 650]
       throw new Error('unknown waypoint ' + w)
     }
@@ -76,21 +96,24 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
     const grab = async (at) => {
       const st = await p.evaluate(() => {
         const svg = document.querySelector('#board svg')
-        const pos = {}, look = {}
+        const pos = {}, look = {}, cls = {}
         let held = ''
         for (const n of svg.querySelectorAll('.fg [data-key]')) {
           const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(n.style.transform) || []
           pos[n.dataset.key] = [+(+m[1]).toFixed(1), +(+m[2]).toFixed(1)]
           look[n.dataset.key] = n.innerHTML
           if (n.classList.contains('lifted')) held = n.dataset.key
+          const c = ['home', 'mark'].filter(x => n.classList.contains(x)).join(' ')
+          if (c) cls[n.dataset.key] = c
         }
-        return { pos, look, held, bg: svg.querySelector('.bg').innerHTML, top: svg.querySelector('.overlay').innerHTML }
+        return { pos, look, held, cls, small: svg.classList.contains('small'),
+          bg: svg.querySelector('.bg').innerHTML, top: svg.querySelector('.overlay').innerHTML }
       })
       if (st.held) everLifted = true
       for (const k in st.look) if (!(k in tiles)) tiles[k] = str(st.look[k])
       const top = st.top.replace(/id="wm/g, `id="${tag}`).replace(/url\(#wm/g, `url(#${tag}`)
-      const key = JSON.stringify(st.pos) + st.bg + top
-      if (key !== lastBoard) { boards.push({ pos: st.pos, bg: str(st.bg), top: str(top) }); lastBoard = key }
+      const key = JSON.stringify(st.pos) + JSON.stringify(st.cls) + st.small + st.bg + top
+      if (key !== lastBoard) { boards.push({ pos: st.pos, cls: st.cls, small: st.small, bg: str(st.bg), top: str(top) }); lastBoard = key }
       const held = st.held
       frames.push({ b: boards.length - 1, p: at ? at.map(v => +v.toFixed(1)) : [-100, -100], k: held })
       return st
@@ -111,6 +134,18 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
       }
       await p.mouse.up()
       for (let k = 0; k < 6; k++) { await p.waitForTimeout(60); await grab(null) }
+    } else if (s.gesture === 'swipe') {
+      // in the gap between the first two letters below the board, down or up
+      const [y0, y1] = s.points[0] === 'up' ? [640, 520] : [520, 640]
+      let at = [225, y0]
+      await p.mouse.move(...toScreen(at)); await p.mouse.down(); await grab(at)
+      for (let k = 1; k <= 10; k++) {
+        at = [225, y0 + (y1 - y0) * k / 10]
+        await p.mouse.move(...toScreen(at)); await p.waitForTimeout(16)
+        await grab(at)
+      }
+      await p.mouse.up()
+      for (let k = 0; k < 6; k++) { await p.waitForTimeout(60); await grab(null) }
     } else if (s.gesture === 'double-tap') {
       const at = pointOf(s.points[0])
       await p.mouse.click(...toScreen(at)); await p.waitForTimeout(90); await p.mouse.click(...toScreen(at))
@@ -123,6 +158,7 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
     const end = await grab(null)
     const grid = Array(36).fill('.')
     for (const k in end.pos) {
+      if (k[0] !== 't') continue
       const [x, y] = end.pos[k], col = Math.floor((x - 66) / 78), row = Math.floor((y - 16) / 78)
       if (col >= 0 && col < 6 && row >= 0 && row < 6) grid[row * 6 + col] = puz.letters[Math.floor(+k.slice(1) / 6)]
     }
@@ -152,6 +188,15 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
       }
       if (cellsGot.join(' ') !== o.cells.join(' ')) problems.push(`outline ${o.word}: expected ${o.cells.join(' ')}, got ${cellsGot.join(' ')}`)
     }
+    const gotNotes = {}
+    for (const k in end.pos) {
+      const m = /^m(\d+)-(\d)$/.exec(k)
+      if (m) (gotNotes[+m[1]] = gotNotes[+m[1]] || []).push(puz.letters[+m[2]])
+    }
+    if (s.endNotes && notesText(gotNotes) !== notesText(parseNotes(s.endNotes)))
+      problems.push(`notes: expected ${notesText(parseNotes(s.endNotes))}, got ${notesText(gotNotes)}`)
+    if (s.endSmall && (s.endSmall === 'on') !== end.small)
+      problems.push(`letters below: expected ${s.endSmall === 'on' ? 'small' : 'big'}, got ${end.small ? 'small' : 'big'}`)
     if (errs.length) problems.push('page errors: ' + errs.join('; '))
     await ctx.close()
     let verdict = problems.length ? (s.change ? 'todo' : 'fail') : (s.change ? 'done' : 'pass')

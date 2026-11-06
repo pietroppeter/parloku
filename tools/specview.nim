@@ -39,7 +39,7 @@ type
 const families* = [
   ("The puzzle", @["game-rules", "puzzle-format"]),
   ("Looking", @["first-principles", "play-screen", "theming"]),
-  ("Playing", @["tiles-and-dragging", "word-snakes", "player"]),
+  ("Playing", @["tiles-and-dragging", "word-snakes", "notes", "player"]),
   ("Telling", @["how-to-play", "languages", "logical-path"]),
   ("Crafting", @["solver", "builder"]),
   ("Working", @["way-of-working"])]
@@ -317,13 +317,17 @@ proc playerJs*(r: Report): string =
       const b = sc.boards[f.b]
       if (f.b !== shownB) { bg.innerHTML = S[b.bg]; top.innerHTML = S[b.top]; shownB = f.b }
       if (f.k !== heldKey) {
-        if (heldKey) nodes[heldKey].setAttribute('class', 'item')
-        if (f.k) { nodes[f.k].setAttribute('class', 'item lifted'); fg.appendChild(nodes[f.k]) }
+        if (f.k) fg.appendChild(nodes[f.k])
         heldKey = f.k
       }
+      svg.classList.toggle('small', !!b.small)
       for (const key in nodes) {
         const p = key === f.k ? f.p : b.pos[key]
-        nodes[key].style.transform = `translate(${p[0]}px, ${p[1]}px)`
+        // an item missing from this board (a note not written yet, or rubbed out) is hidden
+        nodes[key].style.display = p ? '' : 'none'
+        const cls = (b.cls && b.cls[key]) || ''
+        nodes[key].setAttribute('class', 'item' + (key === f.k ? ' lifted' : '') + (cls ? ' ' + cls : ''))
+        if (p) nodes[key].style.transform = `translate(${p[0]}px, ${p[1]}px)`
       }
       finger.setAttribute('cx', f.p[0]); finger.setAttribute('cy', f.p[1])
       finger.style.opacity = f.p[0] > -50 ? 1 : 0
