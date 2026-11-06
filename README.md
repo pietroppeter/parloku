@@ -20,14 +20,18 @@ The game speaks English and Italian (EN / IT switch, or `?lang=it`) and has a �
 follow each word letter by letter while the sudoku forces where the next letter goes, and finish with plain sudoku.
 It asks for the next step after every drop, so it copes with any order and points out wrong tiles.
 
-Its look is a CSS *skin*: ten pastel ones after artists and illustrators (Munari, Tullet, Lionni, Miró, Taro Gomi,
-Japanese wagashi, Delaunay, Bruna, Matisse, Maija Isola) plus the original maiolica, switchable at the top of the page
-or with `?skin=tullet`. The Nim view only names classes, so a skin can change palette, fonts and tile shape.
+Its look is a CSS *skin*. The game uses one, after Niki de Saint Phalle; the others (Munari, Tullet, Lionni, Miró and more)
+stay reachable by link for trying out, such as `?skin=tullet`. The Nim view only names classes, so a skin can change
+palette, fonts and tile shape.
 
-The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in Nim and compiled to JavaScript.
+The game is in Italian. English is a draft, reachable only with `?lang=en`.
+
+The game is a [nimib](https://github.com/pietroppeter/nimib) notebook written in Nim and compiled to JavaScript.
+The notebook itself, prose and code, is the devlog post [How it works](devlog/how-it-works/); the game page keeps only the game.
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
 Devlog:
+- [How it works](devlog/how-it-works/): the game's own notebook. The model, the rules as code, a logical solver, the drag spec and the browser runtime.
 - [Built in CI](devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
 - [A daily hello and a first lesson](devlog/splash/): the daily splash screen and the animated lesson for first-time players.
 - [Back to basics](devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
@@ -40,6 +44,7 @@ Devlog:
 - `src/devlog_ci.nim` → `devlog/ci/index.html`: devlog post on building the pages in CI.
 - `src/all.nim`: builds every page in one program (any `src/*.nim` that calls `nbInit`, the game first).
 - `src/parloku.nim`: the notebook. Model, rules, solver and drag spec run natively at build time and in the browser.
+  It writes two pages: `devlog/how-it-works/index.html` (the whole notebook) and `index.html` (only the game).
 - `src/istruzioni.nim` → `istruzioni.html`: how to play (rules, then gestures), linked from the game menu.
 - `src/splash.nim`: the daily splash screen and the animated first lesson (game page only; `?splash=first`, `?learn`, `?nosplash`).
 - `src/devlog_splash.nim` → `devlog/splash/index.html`: devlog post on the splash and the lesson.

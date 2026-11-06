@@ -4,7 +4,8 @@ import style, splash
 
 nbInit
 # write the page at the repo root (served by GitHub Pages), wherever the build is run from
-nb.doc.filename = currentSourcePath().parentDir.parentDir / "index.html"
+let root = currentSourcePath().parentDir.parentDir
+nb.doc.filename = root / "index.html"
 nb.doc.context["title"] = %"Parloku"
 nb.doc.context["stylesheet"] = %pageStyle
 nb.doc.context["highlight"] = %""
@@ -13,13 +14,13 @@ func pageHeader(blk: JsonNode, nb: Nb): string =
   ""                                   # the title says it all: no header line above the game
 nb.backend.partials["header"] = pageHeader
 
+var gameBlocks: seq[NbBlock]           # the blocks index.html keeps; the rest is the devlog post (see the end)
 nbRawHtml: """
 <div class="play" id="play">
 <h1><span class="tile">P</span>arloku</h1>
 <p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste.">A mini sudoku spelled in letters, with words hidden in it.</p>
 <div class="game">
   <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><a class="btn menu-only" id="howto" href="istruzioni.html" data-it="istruzioni">how to play</a><button class="btn menu-only" id="again" aria-haspopup="true" aria-expanded="false" data-it="ancora!">again!</button><span id="picker"></span>
-<div class="langs" id="langs"><button class="btn" data-lang="en">EN</button><button class="btn" data-lang="it">IT</button></div>
   </div>
   <div class="coach" id="coach" hidden>
     <div class="hd" id="coach-hd"></div>
@@ -46,6 +47,7 @@ nbRawHtml: """
 <div class="skins" id="skins" hidden></div>
 </div>
 """
+gameBlocks.add nb.blk
 
 nbText: """
 Parloku is [Pietro](https://github.com/pietroppeter)'s word-flavoured
@@ -307,7 +309,7 @@ nbCodeAnd(nbJsFromCode):
       path: seq[int]         # word steps: the word so far, ending in `cell`
       dead: seq[int]         # word steps: neighbours that fit the sudoku but can't finish the word
 
-  var lang = "en"            # "en" or "it", set by the page
+  var lang = "it"            # Italian; English is a draft, only with ?lang=en
   proc L(en, it: string): string = (if lang == "it": it else: en)
 
   proc cands(p: Puzzle, g: Grid, c: int): string =
@@ -989,6 +991,7 @@ nbRawHtml: "</details>"
 var codes = ""
 for (title, code) in builtin: codes.add "<option value=\"" & code & "\">" & title & "</option>"
 nbRawHtml: "<template id=\"builtin\">" & codes & "</template>"
+gameBlocks.add nb.blk
 
 nbJsFromCode:
   proc now(): float {.importjs: "Date.now()".}
@@ -1003,7 +1006,6 @@ nbJsFromCode:
   proc attr(e: Element, k: cstring): cstring {.importjs: "#.getAttribute(#)".}
   proc options(): seq[Element] {.importjs: "Array.from(document.getElementById('builtin').content.querySelectorAll('option'))".}
   proc hoverIndex(ev: Event): cstring {.importjs: "(#.target.closest('[data-clue]')?.dataset.clue ?? null)".}
-  proc navLang(): cstring {.importjs: "String(navigator.language || 'en')".}
   proc i18nNodes(): seq[Element] {.importjs: "Array.from(document.querySelectorAll('[data-it]'))".}
   proc setAttr(e: Element, k, v: cstring) {.importjs: "#.setAttribute(#, #)".}
   proc setDocLang(l: cstring) {.importjs: "document.documentElement.lang = #".}
@@ -1021,11 +1023,7 @@ nbJsFromCode:
   if fromUrl.contains("p=") and decode(fromUrl).valid:
     code = decode(fromUrl).encode
     if games.allIt(it[0] != code): games.add (code, "")
-  # language: ?lang=, then the last choice, then the browser's
-  let savedLang = lsGet("parloku:lang")
-  lang = if ($navLang()).startsWith("it"): "it" else: "en"
-  if not savedLang.isNil and $savedLang in ["en", "it"]: lang = $savedLang
-  if fromUrl.contains("lang=it"): lang = "it"
+  # language: Italian, whatever the browser says. The English draft only by link (?lang=en)
   if fromUrl.contains("lang=en"): lang = "en"
 
   var solution: Grid
@@ -1347,7 +1345,10 @@ nbJsFromCode:
       discard setTimer(proc () =          # back to the three buttons once the bar is out of sight
         if not document.body.classList.contains("chrome"):
           document.querySelector(".picker").classList.remove("listing"), 400)
-  let playEl = document.getElementById("play")
+  proc inDevlog(): bool {.importjs: "location.pathname.includes('/devlog/')".}
+  # the game page shows only the game; the devlog post (the same notebook) shows the game as a plain block in the page
+  var playEl = document.getElementById("play")
+  if inDevlog(): playEl = nil
   if not playEl.isNil:
     setMode("focus")
     # one menu bar, at the top only: the puzzles and restart
@@ -1794,23 +1795,12 @@ nbJsFromCode:
     if not playEl.isNil: setMode("focus")
     startTutorial())
 
-  # ---- English / Italian
-  let langsEl = document.getElementById("langs")
+  # ---- Italian, or the English draft: the page is written in English, with the Italian in data-it
   proc applyLang() =
     setDocLang(cstring(lang))
-    lsSet("parloku:lang", cstring(lang))
-    for e in i18nNodes():
-      if e.attr("data-en").isNil: e.setAttr("data-en", e.innerHTML)
-      e.innerHTML = e.attr(cstring("data-" & lang))
-    for b in langsEl.querySelectorAll("button"):
-      if $b.attr("data-lang") == lang: b.classList.add("on")
-      else: b.classList.remove("on")
+    if lang == "it":
+      for e in i18nNodes(): e.innerHTML = e.attr("data-it")
     load(code)
-  langsEl.addEventListener("click", proc (ev: Event) =
-    let l = dataOf(ev, "lang")
-    if l.isNil: return
-    lang = $l
-    applyLang())
 
   # ---- the look: Niki de Saint Phalle, the game's one skin. Others only by link (?skin=name), for trying them out
   proc setSkin(e: Element, v: cstring) {.importjs: "#.dataset.skin = #".}
@@ -1830,14 +1820,35 @@ block:
   var sol = ""
   for ch in answerKeys[0]: sol.add ch
   nbRawHtml: splashHtml(p.letters, sol, p.givens.mapIt(idx(it.pos)), p.clues.mapIt((it.word, it.pos.row, it.pos.col)))
+  gameBlocks.add nb.blk
+let splashBlock = nb.blk
 
 nbText: """
 That's the game. Puzzles live in [`data/`](https://github.com/pietroppeter/parloku/tree/main/data) as puzzlepaw JSON,
 and any puzzle can be played from a link such as `?p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI`
 (the 🔗 button copies it). Progress is kept in your browser, per puzzle.
-The game speaks English and Italian (EN / IT at the top, or `?lang=it`), and `?tutorial` opens the 🎓 tutorial directly.
+The game speaks Italian. English is a draft, only by link (`?lang=en`), and `?tutorial` opens the 🎓 tutorial directly.
 
 Built with [nimib](https://github.com/pietroppeter/nimib). Hit *show source* below for the whole notebook.
 """
 
-nbSave
+# ---------------------------------------------------------------- two pages from one notebook
+# The notebook, prose and code, is the devlog post "How it works". The game page, index.html, keeps only
+# the game: the play block, the puzzle list, the splash and the compiled script. Both run the same script.
+nb.nbCollectAllNbJs()
+let allBlocks = nb.doc.blocks
+func postHeader(blk: JsonNode, nb: Nb): string =
+  """<header><span><a href="../../">parloku</a> · devlog</span><span>how it works</span></header>"""
+nb.backend.partials["header"] = postHeader
+nb.doc.context["title"] = %"Parloku: how it works"
+nb.doc.filename = root / "devlog" / "how-it-works" / "index.html"
+nb.doc.blocks = allBlocks.filterIt(it != splashBlock)   # no daily hello in the middle of a read
+write nb
+
+func noFooter(blk: JsonNode, nb: Nb): string = ""
+nb.backend.partials["header"] = pageHeader
+nb.backend.partials["footer"] = noFooter              # no "show source" under the game: the post has it
+nb.doc.context["title"] = %"Parloku"
+nb.doc.filename = root / "index.html"
+nb.doc.blocks = allBlocks.filterIt(it in gameBlocks or it of NbJsFromCodeOwnFile)
+write nb
