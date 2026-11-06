@@ -18,9 +18,10 @@ const skinList* = [
 # Plausible analytics, on every page (all of them start their head with pageStyle). The pages framed inside
 # other pages (the practice boards, the dances) are not counted: only the top page loads it, and only once (a devlog post
 # that pastes in the game page brings a second copy of this tag).
-# The site in Plausible is parloku.pietroppeter.xyz, whatever address the page is opened from.
+# The site in Plausible is pietroppeter.xyz, one for all of Pietro's sites: filter by hostname for Parloku
+# (Pietro, 6 November 2026). Visits from the github.io address show under their own hostname.
 const analytics* = """<script>if (window === window.top && !window.parlokuStats) { window.parlokuStats = true; const s = document.createElement('script'); s.defer = true;""" &
-  """ s.dataset.domain = 'parloku.pietroppeter.xyz'; s.src = 'https://plausible.io/js/script.js'; document.head.appendChild(s) }</script>"""
+  """ s.dataset.domain = 'pietroppeter.xyz'; s.src = 'https://plausible.io/js/script.js'; document.head.appendChild(s) }</script>"""
 
 const pageStyle* = """
 <link rel="preconnect" href="https://fonts.googleapis.com">
