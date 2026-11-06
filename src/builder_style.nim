@@ -12,9 +12,9 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .clue{cursor:pointer}
 /* words sit on the left, each after its ring: drag the ring onto the board to start the word */
 .bld .clue,.bld .clue:nth-child(3n+2),.bld .clue:nth-child(3n){align-self:flex-start}
-.clue .wring{flex:none;width:22px;height:22px;border-radius:50%;border:4px solid var(--wc);background:var(--card);cursor:grab;touch-action:none;margin-right:2px}
+.clue .wring{flex:none;width:22px;height:22px;border-radius:7px;border:4px solid var(--wc);background:var(--card);cursor:grab;touch-action:none;margin-right:2px}
 .clue .wring.on{background:color-mix(in srgb,var(--wc) 25%,var(--card))}
-.ringghost{position:fixed;left:0;top:0;width:48px;height:48px;box-sizing:border-box;border-radius:50%;border:6px solid var(--wc);pointer-events:none;z-index:60}
+.ringghost{position:fixed;left:0;top:0;width:48px;height:48px;box-sizing:border-box;border-radius:13px;border:5px solid var(--wc);pointer-events:none;z-index:60}
 .opt{fill:none;stroke-width:4;animation:optp 1s ease-in-out infinite alternate}
 .opt.w0{stroke:var(--w0)} .opt.w1{stroke:var(--w1)} .opt.w2{stroke:var(--w2)}
 @keyframes optp{from{opacity:.45}to{opacity:1}}
@@ -31,7 +31,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .pm{font:700 15px "JetBrains Mono",monospace;fill:color-mix(in srgb,var(--ink) 50%,transparent);pointer-events:none}
 .dragging .pm{opacity:.5}
 .pm.on{font-weight:800;font-size:17px}
-.pm.on.w0{fill:var(--w0)} .pm.on.w1{fill:var(--w1)} .pm.on.w2{fill:var(--w2)}
+.pm.on.w0{fill:var(--w0)} .pm.on.w1{fill:var(--w1)} .pm.on.w2{fill:var(--w2)} .pm.on.sk{fill:var(--ink)}
 .status .acts{align-items:center}
 .nou{font:600 13px var(--font-body);color:var(--muted);margin-left:8px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .tool.dice{width:38px;height:38px;font-size:18px;margin-left:6px}
@@ -83,7 +83,7 @@ pre > code{font-size:12.5px!important}
   font:600 13px/1.35 var(--font-body);padding:7px 12px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.2);min-height:0;margin:0}
 .bld .game{margin:0}
 .bld .clues{gap:4px;margin:0}
-.bld .clue{padding:2px 3px 2px 8px;gap:3px;border-width:2.5px}
+.bld .clue{cursor:grab;touch-action:none;padding:2px 3px 2px 8px;gap:3px;border-width:2.5px}
 .bld .clue .l{width:19px;height:23px;font-size:14px;border-radius:5px}
 .bld .clue .wring{width:20px;height:20px;border-width:3.5px;margin:0 0 0 2px;position:relative}
 .bld .clue .wring::after{content:'';position:absolute;inset:-11px -14px;border-radius:50%}
@@ -92,6 +92,16 @@ pre > code{font-size:12.5px!important}
 .bld .tools{grid-template-columns:repeat(2,38px);gap:6px}
 .bld .tool{width:38px;height:38px;font-size:17px}
 .bld .stage{margin:4px auto 0;max-width:min(100%,calc((100svh - 272px) * 500 / 664));min-width:250px}
+.bld .say:empty{display:none}
+.bld .sols{display:grid;grid-auto-flow:column;grid-template-rows:repeat(2,34px);grid-auto-columns:34px;gap:5px;overflow-x:auto;overflow-y:hidden;
+  padding:4px 2px 6px;margin:4px 0 0;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-x}
+.bld .sols::-webkit-scrollbar{display:none}
+.bld .sols .sc{width:34px;height:34px;border-radius:50%;border:2px solid var(--ink);background:var(--card);color:var(--ink);
+  font:700 13px var(--font-body);padding:0;display:grid;place-items:center;cursor:pointer}
+.bld .sols .sc.on{background:var(--ink);color:var(--card)}
+.bld .sols .sc.more{border-style:solid;border-color:var(--line);color:var(--muted)}
+.bld .sols .none{grid-row:1 / span 2;align-self:center;white-space:nowrap;font:600 14px var(--font-body);color:var(--muted);padding:0 6px}
+.bld .sols .none.zero{color:var(--bad-line)}
 .bld .status{margin:2px 0 0;padding:0}
 .bld .status .acts{gap:4px;flex-wrap:nowrap;justify-content:center}
 .bld .status .btn{padding:4px 10px;font-size:13px}

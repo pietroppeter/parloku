@@ -19,11 +19,11 @@ nbText: """
 
 [← torna al builder](builder.html)
 
-**Parole.** Ogni parola in alto ha un cerchietto: trascinalo su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.
+**Parole.** Ogni parola in alto ha un quadratino alla fine: trascina la parola (da qualunque punto della sua riga) su una casella e la parola parte da lì con la sua prima lettera. Tieni premuta l'ultima lettera della parola: compaiono le caselle dove può andare la successiva, trascina lì (o tocca una di quelle) e la parola si allunga con la lettera giusta. Puoi anche trascinare la testa della parola (l'ultima lettera) lungo le caselle: ogni casella libera vicina in cui passi aggiunge la lettera successiva, e tornando sulla penultima la parola si accorcia. Se la lasci su una casella vuota senza aver fatto passi, la testa si sposta lì, come nel gioco.
 
 **Lettere forzate.** Un doppio tocco su una casella vuota con una sola lettera a matita ce la mette; se è la lettera successiva di una parola che finisce accanto, la parola la prende.
 
-**Togliere.** Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sul cerchietto (o sulla prima lettera) toglie tutta la parola.
+**Togliere.** Un doppio tocco su una lettera la rimanda giù; se è in una parola, se ne vanno anche le lettere dopo. Un doppio tocco sulla riga della parola in alto (o sulla sua prima lettera) toglie tutta la parola.
 
 **Gioco.** Le altre lettere si trascinano dal basso come nel gioco: un trascinamento da una lettera sulla griglia ne fa una copia, tenendo premuto la sposti.
 
@@ -31,7 +31,7 @@ nbText: """
 
 **Icone.** 📌 trascina la puntina su una lettera per fissarla; ↺ ricomincia con le stesse parole; 💾 copia il puzzle in JSON (lettere nell'ordine di sotto, indizi, inizi delle parole, soluzione, e sotto "builder" il link che riapre il builder esattamente in questo stato): incollalo in chat per aggiungerlo ai puzzle del gioco; 🔗 copia il link per giocare il puzzle.
 
-**Soluzioni.** Accanto ad «annulla» il builder cerca fino a 10 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe: dice 0 se così le parole non ci stanno, il numero esatto fino a 9, oppure 10+. Per ora cerca solo soluzioni in cui le parole non si sovrappongono, né tra loro né con se stesse (una parola non ripassa su una sua casella). Con «niente U» scarta anche le parole che girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra); una parola lunga può comunque toccarsi più avanti. Nelle annotazioni, le lettere delle tre parole in una delle soluzioni sono colorate come la loro parola; 🎲 ne mostra un'altra.
+**Soluzioni.** Sotto la griglia il builder elenca, con un cerchio numerato ciascuna, fino a 100 griglie complete che tengono tutte le lettere messe e contengono tutte e tre le parole, provando ogni partenza per quelle non ancora messe (due file che scorrono a destra e sinistra; «0 soluzioni» se così le parole non ci stanno, «…» se la ricerca si è fermata prima). Una soluzione vale solo se ogni parola si legge in un modo solo dalla sua casella di partenza: con M A / A R e una parola che comincia con MAR, entrambe le A andrebbero bene, e la soluzione è scartata. Per ora le parole non si sovrappongono, né tra loro né con se stesse, e non girano a U su se stesse (due lettere a tre passi di distanza una accanto all'altra). Tocca un cerchio per vedere quella soluzione: nelle annotazioni, le lettere delle tre parole sono colorate come la loro parola e le altre lettere della soluzione sono in nero.
 
 **Annotazioni.** Ogni casella vuota mostra le lettere che può ancora avere in almeno una griglia completa. Una casella senza possibilità diventa rossa.
 
