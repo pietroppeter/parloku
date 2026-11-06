@@ -28,6 +28,7 @@ The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
 Devlog:
+- [Built in CI](devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
 - [A daily hello and a first lesson](devlog/splash/): the daily splash screen and the animated lesson for first-time players.
 - [Back to basics](devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
 - [Ten skins for a letter game](devlog/pastel-skins/): how the skins were chosen and checked.
@@ -36,6 +37,7 @@ Devlog:
 
 - The HTML pages (`index.html`, `builder.html`, `devlog/*/index.html`, ...) are not committed: CI builds them on every
   push and pull request and deploys them to GitHub Pages from `main` (`.github/workflows/pages.yml`).
+- `src/devlog_ci.nim` → `devlog/ci/index.html`: devlog post on building the pages in CI.
 - `src/all.nim`: builds every page in one program (any `src/*.nim` that calls `nbInit`, the game first).
 - `src/parloku.nim`: the notebook. Model, rules, solver and drag spec run natively at build time and in the browser.
 - `src/istruzioni.nim` → `istruzioni.html`: how to play (rules, then gestures), linked from the game menu.
