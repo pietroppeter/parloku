@@ -1069,7 +1069,13 @@ nbJsFromCode:
   var code = games[0][0]
   var tutorial = false                 # the 🎓 tutorial runs on the first puzzle, with its own saved board
   let fromUrl = $search()
-  if fromUrl.contains("p=") and decode(fromUrl).valid:
+  # ?p=3: the third puzzle of the menu, the short link the emoji share uses
+  var pNum = -1
+  for part in fromUrl.strip(chars = {'?'}).split('&'):
+    if part.startsWith("p=") and part.len > 2 and part[2 .. ^1].allCharsInSet(Digits): pNum = parseInt(part[2 .. ^1])
+  if pNum in 1 .. games.len:
+    code = games[pNum - 1][0]
+  elif fromUrl.contains("p=") and decode(fromUrl).valid:
     code = decode(fromUrl).encode
     if games.allIt(it[0] != code): games.add (code, "")
   # ?demo: a practice board for the istruzioni page (in an iframe). It starts from the letters in &g= (cell+letter,
@@ -1527,17 +1533,36 @@ nbJsFromCode:
       html.add &"""<span class="ok">{tick}</span></div>"""
     cluesEl.innerHTML = cstring(html)
 
+  type Party = enum pWave, pSnakes, pLetters
+  var party = pSnakes                  # picked at random on every win
+
+  # ---- the moves, for the emoji share: every letter put on the board or sent back below is one move
+  type Move = tuple[cell: int, letter: char]   # letter '-': sent back below
+  var moveLog: seq[Move]
+  proc logMoves(a, b: Board) =
+    ## the moves that turn board a into board b: one per letter put down, and one per letter sent back that no
+    ## letter took the place of (moving a snake's head is one move)
+    var put, gone: seq[int]
+    for c in 0 ..< 36:
+      if b.cells[c] >= 0 and b.cells[c] != a.cells[c]: put.add c
+      elif b.cells[c] < 0 and a.cells[c] >= 0: gone.add c
+    for c in put: moveLog.add (c, puz.letters[b.cells[c] div 6])
+    for k in put.len ..< gone.len: moveLog.add (gone[k], '-')
+  proc encodeLog(): string = moveLog.mapIt($it.cell & it.letter).join(".")
+  proc decodeLog(t: string): seq[Move] =
+    for item in t.split('.'):
+      if item.len >= 2: result.add (parseInt(item[0 .. ^2]), item[^1])
+
   proc storeKey(): cstring =
     let prefix = if tutorial: "parloku:tutorial:" else: "parloku:"
     cstring(prefix & code)
   proc save() =
     if demo: return
-    lsSet(storeKey(), cstring(stage.state.cells.join(",") & ";" & $stage.state.moves & ";" & $started & ";" & $wonAt))
+    lsSet(storeKey(), cstring(stage.state.cells.join(",") & ";" & $stage.state.moves & ";" & $started & ";" & $wonAt &
+      ";" & encodeLog() & ";" & $ord(party)))
 
   # ---- the party when a puzzle is solved: the letters on the board dance, then the banner pops up. Like the marbles,
   # an SVG transform set every frame on each tile's drawing, so it looks the same in every browser
-  type Party = enum pWave, pSnakes, pLetters
-  var party = pSnakes                  # picked at random on every win
   var cheer = "Evviva! 🥳"             # not "Bravo!": the player may be a girl or a boy
   var partyT0 = -1.0
   var winCell = 14                     # the cell of the last letter placed: the ripples start there
@@ -1554,8 +1579,10 @@ nbJsFromCode:
     of pWave: 3100.0
     of pSnakes: 3200.0
     of pLetters: 2900.0
+  proc movesMade(b: Board): int = (if moveLog.len > 0: moveLog.len else: b.moves)   # saves from before the log: its old count
   proc bannerHtml(moves: int): cstring =
-    cstring(&"<b>{cheer}</b><span>{moves} " & L("moves", "mosse") & &" · {clock()}</span>")
+    let shareBtn = if tutorial or demo: "" else: """<button class="btn sharegame" id="sharegame">""" & L("📤 share", "📤 condividi") & "</button>"
+    cstring(&"<b>{cheer}</b><span>{moves} " & L("moves", "mosse") & &" · {clock()}</span>" & shareBtn)
 
   proc celebrate() =
     var bits = ""
@@ -1650,7 +1677,7 @@ nbJsFromCode:
       renderPicker()
     if won and not celebrated:
       celebrated = true
-      banner.innerHTML = bannerHtml(stage.state.moves)
+      banner.innerHTML = bannerHtml(movesMade(stage.state))
       celebrate()
     if won: host.classList.add("won")
     else:
@@ -1669,6 +1696,7 @@ nbJsFromCode:
   var quiet = false                     # our own setState calls, which are not the player's moves
   var before: Board                     # the board, its history and clock before the restart
   var beforeHistory, beforeFuture: seq[Board]
+  var beforeLog: seq[Move]
   var beforeStarted, beforeWon = 0.0
   var undoTimer = 0
   var endUndoCb: proc ()                # set below, with the restart button
@@ -1679,6 +1707,7 @@ nbJsFromCode:
     if stage.state.cells != last.cells:   # a move of the player's (undo and redo set `last` first)
       for c in 0 ..< 36:
         if stage.state.cells[c] >= 0 and last.cells[c] < 0: winCell = c
+      if not quiet: logMoves(last, stage.state)
       history.add last
       future = @[]
       last = stage.state
@@ -1713,14 +1742,20 @@ nbJsFromCode:
     if not saved.isNil:
       let parts = ($saved).split(';')
       let cells = parts[0].split(',')
-      if parts.len == 4 and cells.len == 36:
+      if parts.len >= 4 and cells.len == 36:
         for i in 0 ..< 36: b.cells[i] = parseInt(cells[i])
         b.moves = parseInt(parts[1])
         started = parseFloat(parts[2])
         wonAt = parseFloat(parts[3])
+    moveLog = @[]
+    if not saved.isNil:
+      let parts = ($saved).split(';')
+      if parts.len == 6:
+        moveLog = decodeLog(parts[4])
+        party = Party(parseInt(parts[5]) mod 3)
     celebrated = solved(puz, b.grid)     # don't throw confetti again on reload
     confetti.innerHTML = ""
-    banner.innerHTML = bannerHtml(b.moves)
+    banner.innerHTML = bannerHtml(movesMade(b))
     if celebrated: host.classList.add("cheer")   # solved before: the banner at once, no party
     renderPicker()
     history = @[]
@@ -1830,6 +1865,7 @@ nbJsFromCode:
       quiet = false
       history = beforeHistory
       future = beforeFuture
+      moveLog = beforeLog
       last = stage.state
       started = beforeStarted
       wonAt = beforeWon
@@ -1847,6 +1883,7 @@ nbJsFromCode:
     before = stage.state
     beforeHistory = history
     beforeFuture = future
+    beforeLog = moveLog
     beforeStarted = started
     beforeWon = wonAt
     lsSet(storeKey(), "")
@@ -1864,6 +1901,7 @@ nbJsFromCode:
     endUndoCb()
     future.add stage.state
     last = history.pop
+    logMoves(stage.state, last)
     stage.setState(last)
     armHide())
   redoBtn.addEventListener("click", proc (ev: Event) =
@@ -1871,8 +1909,58 @@ nbJsFromCode:
     endUndoCb()
     history.add stage.state
     last = future.pop
+    logMoves(stage.state, last)
     stage.setState(last)
     armHide())
+
+  # ---- the emoji share, like Wordle: how the game went, never where the letters go. Every letter of a word gets the
+  # word's colour (🔴 🟢 🔵, the clue colours), every other move is ⚪, six to a line like a row of the board
+  proc shareText(): string =
+    let paths = stage.state.grid.outlines(puz.clues)
+    var wordAt, lastPut: array[36, int]
+    for c in 0 ..< 36:
+      wordAt[c] = -1
+      lastPut[c] = -1
+    for i, path in paths:
+      if path.len == puz.clues[i].word.len:
+        for c in path: wordAt[c] = i
+    for k, m in moveLog:
+      if m.letter != '-': lastPut[m.cell] = k
+    var balls: seq[string]
+    for k, m in moveLog:            # only the letter that stayed counts for its word: one put down and taken back is ⚪
+      let w = if m.letter != '-' and lastPut[m.cell] == k: wordAt[m.cell] else: -1
+      balls.add (if m.letter == '-': "⚫" elif w >= 0: ["🔴", "🟢", "🔵"][w mod 3] else: "⚪")   # ⚫: a letter sent back
+    const most = 48                 # eight lines; a longer game shows its first seven lines and then … (the total is above)
+    var more = 0
+    if balls.len > most:
+      more = balls.len - (most - 6)
+      balls.setLen(most - 6)
+    var empty = 0
+    for c in 0 ..< 36:
+      if not isGiven(c): inc empty
+    var num = ""
+    for i, (gc, _) in games:
+      if gc == code: num = " " & $(i + 1)
+    let dance = ["🌊", "🐍", "🪀"][ord(party)]
+    let star = if moveLog.len == empty: " ⭐" else: ""   # no letter moved twice
+    result = &"Parloku{num} 🥳{dance} · {movesMade(stage.state)} " & L("moves", "mosse") & &" · {clock()}{star}"
+    for k in countup(0, balls.len - 1, 6):
+      result.add "\n" & balls[k ..< min(k + 6, balls.len)].join("")
+    if more > 0: result.add "\n… +" & $more
+    var link = "?p=" & code
+    if num != "": link = "?p=" & num[1 .. ^1]   # ?p=1: short, the puzzle's number in the menu
+    result.add "\n" & $pageUrl() & link
+  proc canShare(): bool {.importjs: "(!!navigator.share && matchMedia('(pointer: coarse)').matches)".}
+  proc shareNative(t: cstring) {.importjs:
+    "(t => navigator.share({ text: t }).catch(e => { if (e.name !== 'AbortError') try { navigator.clipboard.writeText(t) } catch (x) {} }))(#)".}   # no share sheet (a frame): copy
+  proc onShareBtn(ev: Event): bool {.importjs: "!!#.target.closest('.sharegame')".}
+  banner.addEventListener("click", proc (ev: Event) =
+    if not onShareBtn(ev): return
+    let t = cstring(shareText())
+    if canShare(): shareNative(t)
+    else:
+      copyText(t)
+      document.getElementById("sharegame").innerHTML = cstring(L("✓ copied", "✓ copiato")))
 
   document.getElementById("share").addEventListener("click", proc (ev: Event) =
     let url = $pageUrl() & "?p=" & code

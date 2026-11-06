@@ -252,6 +252,10 @@ body.focus .picker.listing #picker,body.chrome .picker.listing #picker{display:c
 .banner b{display:block;font:700 42px var(--font-head)}
 .banner span{font:600 13px "JetBrains Mono",monospace;color:var(--muted)}
 .stage.won.cheer .banner{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.stage.won.cheer .banner{pointer-events:auto;z-index:3}
+.banner .sharegame{display:block;margin:6px auto 0;padding:3px 14px;min-height:0;font-size:14px;touch-action:manipulation}
+.banner:has(.sharegame){padding:6px 24px 8px;top:85.5%}
+.banner:has(.sharegame) b{font-size:34px;line-height:1.15}
 .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .confetti i{position:absolute;left:var(--x);top:-30px;width:20px;height:20px;border-radius:50%;
   font:700 11px/20px var(--font-glyph);text-align:center;font-style:normal;
