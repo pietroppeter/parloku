@@ -1,14 +1,14 @@
 ## The Parloku builder: the game's board, tiles and gestures, used to make a puzzle.
 ## Pick three words, drag each word's ring onto the board and lengthen it letter by letter, play on, and pin some letters as clues. The pencil marks and the solution count come from
-## puzzlepaw's `parloku/solver`, compiled to JS with the page.
+## `solver.nim` (moved here from puzzlepaw), compiled to JS with the page.
 ##
 ## The explanations live in builder_howto.nim (builder-howto.html), so this page stays compact.
 ## The model, rules, drag engine, view and runtime blocks are copied from `parloku.nim` (the game), so the
 ## builder looks and feels the same; only the builder wiring at the end is new. Writes builder.html.
-import std/[json, os, strformat, strutils]
+import std/[algorithm, json, os, strformat, strutils]
 import nimib
 import style, builder_style
-import parloku/[types, solver]
+import solver
 
 nbInit
 nb.doc.filename = currentSourcePath().parentDir.parentDir / "builder.html"
@@ -41,6 +41,23 @@ nbRawHtml: """
 <div hidden><button id="undo" disabled></button><span id="sol"></span><input type="checkbox" id="nou" checked><button id="dice"></button><div id="panel"></div></div>
 </div>
 """
+
+# Word triples: data/terne.txt, without the ones that already have a puzzle in data/.
+proc tripleKey(words: seq[string]): string =
+  var w = words
+  w.sort()
+  w.join(" ")
+var made: seq[string]
+for f in walkFiles(currentSourcePath().parentDir.parentDir / "data" / "puzzle*.json"):
+  var words: seq[string]
+  for h in parseFile(f)["problem"]["wordHints"]: words.add h["word"].getStr.toUpperAscii
+  made.add tripleKey(words)
+var terne: seq[string]
+for line in lines(currentSourcePath().parentDir.parentDir / "data" / "terne.txt"):
+  let t = line.strip.toUpperAscii
+  if t.len == 0 or t.startsWith("#"): continue
+  if tripleKey(t.splitWhitespace) notin made: terne.add t.splitWhitespace.join(" ")
+nbRawHtml: "<template id=\"terne\">" & terne.join("|") & "</template>"
 
 nbJsFromCode:
   import std/[math, strformat, strutils, sequtils]
@@ -369,32 +386,23 @@ nbJsFromCode:
   var coachTint: seq[int]        # tutorial: cells to tint (the reason for a step)
   var coachTarget = -1           # tutorial: the cell to fill (or empty)
   var coachStacks: seq[int]      # tutorial: letter stacks to make glow
-  var classicGrid = true         # a classic grid (plain, lines only); ?grid=rounded for rounded cells and shaded boxes
 
   proc backdrop(b: Board): string =
     let g = b.grid
     result = &"""<rect class="frame" x="{bx - 9}" y="{by - 9}" width="{cell * 6 + 18}" height="{cell * 6 + 18}" rx="14"/>"""
-    if classicGrid:
-      # a classic mini sudoku: one plain square, thin lines between cells, thick lines round the boxes and the edge
-      result.add &"""<rect class="cell ca" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
-      for c in coachTint:
-        let p = cellPos(c)
-        result.add &"""<rect class="cell tint" x="{p.x - cell/2}" y="{p.y - cell/2}" width="{cell}" height="{cell}"/>"""
-      for c in 0 ..< 36:
-        if noneCell[c] and b.cells[c] < 0:
-          let p = cellPos(c)
-          result.add &"""<rect class="cell bad" x="{p.x - cell/2}" y="{p.y - cell/2}" width="{cell}" height="{cell}"/>"""
-      for i in 1 .. 5:
-        result.add &"""<line class="thin" x1="{bx}" y1="{by + i.float * cell}" x2="{bx + cell * 6}" y2="{by + i.float * cell}"/>"""
-        result.add &"""<line class="thin" x1="{bx + i.float * cell}" y1="{by}" x2="{bx + i.float * cell}" y2="{by + cell * 6}"/>"""
-      result.add &"""<rect class="edge" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
-    for c in 0 ..< 36:
-      if classicGrid: break
+    # a classic mini sudoku: one plain square, thin lines between cells, thick lines round the boxes and the edge
+    result.add &"""<rect class="cell ca" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
+    for c in coachTint:
       let p = cellPos(c)
-      let (r, col) = (c div 6, c mod 6)
-      let base = if (r div 2 + col div 3) mod 2 == 0: "ca" else: "cb"
-      let tinted = if c in coachTint: "tint" else: base
-      result.add &"""<rect class="cell {tinted}" x="{p.x - cell/2 + 1.5}" y="{p.y - cell/2 + 1.5}" width="{cell - 3}" height="{cell - 3}" rx="7"/>"""
+      result.add &"""<rect class="cell tint" x="{p.x - cell/2}" y="{p.y - cell/2}" width="{cell}" height="{cell}"/>"""
+    for c in 0 ..< 36:
+      if noneCell[c] and b.cells[c] < 0:
+        let p = cellPos(c)
+        result.add &"""<rect class="cell bad" x="{p.x - cell/2}" y="{p.y - cell/2}" width="{cell}" height="{cell}"/>"""
+    for i in 1 .. 5:
+      result.add &"""<line class="thin" x1="{bx}" y1="{by + i.float * cell}" x2="{bx + cell * 6}" y2="{by + i.float * cell}"/>"""
+      result.add &"""<line class="thin" x1="{bx + i.float * cell}" y1="{by}" x2="{bx + i.float * cell}" y2="{by + cell * 6}"/>"""
+    result.add &"""<rect class="edge" x="{bx}" y="{by}" width="{cell * 6}" height="{cell * 6}"/>"""
     # builder: pencil marks in the empty cells; the letters of the three words in the solution shown take their word's colour
     for c in 0 ..< 36:
       if b.cells[c] < 0 and not noneCell[c]:
@@ -687,8 +695,7 @@ nbJsFromCode:
 
   # ================================================================ builder wiring (new)
   import std/algorithm
-  from parloku/types as pt import nil
-  from parloku/solver as ps import nil
+  from solver as ps import nil       # src/solver.nim
 
   proc now(): float {.importjs: "Date.now()".}
   proc copyText(s: cstring) {.importjs: """(s => { const old = () => { const t = document.createElement('textarea'); t.value = s; document.body.appendChild(t); t.select(); try { document.execCommand('copy') } catch (e) {} t.remove() }; try { navigator.clipboard.writeText(s).catch(old) } catch (e) { old() } })(#)""".}
@@ -705,10 +712,11 @@ nbJsFromCode:
   setSkin("niki")
 
   const playUrl = "https://pietroppeter.github.io/parloku/?p="
-  const sets = [
-    "IMPARA PRIMA MATITA", "PAROLE PERLE OPERA", "LOGICA GIOCA CALCOLI", "ALBA LUNA NUBE",
-    "CENA PANE PERA", "ESTATE MARE SERATA", "CANE PESCE APE", "NERO ROSA ORO",
-    "CANTO NOTE TONO", "PROVA TROVA PORTA", "ITALIA PASTA ALPI", "AMICA GIOCO MAGIA"]
+  proc templateText(id: cstring): cstring {.importjs: "(document.getElementById(#)?.innerHTML ?? '')".}
+  var sets: seq[string]          # from data/terne.txt, minus the triples that already have a puzzle
+  for line in ($templateText("terne")).split('|'):
+    if line.len > 0: sets.add line
+  if sets.len == 0: sets.add "NERO ROSA ORO"
 
   let host = document.getElementById("board")
   let cluesEl = document.getElementById("clues")
@@ -743,16 +751,16 @@ nbJsFromCode:
 
   proc emptyBoard(): Board = puz.boardOf(puz.startGrid)
 
-  proc toProblem(g: Grid, allTiles: bool): pt.Problem =
+  proc toProblem(g: Grid, allTiles: bool): ps.Problem =
     ## the solver's problem: the word starts found, plus every tile (allTiles) or only the pinned clues
     for i in 0 .. 5: result.letters[i] = puz.letters[i]
     if allTiles:
       for c in 0 ..< 36:
-        if g[c] != '.': result.letterHints.add pt.HintLetter(pos: (row: c div 6, col: c mod 6), letter: g[c])
+        if g[c] != '.': result.letterHints.add ps.HintLetter(pos: (row: c div 6, col: c mod 6), letter: g[c])
     else:
-      for gv in puz.givens: result.letterHints.add pt.HintLetter(pos: gv.pos, letter: gv.letter)
+      for gv in puz.givens: result.letterHints.add ps.HintLetter(pos: gv.pos, letter: gv.letter)
     for i, clue in puz.clues:
-      if wpath[i].len > 0: result.wordHints.add pt.HintWord(pos: clue.pos, word: clue.word)
+      if wpath[i].len > 0: result.wordHints.add ps.HintWord(pos: clue.pos, word: clue.word)
 
   proc orderedLetters(): string =
     ## the six letters in the order they sit below the board
@@ -769,7 +777,7 @@ nbJsFromCode:
   # The words are laid out cell by cell (a word never revisits a cell, two words never share one, and with
   # "niente U" no word turns back in a U); each layout's letters then go to the sudoku solver.
   type Fit = object
-    grid: pt.Grid
+    grid: ps.Grid
     paths: seq[seq[int]]       # each word's cells
   var fitList: seq[Fit]        # up to 10 different grids
   var fitCut = false           # the search hit its budget before deciding
@@ -784,10 +792,10 @@ nbJsFromCode:
     for k in 0 .. path.len - 4:
       let (a, b) = (path[k], path[k + 3])
       if abs(a div 6 - b div 6) + abs(a mod 6 - b mod 6) == 1: return true
-  proc lettersProblem(g: array[36, char]): pt.Problem =
+  proc lettersProblem(g: array[36, char]): ps.Problem =
     for i in 0 .. 5: result.letters[i] = puz.letters[i]
     for c in 0 ..< 36:
-      if g[c] != '.': result.letterHints.add pt.HintLetter(pos: (row: c div 6, col: c mod 6), letter: g[c])
+      if g[c] != '.': result.letterHints.add ps.HintLetter(pos: (row: c div 6, col: c mod 6), letter: g[c])
   proc fits(g: array[36, char], c: int, ch: char): bool =
     if g[c] == ch: return true
     g[c] == '.' and peersOf[c].allIt(g[it] != ch)
@@ -810,7 +818,7 @@ nbJsFromCode:
       seen[c] = false
     walk(path[0], 0)
     ways
-  proc unambiguous(sg: pt.Grid, path: seq[int]): bool =
+  proc unambiguous(sg: ps.Grid, path: seq[int]): bool =
     if path.len == 0: return true
     var word = ""
     for c in path: word.add sg[c div 6][c mod 6]
@@ -1801,11 +1809,11 @@ nbJsFromCode:
     ## the puzzle as puzzlepaw JSON (letters in the order below the board, pins, word starts), with its
     ## solution and, under "builder", the link that reopens this exact state; also how many solutions it has
     let lets = orderedLetters()
-    var p: pt.Problem
+    var p: ps.Problem
     for i in 0 .. 5: p.letters[i] = lets[i]
-    for gv in puz.givens: p.letterHints.add pt.HintLetter(pos: gv.pos, letter: gv.letter)
+    for gv in puz.givens: p.letterHints.add ps.HintLetter(pos: gv.pos, letter: gv.letter)
     for i, clue in puz.clues:
-      if wpath[i].len > 0: p.wordHints.add pt.HintWord(pos: clue.pos, word: clue.word)
+      if wpath[i].len > 0: p.wordHints.add ps.HintWord(pos: clue.pos, word: clue.word)
     let r = ps.solve(p, ps.defaultOptions(limit = 2, keep = 1))
     proc sep(k: int): string =
       if k > 0: result = ","

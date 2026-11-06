@@ -1,6 +1,6 @@
-## Devlog post: ten pastel skins for Parloku. Embeds the game as built in ../index.html (build that first),
+## Devlog post: ten pastel skins for Parloku. Embeds a snapshot of the game from git (gameCommit, see below),
 ## explains each skin when it is selected, and audits every skin's colours while the page builds.
-import std/[json, os, re, strutils, strformat, math, sequtils, tables]
+import std/[json, os, osproc, re, strutils, strformat, math, sequtils, tables]
 import nimib
 import style
 
@@ -35,17 +35,24 @@ func pageHeader(blk: JsonNode, nb: Nb): string =
   """<header><span><a href="../../">parloku</a> · devlog</span><span>04 Nov 2026</span></header>"""
 nb.backend.partials["header"] = pageHeader
 
-# ---- the game, as built: only the playing parts of ../index.html
-let built = readFile(root / "index.html")
+# ---- the game as it was when this post was live: a snapshot from git, not today's build.
+# This post is about switching skins, and the game has since dropped its skin picker (only Niki now,
+# others via ?skin=), so today's game would leave the post without its subject. The page's CSS comes
+# from the same snapshot, so old markup and old styles match. Needs the git history (CI checks out
+# with fetch-depth: 0). To embed today's game instead: readFile(root / "index.html") and pageStyle.
+const gameCommit = "fc3e6b4"   # 2026-11-04, the last build of this post before the pages moved to CI
+let built = execProcess("git", args = ["-C", root, "show", gameCommit & ":index.html"], options = {poUsePath})
+doAssert built.startsWith("<!DOCTYPE") or built.startsWith("<!doctype"), "cannot read index.html at " & gameCommit & " (needs the git history)"
 proc slice(s, start, stop: string): string =
   let a = s.find(start)
   let b = s.find(stop, a)
-  doAssert a >= 0 and b > a, "index.html is missing " & start & ": build src/parloku.nim first"
+  doAssert a >= 0 and b > a, "the game snapshot is missing " & start
   s[a ..< b]
 let skinsRow = slice(built, """<div class="skins"""", "\n")
 let game = slice(built, """<div class="game">""", """<div class="rules">""")
 let builtinList = slice(built, """<template id="builtin">""", "\n")
 let gameScript = slice(built, "<script>", "</script>") & "</script>"
+nb.doc.context["stylesheet"] = %(slice(built, """<link rel="preconnect"""", "</style>") & "</style>" & devlogStyle)
 
 nbRawHtml: """
 <p class="kicker">DEVLOG · 01</p>
