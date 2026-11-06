@@ -12,4 +12,5 @@ src/specs_page
 # every page is generated (src/all.nim) and built by CI (.github/workflows/pages.yml)
 *.html
 src/all
+src/devlog_index
 node_modules/

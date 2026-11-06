@@ -26,7 +26,7 @@ pre{overflow-x:auto;font-size:12.5px;line-height:1.45}
 nb.doc.context["highlight"] = %""
 nb.doc.context["disableHighlightJs"] = %true
 func pageHeader(blk: JsonNode, nb: Nb): string =
-  """<header><span><a href="../../">parloku</a> · devlog</span><span>06 Nov 2026</span></header>"""
+  """<header><span><a href="../../">parloku</a> · <a href="../">devlog</a></span><span>06 Nov 2026</span></header>"""
 nb.backend.partials["header"] = pageHeader
 
 # ---- the two frozen runs of "A misplaced last letter": before PR #8, and the game on 6 Nov 2026

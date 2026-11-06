@@ -7,9 +7,10 @@ OpenSpec to keep every agreed behaviour written down and checked.
 ## Requirements
 
 ### Requirement: Pages are explainers
-Every page (the game, the builder, each post) SHALL be a nimib notebook whose source is the page: the code that runs
-is the code shown, run natively at build time for the printed outputs and compiled to JavaScript for the browser.
-A page SHALL be a complete standalone HTML file served by GitHub Pages, with nothing loaded from claude.ai.
+Every page SHALL be a nimib notebook that writes a complete standalone HTML file served by GitHub Pages, with nothing
+loaded from claude.ai. A page whose job is to explain (each devlog post, each garden article) SHALL show the code
+that runs: run natively at build time for the printed outputs and compiled to JavaScript for the browser. The game
+and the builder are pages to use; how they are built is told in devlog posts.
 
 #### Scenario: A new page
 - **WHEN** a page is added
@@ -68,3 +69,11 @@ scenarios it shows).
 #### Scenario: A spec scenario breaks
 - **WHEN** a change to `src/parloku.nim` makes a scenario in `openspec/specs/` fail
 - **THEN** `tools/specdrag.nim` exits with an error naming the scenario, and shows the expected and the actual board
+
+### Requirement: A devlog index
+`devlog/` SHALL have an index page listing every post newest first, with its date, title and lede, read from the
+posts' sources, so a new post needs no entry there; each post's header SHALL link back to it.
+
+#### Scenario: A new post
+- **WHEN** a devlog post is added in `src/`
+- **THEN** it appears on the devlog index at the next build, with nothing else to edit

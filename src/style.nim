@@ -66,7 +66,7 @@ p code, li code{font:14.5px "JetBrains Mono",monospace;background:var(--soft);pa
 pre{margin:14px 0;overflow-x:auto;border-radius:10px}
 pre code{display:block;padding:14px 16px;font:13.2px/1.55 "JetBrains Mono",monospace;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--ink)}
 pre.nb-output, pre samp{display:block;padding:12px 16px;font:13px/1.5 "JetBrains Mono",monospace;background:#2b2b2b;color:#f3f1ea;border-radius:10px;white-space:pre;overflow-x:auto}
-details{margin:14px 0;border:1px dashed var(--line);border-radius:10px;padding:4px 12px;background:var(--card)}
+details{margin:14px 0;border:1px solid var(--line);border-radius:10px;padding:4px 12px;background:var(--card)}
 details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--muted);padding:6px 0}
 /* skin switcher */
 .skins{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 8px;margin:0 -16px;padding-left:16px;scrollbar-width:none}
@@ -88,11 +88,18 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
 .btn:active{transform:translate(1px,1px);box-shadow:none}
 .langs{display:flex;gap:6px;margin-left:auto}
 .langs .btn{padding:4px 10px}
-.coach{background:var(--coach);color:var(--coach-ink);border-radius:var(--radius);padding:12px 16px;margin:0 0 14px}
-.coach .hd{font:700 12px "JetBrains Mono",monospace;letter-spacing:.1em;opacity:.8}
-.coach p{margin:6px 0 10px;font-size:16px;line-height:1.5}
-.coach p b{background:rgba(255,255,255,.16);padding:0 4px;border-radius:4px}
+/* the tutorial's messages: a white-ish, see-through blob floating over the game, placed (in Nim) off what the step is about */
+.coach{position:fixed;z-index:15;left:0;right:0;top:0;margin:0 auto;width:min(calc(100vw - 24px),400px);box-sizing:border-box;
+  background:rgba(255,255,255,.84);-webkit-backdrop-filter:blur(1px);backdrop-filter:blur(1px);color:var(--ink);
+  border-radius:30px 24px 32px 22px / 24px 30px 22px 32px;padding:10px 16px 12px;
+  box-shadow:0 6px 24px rgba(0,0,0,.14),0 0 0 1px rgba(0,0,0,.05);transition:top .35s ease;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.coach.held{transition:none;cursor:grabbing;box-shadow:0 10px 30px rgba(0,0,0,.2),0 0 0 1px rgba(0,0,0,.06)}
+.coach .hd{font:700 11px "JetBrains Mono",monospace;letter-spacing:.1em;color:var(--muted)}
+.coach p{margin:4px 0 8px;font-size:15px;line-height:1.4}
+.coach p b{background:rgba(0,0,0,.07);padding:0 4px;border-radius:4px}
 .coach .acts{display:flex;gap:8px;flex-wrap:wrap}
+.coach .acts .btn{padding:5px 12px;font-size:14px}
+@media (prefers-reduced-motion:reduce){.coach{transition:none}}
 .pulse{animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.35}}
 .clues{display:flex;flex-wrap:wrap;gap:10px 14px;justify-content:center;margin:6px 0 12px;min-height:46px}
@@ -137,7 +144,7 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 
 .lbl{fill:var(--muted);display:none} .tutoring .lbl{display:inline}
 .glow{fill:var(--hl);stroke:var(--c0);stroke-width:3}
-.empty{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 5} .done{fill:var(--c4)}
+.empty{fill:none;stroke:var(--line);stroke-width:2} .done{fill:var(--c4)}
 .casing{fill:none;stroke:var(--card);stroke-linecap:round;stroke-linejoin:round;opacity:.85}
 .wp{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .wp.c0{stroke:var(--c0)} .wp.c1{stroke:var(--c1)} .wp.c2{stroke:var(--c2)} .wp.c3{stroke:var(--c3)} .wp.c4{stroke:var(--c4)}
@@ -145,9 +152,9 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .mk.c0{fill:var(--c0)} .mk.c1{fill:var(--c1)} .mk.c2{fill:var(--c2)} .mk.c3{fill:var(--c3)} .mk.c4{fill:var(--c4)}
 .aim{fill:none;stroke:var(--c0);stroke-width:5}
 .ghosts,.overlay{pointer-events:none}
-.ghosts .target{fill:none;stroke:var(--ink);stroke-width:3;stroke-dasharray:6 5;opacity:.45}
+.ghosts .target{fill:none;stroke:var(--ink);stroke-width:2;opacity:.35}
 .ghosts .land{fill:var(--c0);opacity:.5}
-.ghosts .tether{stroke:var(--c0);stroke-width:2;stroke-dasharray:4 4}
+.ghosts .tether{stroke:var(--c0);stroke-width:2;opacity:.6}
 .ghost-toggle{position:absolute;right:12px;bottom:6px;font:12px "JetBrains Mono",monospace;color:var(--muted);cursor:pointer;user-select:none}
 .ghost-toggle input{accent-color:var(--c0);vertical-align:-2px}
 .status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:12px 0}
@@ -178,6 +185,7 @@ body.focus>header,body.focus footer,body.chrome>header,body.chrome footer,
 body.focus main>:not(.play):not(.sp),body.chrome main>:not(.play):not(.sp){display:none}
 body.focus,body.chrome{padding-bottom:0}
 body.focus .play,body.chrome .play{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:8px 0}
+body.demo .play{min-height:0}      /* a practice board on the istruzioni page: as tall as its game */
 body.focus .play>h1,body.focus .play>.lede,body.focus .play>.rules,body.focus .play>.skins,
 body.chrome .play>h1,body.chrome .play>.lede,body.chrome .play>.rules,
 body.focus .status{display:none}

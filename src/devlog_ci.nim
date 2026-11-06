@@ -14,7 +14,7 @@ const devlogStyle = """
 table.ba{border-collapse:collapse;font-size:.92rem;width:100%;}
 table.ba th,table.ba td{padding:.45rem .5rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 table.ba td.n{text-align:right;font-family:"JetBrains Mono",monospace;white-space:nowrap}
-.ask{background:var(--card);border:1.5px dashed var(--line);border-radius:14px;padding:6px 18px}
+.ask{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:6px 18px}
 </style>
 """
 
@@ -27,7 +27,7 @@ nb.doc.context["stylesheet"] = %(pageStyle & devlogStyle)
 nb.doc.context["highlight"] = %""
 nb.doc.context["disableHighlightJs"] = %true
 func pageHeader(blk: JsonNode, nb: Nb): string =
-  """<header><span><a href="../../">parloku</a> · devlog</span><span>06 Nov 2026</span></header>"""
+  """<header><span><a href="../../">parloku</a> · <a href="../">devlog</a></span><span>06 Nov 2026</span></header>"""
 nb.backend.partials["header"] = pageHeader
 
 # the pages this very build makes, found the way src/all.nim finds them

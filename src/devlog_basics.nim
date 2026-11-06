@@ -40,7 +40,7 @@ ol.list li .v{font-weight:700}
 table.ba{border-collapse:collapse;font-size:.9rem;width:100%;min-width:420px}
 table.ba th,table.ba td{padding:.4rem .5rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 table.ba td:nth-child(n+2){white-space:nowrap}
-.watch{background:var(--card);border:1.5px dashed var(--line);border-radius:14px;padding:6px 18px}
+.watch{background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:6px 18px}
 </style>
 """
 
@@ -53,7 +53,7 @@ nb.doc.context["stylesheet"] = %(pageStyle & devlogStyle)
 nb.doc.context["highlight"] = %""
 nb.doc.context["disableHighlightJs"] = %true
 func pageHeader(blk: JsonNode, nb: Nb): string =
-  """<header><span><a href="../../">parloku</a> · devlog</span><span>04 Nov 2026</span></header>"""
+  """<header><span><a href="../../">parloku</a> · <a href="../">devlog</a></span><span>04 Nov 2026</span></header>"""
 nb.backend.partials["header"] = pageHeader
 
 # ---- the game, as built: only the playing parts of ../index.html

@@ -4,7 +4,8 @@ import style, splash
 
 nbInit
 # write the page at the repo root (served by GitHub Pages), wherever the build is run from
-nb.doc.filename = currentSourcePath().parentDir.parentDir / "index.html"
+let root = currentSourcePath().parentDir.parentDir
+nb.doc.filename = root / "index.html"
 nb.doc.context["title"] = %"Parloku"
 nb.doc.context["stylesheet"] = %pageStyle
 nb.doc.context["highlight"] = %""
@@ -13,13 +14,21 @@ func pageHeader(blk: JsonNode, nb: Nb): string =
   ""                                   # the title says it all: no header line above the game
 nb.backend.partials["header"] = pageHeader
 
+var gameBlocks: seq[NbBlock]           # the blocks index.html keeps; the rest is the devlog post (see the end)
+nbRawHtml: """
+<style>.kicker{font:700 .72rem/1.2 var(--font-body,sans-serif);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:1.6rem 0 .3rem}</style>
+<p class="kicker">DEVLOG · HOW IT WORKS</p>
+<h1>How it works</h1>
+<p class="lede">The game's own notebook: the model, the rules as code, a solver that thinks like a person, the drag spec
+and the browser runtime. Every block runs twice, while the page is built and in your browser.</p>
+<p>Below is the game itself, then the Nim source that makes it, one piece at a time.</p>
+"""
 nbRawHtml: """
 <div class="play" id="play">
 <h1><span class="tile">P</span>arloku</h1>
 <p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste.">A mini sudoku spelled in letters, with words hidden in it.</p>
 <div class="game">
   <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><a class="btn menu-only" id="howto" href="istruzioni.html" data-it="istruzioni">how to play</a><button class="btn menu-only" id="again" aria-haspopup="true" aria-expanded="false" data-it="ancora!">again!</button><span id="picker"></span>
-<div class="langs" id="langs"><button class="btn" data-lang="en">EN</button><button class="btn" data-lang="it">IT</button></div>
   </div>
   <div class="coach" id="coach" hidden>
     <div class="hd" id="coach-hd"></div>
@@ -46,6 +55,7 @@ nbRawHtml: """
 <div class="skins" id="skins" hidden></div>
 </div>
 """
+gameBlocks.add nb.blk
 
 nbText: """
 Parloku is [Pietro](https://github.com/pietroppeter)'s word-flavoured
@@ -73,7 +83,7 @@ row, column, word, both 0-based and separated by dots.
 """
 
 nbCodeAnd(nbJsFromCode):
-  import std/[math, strformat, strutils, sequtils]
+  import std/[math, strformat, strutils, sequtils, algorithm]
 
   type
     Coord = tuple[row, col: int]
@@ -169,7 +179,7 @@ nbCode:
 nbRawHtml: """<h2><span class="num">02 · THE RULES, AS CODE</span>Checking, tracing, solving</h2>"""
 
 nbText: """
-Three functions carry the rules. `clashes` finds repeated letters in a row, column or box (they glow red on the board).
+Three functions carry the rules. `clashes` finds repeated letters in a row, column or box (on the board they tremble like restless marbles).
 `trace` walks a clue through the grid with a depth-first search and returns the longest prefix it can spell, so
 the clue chips light up letter by letter and the path is drawn over the tiles.
 With `wild = true` an empty cell matches any letter, which is what a solver needs to prune early.
@@ -197,15 +207,15 @@ nbCodeAnd(nbJsFromCode):
     for c in 0 ..< 36:
       if g[c] != '.' and peersOf[c].anyIt(g[it] == g[c]): result.add c
 
-  proc trace(g: Grid, clue: Clue, wild = false, revisit = false): seq[int] =
-    ## longest prefix of the word that can be walked from its start cell.
-    ## The rules let a path come back to a cell it already used (`revisit`, for the solver); the board's
-    ## outlines don't, or G-I-O-C would read as GIOCO by stepping back onto the O
+  proc trace(g: Grid, clue: Clue, wild = false, revisit = false, avoid: seq[int] = @[]): seq[int] =
+    ## longest prefix of the word that can be walked from its start cell, never through a cell in `avoid`.
+    ## A path never comes back to a cell it already used, or G-I-O-C would read as GIOCO by stepping back
+    ## onto the O. (`revisit` lets it, and is kept only to compare the two rules.)
     if not revisit:
       var best, path: seq[int]
       let word = clue.word
       proc walk(cell, i: int) =
-        if best.len == word.len or cell in path: return
+        if best.len == word.len or cell in path or cell in avoid: return
         let ok = g[cell] == word[i] or (wild and g[cell] == '.')
         if not ok: return
         path.add cell
@@ -237,8 +247,29 @@ nbCodeAnd(nbJsFromCode):
     walk(idx(clue.pos), 0)
     best
 
+  proc othersStarts(clues: seq[Clue], i: int): seq[int] =
+    for j, c in clues:
+      if j != i: result.add idx(c.pos)
+
+  proc outlines(g: Grid, clues: seq[Clue]): seq[seq[int]] =
+    ## the outline of every word on the board. Two words never share a cell: an outline never enters another
+    ## word's start cell, and where two outlines could take the same letters, the longer one keeps them
+    ## (on a tie, the word listed first) and the other is traced again around them.
+    result = newSeq[seq[int]](clues.len)
+    var order = toSeq(0 ..< clues.len)
+    let first = order.mapIt(g.trace(clues[it], avoid = othersStarts(clues, it)).len)
+    order.sort(proc (a, b: int): int = (if first[a] != first[b]: first[b] - first[a] else: a - b))
+    var claimed: seq[int]
+    for i in order:
+      result[i] = g.trace(clues[i], avoid = othersStarts(clues, i) & claimed)
+      claimed.add result[i]
+
   proc solved(p: Puzzle, g: Grid): bool =
-    '.' notin g and g.clashes.len == 0 and p.clues.allIt(g.trace(it, revisit = true).len == it.word.len)
+    if '.' in g or g.clashes.len > 0: return false
+    let ls = g.outlines(p.clues)
+    for i, clue in p.clues:
+      if ls[i].len != clue.word.len: return false
+    true
 
   proc solve(p: Puzzle, limit = 2): seq[Grid] =
     ## backtracking with "fewest candidates first", pruning on the clues;
@@ -246,7 +277,8 @@ nbCodeAnd(nbJsFromCode):
     var g = startGrid(p)
     var sols: seq[Grid]
     proc fits(g: Grid, cell: int, ch: char): bool = peersOf[cell].allIt(g[it] != ch)
-    proc cluesOk(g: Grid): bool = p.clues.allIt(g.trace(it, wild = true, revisit = true).len == it.word.len)
+    proc cluesOk(g: Grid): bool =
+      toSeq(0 ..< p.clues.len).allIt(g.trace(p.clues[it], wild = true, avoid = othersStarts(p.clues, it)).len == p.clues[it].word.len)
     proc go(g: var Grid) =
       if sols.len >= limit: return
       var best = -1
@@ -275,8 +307,9 @@ nbCode:
     let verdict = if sols.len == 1: " (unique)" else: "s found, stopped"
     let key = if sols[0] == answerKeys[i]: "matches" else: "DIFFERS FROM"
     echo title, ": ", sols.len, " solution", verdict, ", ", key, " the answer key in data/"
-    for clue in p.clues:
-      let path = sols[0].trace(clue).mapIt(&"r{it div 6 + 1}c{it mod 6 + 1}")
+    let ls = sols[0].outlines(p.clues)
+    for i, clue in p.clues:
+      let path = ls[i].mapIt(&"r{it div 6 + 1}c{it mod 6 + 1}")
       echo &"  {clue.word:<7}", path.join(" → ")
 
 nbText: """
@@ -307,7 +340,7 @@ nbCodeAnd(nbJsFromCode):
       path: seq[int]         # word steps: the word so far, ending in `cell`
       dead: seq[int]         # word steps: neighbours that fit the sudoku but can't finish the word
 
-  var lang = "en"            # "en" or "it", set by the page
+  var lang = "it"            # Italian; English is a draft, only with ?lang=en
   proc L(en, it: string): string = (if lang == "it": it else: en)
 
   proc cands(p: Puzzle, g: Grid, c: int): string =
@@ -484,7 +517,7 @@ nbText: """
 The drag engine is the one from [Declarative Dragging, in Nim](https://pietroppeter.github.io/claude-artifacts/declarative-dragging-nim/):
 a view is a pure function from model to keyed, positioned items, and a *behaviour* turns a list of reachable
 models into a picker that chooses the one landing the held item closest to the pointer.
-Tick the box and drag a tile on the board above: the dashed squares are every board this drag can reach.
+Tick the box and drag a tile on the board above: the faint squares are every board this drag can reach.
 """
 nbRawHtml: """<p class="machinery-slot" id="machinery-slot"></p>"""
 
@@ -636,8 +669,9 @@ nbCodeAnd(nbJsFromCode):
   proc isHead(b: Board, at: int): bool =
     ## the letter on `at` is the last one spelled so far of some word: the head of its snake
     let g = b.grid
-    for clue in puz.clues:
-      let path = g.trace(clue)
+    let ls = g.outlines(puz.clues)
+    for i, clue in puz.clues:
+      let path = ls[i]
       if path.len > 0 and path[^1] == at: return true
     false
 
@@ -667,7 +701,7 @@ nbCode:
   echo &"pointer below the board → {off.state.cells.find(free[0])} (-1: back with its letter)"
 
 nbText: """
-Around the tiles, the backdrop draws the board and red cells for clashes; the overlay draws each word's outline
+Around the tiles, the backdrop draws the board (clashes tremble, they are never painted red); the overlay draws each word's outline
 on top: a ring on its start cell that grows around the letters as they are spelled. Both are plain functions of the board too, so nimib can also draw a
 finished board at build time:
 """
@@ -715,9 +749,10 @@ nbCodeAnd(nbJsFromCode):
   proc overlay(b: Board): string =
     let g = b.grid
     let n = puz.clues.len
+    let ls = g.outlines(puz.clues)
     for i, clue in puz.clues:
       # each word is an outline in its own dark colour: a ring on its start cell that grows around its letters
-      let path = g.trace(clue)
+      let path = ls[i]
       let ink = &"w{i mod 3}"
       var t = 4.0
       if focusClue == i: t = 6.0
@@ -989,6 +1024,7 @@ nbRawHtml: "</details>"
 var codes = ""
 for (title, code) in builtin: codes.add "<option value=\"" & code & "\">" & title & "</option>"
 nbRawHtml: "<template id=\"builtin\">" & codes & "</template>"
+gameBlocks.add nb.blk
 
 nbJsFromCode:
   proc now(): float {.importjs: "Date.now()".}
@@ -1003,7 +1039,6 @@ nbJsFromCode:
   proc attr(e: Element, k: cstring): cstring {.importjs: "#.getAttribute(#)".}
   proc options(): seq[Element] {.importjs: "Array.from(document.getElementById('builtin').content.querySelectorAll('option'))".}
   proc hoverIndex(ev: Event): cstring {.importjs: "(#.target.closest('[data-clue]')?.dataset.clue ?? null)".}
-  proc navLang(): cstring {.importjs: "String(navigator.language || 'en')".}
   proc i18nNodes(): seq[Element] {.importjs: "Array.from(document.querySelectorAll('[data-it]'))".}
   proc setAttr(e: Element, k, v: cstring) {.importjs: "#.setAttribute(#, #)".}
   proc setDocLang(l: cstring) {.importjs: "document.documentElement.lang = #".}
@@ -1021,11 +1056,10 @@ nbJsFromCode:
   if fromUrl.contains("p=") and decode(fromUrl).valid:
     code = decode(fromUrl).encode
     if games.allIt(it[0] != code): games.add (code, "")
-  # language: ?lang=, then the last choice, then the browser's
-  let savedLang = lsGet("parloku:lang")
-  lang = if ($navLang()).startsWith("it"): "it" else: "en"
-  if not savedLang.isNil and $savedLang in ["en", "it"]: lang = $savedLang
-  if fromUrl.contains("lang=it"): lang = "it"
+  # ?demo: a practice board for the istruzioni page (in an iframe). It starts from the letters in &g= (cell+letter,
+  # e.g. g=0I,1T), saves nothing, and has no menu
+  let demo = fromUrl.contains("demo")
+  # language: Italian, whatever the browser says. The English draft only by link (?lang=en)
   if fromUrl.contains("lang=en"): lang = "en"
 
   var solution: Grid
@@ -1153,8 +1187,9 @@ nbJsFromCode:
     let at = stage.state.cells.find(id)
     if at < 0: return
     let g = stage.state.grid
+    let ls = g.outlines(puz.clues)
     for i, clue in puz.clues:            # an unfinished word first: its head is the one to grow
-      let path = g.trace(clue)
+      let path = ls[i]
       if path.len > 0 and path[^1] == at and (snakeWord < 0 or path.len < clue.word.len):
         snakeWord = i
         snakePath = path
@@ -1175,6 +1210,7 @@ nbJsFromCode:
       snakeStepped = true
       stage.setState(b)
     elif c >= 0 and b.cells[c] < 0 and not isGiven(c) and snakePath.len < word.len and
+        c notin othersStarts(puz.clues, snakeWord) and   # a word never runs over another word's start cell
         abs(c div 6 - head div 6) + abs(c mod 6 - head mod 6) == 1:
       let li = puz.letters.find(word[snakePath.len])
       for j in 0 .. 5:
@@ -1206,7 +1242,27 @@ nbJsFromCode:
   stage.svg.addEventListener("pointerup", snakeUp)
   stage.svg.addEventListener("pointercancel", snakeUp)
 
-  # ---- a double tap on a tile on the board sends it (and the rest of its snake) back to its letter below; on an empty cell with only one possible letter (a start ring, or the last gap of a row, column or box), it fills that letter in
+  proc sureLetter(g: Grid, c: int): char =
+    ## the only letter a double tap can put in cell c: a start ring's first letter, or the one missing
+    ## from a row, column or box that already has the other five, all different ('.': none)
+    result = '.'
+    for clue in puz.clues:
+      if idx(clue.pos) == c: return clue.word[0]
+    let (row, col) = (c div 6, c mod 6)
+    var units: seq[seq[int]]
+    units.add toSeq(0 .. 5).mapIt(row * 6 + it)
+    units.add toSeq(0 .. 5).mapIt(it * 6 + col)
+    let (r0, c0) = (row div 2 * 2, col div 3 * 3)
+    units.add toSeq(0 .. 5).mapIt((r0 + it div 3) * 6 + c0 + it mod 3)
+    for u in units:
+      var seen: seq[char]
+      for cc in u:
+        if cc != c and g[cc] != '.' and g[cc] notin seen: seen.add g[cc]
+      if seen.len == 5:
+        for ch in puz.letters:
+          if ch notin seen: return ch
+
+  # ---- a double tap on a tile on the board sends it (and the rest of its word, from there on) back to its letter below; on an empty cell with only one possible letter (a start ring, or the last gap of a row, column or box), it fills that letter in
   var tapKey = ""
   var tapAt = 0.0
   var downAt = vec(0, 0)
@@ -1230,26 +1286,7 @@ nbJsFromCode:
         tapKey = ""
         return
       let c = row * 6 + col
-      # the only letter that can go there: a start ring's first letter, or the one missing from a row,
-      # column or box that already has the other five, all different
-      var forced = '.'
-      for clue in puz.clues:
-        if idx(clue.pos) == c: forced = clue.word[0]
-      if forced == '.':
-        let g = stage.state.grid
-        var units: seq[seq[int]]
-        units.add toSeq(0 .. 5).mapIt(row * 6 + it)
-        units.add toSeq(0 .. 5).mapIt(it * 6 + col)
-        let (r0, c0) = (row div 2 * 2, col div 3 * 3)
-        units.add toSeq(0 .. 5).mapIt((r0 + it div 3) * 6 + c0 + it mod 3)
-        for u in units:
-          var seen: seq[char]
-          for cc in u:
-            if cc != c and g[cc] != '.' and g[cc] notin seen: seen.add g[cc]
-          if seen.len == 5:
-            for ch in puz.letters:
-              if ch notin seen: forced = ch
-            break
+      let forced = sureLetter(stage.state.grid, c)
       if forced == '.' or stage.state.cells[c] >= 0:
         tapKey = ""
         return
@@ -1268,14 +1305,16 @@ nbJsFromCode:
     let id = parseInt(($k)[1 .. ^1])
     let at = stage.state.cells.find(id)
     if at < 0: return
-    # the whole snake goes: every word whose outline passes through this letter sends all its letters
-    # back below (givens stay where they are)
+    # inside a word, the word is cut there: this letter and every letter after it go back below,
+    # the letters before it stay (and so do givens)
     var gone: seq[int]
     let g = stage.state.grid
-    for clue in puz.clues:
-      let path = g.trace(clue)
-      if path.len >= 2 and at in path:
-        for c in path:
+    let ls = g.outlines(puz.clues)
+    for i, clue in puz.clues:
+      let path = ls[i]
+      let k = path.find(at)
+      if path.len >= 2 and k >= 0:
+        for c in path[k .. ^1]:
           if c notin gone: gone.add c
     if gone.len == 0: gone.add at
     if gone.allIt(isGiven(it)): return
@@ -1347,7 +1386,18 @@ nbJsFromCode:
       discard setTimer(proc () =          # back to the three buttons once the bar is out of sight
         if not document.body.classList.contains("chrome"):
           document.querySelector(".picker").classList.remove("listing"), 400)
-  let playEl = document.getElementById("play")
+  proc inDevlog(): bool {.importjs: "location.pathname.includes('/devlog/')".}
+  # the game page shows only the game; the devlog post (the same notebook) shows the game as a plain block in the page
+  var playEl = document.getElementById("play")
+  if demo:
+    # tell the istruzioni page how tall this practice board is, so its frame fits it
+    proc tellHeight() {.importjs:
+      "(() => { const p = document.querySelector('.play'); if (p && parent !== window) parent.postMessage({parlokuHeight: Math.ceil(p.getBoundingClientRect().height + 4)}, '*') })()".}
+    document.body.classList.add("demo")
+    discard setTimer(proc () = tellHeight(), 50)
+    discard setTimer(proc () = tellHeight(), 800)   # again once the fonts are in
+    window.addEventListener("resize", proc (ev: Event) = tellHeight())
+  if inDevlog(): playEl = nil
   if not playEl.isNil:
     setMode("focus")
     # one menu bar, at the top only: the puzzles and restart
@@ -1364,7 +1414,7 @@ nbJsFromCode:
         # the menu's zone: anywhere above the grid that is not a word (a word wiggles instead)
         if onClue(ev) or inStage(ev): return
         let (_, gridTop, _, _) = rectOf(host)
-        if clientXY(ev).y < gridTop: setMode("chrome")
+        if clientXY(ev).y < gridTop and not demo: setMode("chrome")
         return
       if interactive(ev): return
       if inPlay(ev):
@@ -1383,6 +1433,7 @@ nbJsFromCode:
     let v = lsGet("parloku:solved")
     if not v.isNil and ($v).len > 0: result = ($v).split(',')
   proc markSolved(c: string) =
+    if demo: return
     var cs = solvedCodes()
     if c notin cs:
       cs.add c
@@ -1408,8 +1459,9 @@ nbJsFromCode:
   proc showClues() =
     let g = stage.state.grid
     var html = ""
+    let ls = g.outlines(puz.clues)
     for i, clue in puz.clues:
-      let path = g.trace(clue)
+      let path = ls[i]
       let full = path.len == clue.word.len
       let cls = if full: " done" else: ""
       let foc = if focusClue == i: " focus" else: ""
@@ -1428,6 +1480,7 @@ nbJsFromCode:
     let prefix = if tutorial: "parloku:tutorial:" else: "parloku:"
     cstring(prefix & code)
   proc save() =
+    if demo: return
     lsSet(storeKey(), cstring(stage.state.cells.join(",") & ";" & $stage.state.moves & ";" & $started & ";" & $wonAt))
 
   proc celebrate() =
@@ -1450,6 +1503,8 @@ nbJsFromCode:
   var guided = true                    # false once the player chose to finish the sudoku alone
   var wordsAck = false                 # the "all words are in" page was seen
   var coachStep: Step
+  var coachMoved = false               # tutorial: the player dragged the blob, so it stays where they put it
+  var taughtAt: array[StepKind, int]   # tutorial: the step where each gesture was first explained (-1: not yet)
   proc showCoach()
   proc refresh() =
     let g = stage.state.grid
@@ -1499,7 +1554,19 @@ nbJsFromCode:
     var b = emptyBoard()
     started = 0
     wonAt = 0
-    let saved = lsGet(storeKey())
+    let saved = if demo: nil else: lsGet(storeKey())
+    if demo:
+      let gi = fromUrl.find("&g=")
+      if gi >= 0:
+        for item in fromUrl[gi + 3 .. ^1].split('&')[0].split(','):
+          if item.len < 2: continue
+          let c = parseInt(item[0 .. ^2])
+          let li = puz.letters.find(item[^1])
+          if li < 0 or c notin 0 ..< 36 or b.cells[c] >= 0: continue
+          for k in 0 .. 5:
+            if b.cells.find(li * 6 + k) < 0:
+              b = b.place(li * 6 + k, c)
+              break
     if not saved.isNil:
       let parts = ($saved).split(';')
       let cells = parts[0].split(',')
@@ -1690,21 +1757,97 @@ nbJsFromCode:
       wiggleClue = -1
       if stage.dragKey.len == 0: stage.top.innerHTML = cstring(overlay(stage.state)), 700))
 
-  # ---- the 🎓 tutorial: a coach above the board that asks the logical path for the next move after every drop
+  # ---- the 🎓 tutorial: a coach floating over the game that asks the logical path for the next move after every drop
 
   proc buttons(acts: seq[(string, string)]): string =
     for (act, label) in acts: result.add &"""<button class="btn" data-act="{act}">{label}</button>"""
 
   proc introText(): string =
     case intro
-    of 0: L("Welcome! This is the first Parloku. Fill the grid with the six letters <b>A I L P S T</b>, pulling copies out of the six letters below the board.",
-            "Benvenuto! Questo è il primo Parloku. Riempi la griglia con le sei lettere <b>A I L P S T</b>, tirando fuori delle copie dalle sei lettere sotto la griglia.")
+    of 0: L("Welcome! <b>Spoiler warning:</b> this tutorial solves the first puzzle with you, step by step. To try it on your own first, tap <i>exit</i>. Fill the grid with the six letters <b>A I L P S T</b>, pulling copies out of the six letters below the board.",
+            "Benvenuto! <b>Attenzione, spoiler:</b> questo tutorial risolve con te il primo puzzle, passo per passo. Se vuoi provarci prima da solo, tocca <i>esci</i>. Riempi la griglia con le sei lettere <b>A I L P S T</b>, tirando fuori delle copie dalle sei lettere sotto la griglia.")
     of 1: L("As in sudoku, each letter appears once in every row, every column and every 2×3 box. One of each is highlighted.",
             "Come nel sudoku, ogni lettera compare una volta in ogni riga, in ogni colonna e in ogni riquadro 2×3. Ne vedi evidenziato uno per tipo.")
     of 2: L("The three words above are the clues. Each one starts in the cell ringed in its colour and goes one step at a time: up, down, left or right.",
             "Le tre parole in alto sono gli indizi. Ognuna parte dalla casella con il cerchio del suo colore e procede un passo alla volta: in su, in giù, a destra o a sinistra.")
     else: L("The method: first put the first letter of every word. Then follow each word letter by letter. When the sudoku leaves only one cell for the next letter, that letter is forced. Let's start!",
             "Il metodo: prima metti la prima lettera di ogni parola. Poi segui ogni parola lettera per lettera. Quando il sudoku lascia una sola casella per la lettera dopo, quella lettera è obbligata. Cominciamo!")
+
+  # where the coach's blob goes: the free spot nearest the step's target. It must not cover the target cell,
+  # the letter to pull or the clue (weight 100), and had better not cover the cells it names (weight 1)
+  type Box = tuple[x, y, w, h: float]
+  proc toScreen(svg: Element, x, y: float): Vec {.importjs:
+    "((s, x, y) => { const m = s.getScreenCTM(); return {x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f}; })(#, #, #)".}
+  proc viewH(): float {.importjs: "(window.innerHeight)".}
+  proc svgBox(c: Vec, r: float): Box =
+    let a = toScreen(stage.svg, c.x - r, c.y - r)
+    let b = toScreen(stage.svg, c.x + r, c.y + r)
+    (a.x, a.y, b.x - a.x, b.y - a.y)
+  proc elBox(e: Element): Box =
+    let (x, y, w, h) = rectOf(e)
+    (x, y, w, h)
+  proc overlapArea(a, b: Box): float =
+    max(0.0, min(a.x + a.w, b.x + b.w) - max(a.x, b.x)) * max(0.0, min(a.y + a.h, b.y + b.h) - max(a.y, b.y))
+  proc placeCoach() =
+    if not coachEl.attr("hidden").isNil or coachMoved: return
+    var must, nice: seq[Box]
+    if coachTarget >= 0: must.add svgBox(cellPos(coachTarget), cell / 2)
+    for li in coachStacks: must.add svgBox(stackPos(li), 34)
+    if tutorial and intro >= 4 and coachStep.kind == skWord and coachTarget >= 0:
+      must.add svgBox(cellPos(coachStep.path[^2]), cell / 2)   # the word's last letter, to stretch it from
+    for c in coachTint: nice.add svgBox(cellPos(c), cell / 2)
+    var clues: seq[int]
+    if tutorial and intro == 2: clues = toSeq(0 ..< puz.clues.len)
+    elif tutorial and intro >= 4 and coachStep.kind in {skStart, skWord}: clues = @[coachStep.clue]
+    for i in 0 ..< puz.clues.len:
+      let e = cluesEl.querySelector(cstring(&"[data-clue=\"{i}\"]"))
+      if e.isNil: continue
+      if i in clues: must.add elBox(e) else: nice.add elBox(e)
+    coachEl.setAttr("data-clues", cstring(clues.join(",")))   # for tests/gestures/tutorial.js
+    for b in must.mitems: b = (b.x - 8, b.y - 8, b.w + 16, b.h + 16)   # a little air round what matters
+    let me = elBox(coachEl)
+    let goal = if must.len > 0: must[0].y + must[0].h / 2 else: viewH() / 2
+    var best = 8.0
+    var bestCost = 1e18
+    var y = 8.0
+    while y + me.h <= viewH() - 8 or y == 8.0:
+      let at: Box = (me.x, y, me.w, me.h)
+      var cost = abs(y + me.h / 2 - goal) / 1000
+      for b in must: cost += 100 * overlapArea(at, b)
+      for b in nice: cost += overlapArea(at, b)
+      if cost < bestCost: (best, bestCost) = (y, cost)
+      y += 4
+    coachEl.style.top = cstring(&"{best:.0f}px")
+
+  window.addEventListener("resize", proc (ev: Event) = placeCoach())
+
+  # the player can move the blob out of the way: drag it anywhere but its buttons
+  proc onBtn(ev: Event): bool {.importjs: "!!#.target.closest('button')".}
+  proc viewWidth(): float {.importjs: "(window.innerWidth)".}
+  var coachGrab = vec(-1, -1)            # where the finger holds the blob, inside it (-1: not held)
+  coachEl.addEventListener("pointerdown", proc (ev: Event) =
+    if onBtn(ev): return
+    let (x, y, _, _) = rectOf(coachEl)
+    let p = clientXY(ev)
+    coachGrab = vec(p.x - x, p.y - y)
+    coachEl.capture(ev)
+    coachEl.classList.add("held")
+    ev.preventDefault())
+  coachEl.addEventListener("pointermove", proc (ev: Event) =
+    if coachGrab.x < 0: return
+    let (_, _, w, h) = rectOf(coachEl)
+    let p = clientXY(ev)
+    let x = max(0.0, min(viewWidth() - w, p.x - coachGrab.x))
+    let y = max(0.0, min(viewH() - h, p.y - coachGrab.y))
+    coachMoved = true
+    coachEl.style.left = cstring(&"{x:.0f}px")
+    coachEl.style.right = "auto"
+    coachEl.style.margin = "0"
+    coachEl.style.top = cstring(&"{y:.0f}px"))
+  for name in ["pointerup", "pointercancel"]:
+    coachEl.addEventListener(cstring(name), proc (ev: Event) =
+      coachGrab = vec(-1, -1)
+      coachEl.classList.remove("held"))
 
   proc showCoach() =
     coachTint = @[]
@@ -1743,8 +1886,34 @@ nbJsFromCode:
         coachEl.setHidden(true)
       else:
         text = explain(puz, g, s)
-        if s.kind != skFix:
-          text.add L(&" Drag {an(s.letter)} <b>{s.letter}</b> there.", &" Trascina lì una <b>{s.letter}</b>.")
+        # how to do it: the gestures, taught in full the first time, then only named
+        let first = taughtAt[s.kind] < 0 or taughtAt[s.kind] == s.cell
+        taughtAt[s.kind] = s.cell
+        let drag = L(&" Drag {an(s.letter)} <b>{s.letter}</b> there", &" Trascina lì una <b>{s.letter}</b>")
+        case s.kind
+        of skFix:
+          text.add L(" Or double tap it: it goes back by itself (inside a word, the letters after it go back too).",
+                     " Oppure fai doppio tocco sulla lettera: torna giù da sola (se è dentro una parola, tornano giù anche le lettere dopo).")
+        of skStart:
+          if first:
+            text.add drag & L(", or double tap the cell: a word's first letter goes in by itself.",
+                              ", oppure fai doppio tocco sulla casella: la prima lettera di una parola si mette da sola.")
+          else: text.add L(" Or double tap the cell.", " Oppure doppio tocco sulla casella.")
+        of skWord:
+          let w = puz.clues[s.clue].word
+          let (a, z) = (rc(s.path[^2]), rc(s.cell))
+          if first:
+            text.add L(&" Stretch <b>{w}</b>: drag its last letter, from {a} to {z}, and the {s.letter} comes by itself.",
+                       &" Allunga <b>{w}</b>: trascina la sua ultima lettera, da {a} a {z}, e la {s.letter} arriva da sola.")
+          else: text.add L(&" Stretch <b>{w}</b> from {a} to {z}.", &" Allunga <b>{w}</b> da {a} a {z}.")
+        else:
+          if sureLetter(g, s.cell) == s.letter:
+            if first:
+              text.add L(&" It's the last free cell of its row, column or box: double tap it and the {s.letter} goes in by itself.",
+                         &" È l'ultima casella libera della sua riga, colonna o riquadro: fai doppio tocco e la {s.letter} si mette da sola.")
+            else: text.add L(" Double tap and it goes in by itself.", " Doppio tocco e si mette da sola.")
+          else: text.add drag & "."
+        if s.kind notin {skFix, skWord}:      # a word grows from its last letter: no letter to pull from below
           coachStacks = @[puz.letters.find(s.letter)]
         coachTarget = s.cell
         case s.kind
@@ -1756,16 +1925,20 @@ nbJsFromCode:
     coachText.innerHTML = cstring(text)
     coachActs.innerHTML = cstring(buttons(acts))
     stage.draw(stage.state)
+    placeCoach()
+    nextFrame(proc (t: float) = placeCoach())   # once more, after the clues and the board have their final layout
 
   proc startTutorial() =
     tutorial = true
     intro = 0
     guided = true
     wordsAck = false
+    for k in StepKind: taughtAt[k] = -1
+    coachMoved = false
+    for k in ["left", "right", "margin"]: coachEl.style.removeProperty(cstring(k))
     code = games[0][0]
     lsSet(storeKey(), "")
     load(code)
-    document.getElementById("coach").scrollIntoView()
 
   coachActs.addEventListener("click", proc (ev: Event) =
     let act = dataOf(ev, "act")
@@ -1794,23 +1967,12 @@ nbJsFromCode:
     if not playEl.isNil: setMode("focus")
     startTutorial())
 
-  # ---- English / Italian
-  let langsEl = document.getElementById("langs")
+  # ---- Italian, or the English draft: the page is written in English, with the Italian in data-it
   proc applyLang() =
     setDocLang(cstring(lang))
-    lsSet("parloku:lang", cstring(lang))
-    for e in i18nNodes():
-      if e.attr("data-en").isNil: e.setAttr("data-en", e.innerHTML)
-      e.innerHTML = e.attr(cstring("data-" & lang))
-    for b in langsEl.querySelectorAll("button"):
-      if $b.attr("data-lang") == lang: b.classList.add("on")
-      else: b.classList.remove("on")
+    if lang == "it":
+      for e in i18nNodes(): e.innerHTML = e.attr("data-it")
     load(code)
-  langsEl.addEventListener("click", proc (ev: Event) =
-    let l = dataOf(ev, "lang")
-    if l.isNil: return
-    lang = $l
-    applyLang())
 
   # ---- the look: Niki de Saint Phalle, the game's one skin. Others only by link (?skin=name), for trying them out
   proc setSkin(e: Element, v: cstring) {.importjs: "#.dataset.skin = #".}
@@ -1825,19 +1987,38 @@ nbJsFromCode:
   applyLang()
 
 # ---------------------------------------------------------------- the daily splash and the first lesson (src/splash.nim)
-block:
-  let p = decode(builtin[0][1])
-  var sol = ""
-  for ch in answerKeys[0]: sol.add ch
-  nbRawHtml: splashHtml(p.letters, sol, p.givens.mapIt(idx(it.pos)), p.clues.mapIt((it.word, it.pos.row, it.pos.col)))
+nbRawHtml: splashHtml()                # the lesson brings its own example: it spoils no puzzle
+gameBlocks.add nb.blk
+let splashBlock = nb.blk
+nbJsFromCodeGlobal:
+  import src/splashrt                  # the splash's behaviour, in Nim: it starts by itself when the page has #splash
 
 nbText: """
 That's the game. Puzzles live in [`data/`](https://github.com/pietroppeter/parloku/tree/main/data) as puzzlepaw JSON,
 and any puzzle can be played from a link such as `?p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI`
 (the 🔗 button copies it). Progress is kept in your browser, per puzzle.
-The game speaks English and Italian (EN / IT at the top, or `?lang=it`), and `?tutorial` opens the 🎓 tutorial directly.
+The game speaks Italian. English is a draft, only by link (`?lang=en`), and `?tutorial` opens the 🎓 tutorial directly.
 
 Built with [nimib](https://github.com/pietroppeter/nimib). Hit *show source* below for the whole notebook.
 """
 
-nbSave
+# ---------------------------------------------------------------- two pages from one notebook
+# The notebook, prose and code, is the devlog post "How it works". The game page, index.html, keeps only
+# the game: the play block, the puzzle list, the splash and the compiled script. Both run the same script.
+nb.nbCollectAllNbJs()
+let allBlocks = nb.doc.blocks
+func postHeader(blk: JsonNode, nb: Nb): string =
+  """<header><span><a href="../../">parloku</a> · <a href="../">devlog</a></span><span>06 Nov 2026</span></header>"""
+nb.backend.partials["header"] = postHeader
+nb.doc.context["title"] = %"Parloku: how it works"
+nb.doc.filename = root / "devlog" / "how-it-works" / "index.html"
+nb.doc.blocks = allBlocks.filterIt(it != splashBlock)   # no daily hello in the middle of a read
+write nb
+
+func noFooter(blk: JsonNode, nb: Nb): string = ""
+nb.backend.partials["header"] = pageHeader
+nb.backend.partials["footer"] = noFooter              # no "show source" under the game: the post has it
+nb.doc.context["title"] = %"Parloku"
+nb.doc.filename = root / "index.html"
+nb.doc.blocks = allBlocks.filterIt(it in gameBlocks or it of NbJsFromCodeOwnFile)
+write nb

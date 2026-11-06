@@ -201,12 +201,13 @@ outline AMICA: r1c1 r2c1 r3c1 r3c2 r3c3
 ```
 
 ### Requirement: Sending a snake back
-A double tap on any letter of a word's outline SHALL send the whole word (every letter its outline covers that is not
-a given) back below. A letter outside every outline goes back alone.
+A double tap on a letter of a word's outline SHALL send that letter and every later letter of the word back below;
+the letters before it SHALL stay, and givens SHALL always stay. A double tap on the word's first letter therefore
+clears the whole word. A letter outside every outline goes back alone.
 
 #### Scenario: Double tap inside MAGIA
 - **WHEN** MAGIA is spelled down the last column and the player double taps its G
-- **THEN** all five letters go back below and MAGIA's start ring is empty again
+- **THEN** G, I and A go back below, and M A stay with the outline on them
 
 ```drag
 puzzle: 2
@@ -219,6 +220,30 @@ start:
   . . . . I O
 double-tap: r3c6
 end:
+  . . . . . M
+  . . . . . A
+  . . . . . .
+  . . . . . .
+  . I O . . .
+  . . . . I O
+outline MAGIA: r1c6 r2c6
+```
+
+#### Scenario: Double tap on the first letter
+- **WHEN** MAGIA is spelled down the last column and the player double taps its M
+- **THEN** all five letters go back below and MAGIA's start mark is empty again
+
+```drag
+puzzle: 2
+start:
+  . . . . . M
+  . . . . . A
+  . . . . . G
+  . . . . . I
+  . I O . . A
+  . . . . I O
+double-tap: r1c6
+end:
   . . . . . .
   . . . . . .
   . . . . . .
@@ -226,4 +251,34 @@ end:
   . I O . . .
   . . . . I O
 outline MAGIA:
+```
+
+### Requirement: Words never overlap
+Two outlines SHALL NOT share a cell. A word's outline SHALL NOT enter another word's start cell, and where two
+outlines could take the same letters, the longer one SHALL keep them (on a tie, the word listed first) and the other
+SHALL be traced around them. Stretching a word SHALL NOT step onto another word's start cell.
+
+#### Scenario: A letter on the next word's start
+- **WHEN** PASTA has P A S T from r3c1 and the player puts an A on ALPI's start cell r5c1, next to the T
+- **THEN** the A starts ALPI, and PASTA's outline stays on its four letters
+
+```drag
+puzzle: 1
+start:
+  . . . . P .
+  . . . . . .
+  P A . L . .
+  T S . . . .
+  . . . . . .
+  . S . . . .
+drag: below A -> r5c1
+end:
+  . . . . P .
+  . . . . . .
+  P A . L . .
+  T S . . . .
+  A . . . . .
+  . S . . . .
+outline PASTA: r3c1 r3c2 r4c2 r4c1
+outline ALPI: r5c1
 ```

@@ -51,7 +51,7 @@ nb.doc.context["stylesheet"] = %(pageStyle & devlogStyle)
 nb.doc.context["highlight"] = %""
 nb.doc.context["disableHighlightJs"] = %true
 func pageHeader(blk: JsonNode, nb: Nb): string =
-  """<header><span><a href="../../">parloku</a> · devlog</span><span>06 Nov 2026</span></header>"""
+  """<header><span><a href="../../">parloku</a> · <a href="../">devlog</a></span><span>06 Nov 2026</span></header>"""
 nb.backend.partials["header"] = pageHeader
 nbZogynStyle()
 

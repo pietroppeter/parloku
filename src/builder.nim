@@ -60,7 +60,7 @@ for line in lines(currentSourcePath().parentDir.parentDir / "data" / "terne.txt"
 nbRawHtml: "<template id=\"terne\">" & terne.join("|") & "</template>"
 
 nbJsFromCode:
-  import std/[math, strformat, strutils, sequtils]
+  import std/[math, strformat, strutils, sequtils, algorithm]
 
   type
     Coord = tuple[row, col: int]
@@ -150,15 +150,15 @@ nbJsFromCode:
     for c in 0 ..< 36:
       if g[c] != '.' and peersOf[c].anyIt(g[it] == g[c]): result.add c
 
-  proc trace(g: Grid, clue: Clue, wild = false, revisit = false): seq[int] =
-    ## longest prefix of the word that can be walked from its start cell.
-    ## The rules let a path come back to a cell it already used (`revisit`, for the solver); the board's
-    ## outlines don't, or G-I-O-C would read as GIOCO by stepping back onto the O
+  proc trace(g: Grid, clue: Clue, wild = false, revisit = false, avoid: seq[int] = @[]): seq[int] =
+    ## longest prefix of the word that can be walked from its start cell, never through a cell in `avoid`.
+    ## A path never comes back to a cell it already used, or G-I-O-C would read as GIOCO by stepping back
+    ## onto the O. (`revisit` lets it, and is kept only to compare the two rules.)
     if not revisit:
       var best, path: seq[int]
       let word = clue.word
       proc walk(cell, i: int) =
-        if best.len == word.len or cell in path: return
+        if best.len == word.len or cell in path or cell in avoid: return
         let ok = g[cell] == word[i] or (wild and g[cell] == '.')
         if not ok: return
         path.add cell
@@ -190,8 +190,27 @@ nbJsFromCode:
     walk(idx(clue.pos), 0)
     best
 
+  proc othersStarts(clues: seq[Clue], i: int): seq[int] =
+    for j, c in clues:
+      if j != i: result.add idx(c.pos)
+
+  proc outlines(g: Grid, clues: seq[Clue]): seq[seq[int]] =
+    ## as in the game (src/parloku.nim): two words never share a cell
+    result = newSeq[seq[int]](clues.len)
+    var order = toSeq(0 ..< clues.len)
+    let first = order.mapIt(g.trace(clues[it], avoid = othersStarts(clues, it)).len)
+    order.sort(proc (a, b: int): int = (if first[a] != first[b]: first[b] - first[a] else: a - b))
+    var claimed: seq[int]
+    for i in order:
+      result[i] = g.trace(clues[i], avoid = othersStarts(clues, i) & claimed)
+      claimed.add result[i]
+
   proc solved(p: Puzzle, g: Grid): bool =
-    '.' notin g and g.clashes.len == 0 and p.clues.allIt(g.trace(it, revisit = true).len == it.word.len)
+    if '.' in g or g.clashes.len > 0: return false
+    let ls = g.outlines(p.clues)
+    for i, clue in p.clues:
+      if ls[i].len != clue.word.len: return false
+    true
 
   proc solve(p: Puzzle, limit = 2): seq[Grid] =
     ## backtracking with "fewest candidates first", pruning on the clues;
@@ -199,7 +218,8 @@ nbJsFromCode:
     var g = startGrid(p)
     var sols: seq[Grid]
     proc fits(g: Grid, cell: int, ch: char): bool = peersOf[cell].allIt(g[it] != ch)
-    proc cluesOk(g: Grid): bool = p.clues.allIt(g.trace(it, wild = true, revisit = true).len == it.word.len)
+    proc cluesOk(g: Grid): bool =
+      toSeq(0 ..< p.clues.len).allIt(g.trace(p.clues[it], wild = true, avoid = othersStarts(p.clues, it)).len == p.clues[it].word.len)
     proc go(g: var Grid) =
       if sols.len >= limit: return
       var best = -1
@@ -365,8 +385,9 @@ nbJsFromCode:
   proc isHead(b: Board, at: int): bool =
     ## the letter on `at` is the last one spelled so far of some word: the head of its snake
     let g = b.grid
-    for clue in puz.clues:
-      let path = g.trace(clue)
+    let ls = g.outlines(puz.clues)
+    for i, clue in puz.clues:
+      let path = ls[i]
       if path.len > 0 and path[^1] == at: return true
     false
 

@@ -6,8 +6,10 @@ devlog had no index page.
 
 ## What Changes
 
-- The first lesson has its own small example, NERO / ROSA / ORO, so it gives away no puzzle. It has the game's look,
-  and it no longer asks whether the player knows the mini sudoku.
+- The first lesson has its own small example, AMARENA / MENTA / MARE, so it gives away no puzzle. It has the game's look,
+  and it no longer asks whether the player knows the mini sudoku. No word in it makes a U, and its finger shows
+  every gesture, the two sure cells each on its own, with the three words above the grid in their colours
+  (Pietro, 6 November; the words were NERO / ROSA / ORO at first).
 - Under every gesture on the istruzioni page there is a practice board, with that gesture's position set up and a
   "↺ da capo" button. Clashes have one as well. The boards are the game itself in a `?demo` mode: started from
   `&g=`, with no menu, and saving nothing.
