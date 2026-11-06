@@ -1197,6 +1197,9 @@ nbJsFromCode:
   var snakeStepped = false
   var snakeDown = vec(0, 0)
   var snakeBack = false                  # the finger is on the cell before the head: a back step, not done yet
+  var snakeDownAt = 0.0
+  var snakeCopy = ""                     # a quick drag of the head off the word pulls out this copy ("": the head moves)
+  var snakeLoose = false                 # the head (or its copy) left the word and follows the finger
   proc toBoard(ev: Event): Vec =
     let (l, t0, rw, rh) = rectOf(stage.svg)
     let c = clientXY(ev)
@@ -1207,10 +1210,27 @@ nbJsFromCode:
     if col notin 0 .. 5 or row notin 0 .. 5: return -1
     let c = row * 6 + col
     if norm(p - cellPos(c)) < cell * 0.42: c else: -1
+  var snakeStart = -1                    # pressed on an empty start cell: the word's first letter goes there once the finger moves
   stage.svg.addEventListener("pointerdown", proc (ev: Event) =
     let k = keyAt(ev)
     snakeWord = -1
-    if k.isNil: return
+    snakeStart = -1
+    if k.isNil:
+      # an empty start cell: dragging from it lays the word down, its first letter there and the next ones on the
+      # cells the finger goes through (Pietro, 6 November 2026)
+      let c = cellNear(toBoard(ev))
+      if c < 0 or stage.state.cells[c] >= 0 or isGiven(c): return
+      for i, clue in puz.clues:
+        if idx(clue.pos) == c:
+          snakeWord = i
+          snakeStart = c
+          snakePath = @[]
+          snakeKey = ""
+          snakeStepped = false
+          snakeBack = false
+          snakeDown = toBoard(ev)
+          return
+      return
     let id = parseInt(($k)[1 .. ^1])
     let at = stage.state.cells.find(id)
     if at < 0: return
@@ -1225,6 +1245,9 @@ nbJsFromCode:
     snakeKey = $k
     snakeStepped = false
     snakeBack = false
+    snakeLoose = false
+    snakeCopy = ""
+    snakeDownAt = now()
     snakeDown = toBoard(ev))
   proc backStep() =
     ## take the head's letter back below: the word is one letter shorter
@@ -1243,6 +1266,22 @@ nbJsFromCode:
     if snakeWord < 0: return
     let p = toBoard(ev)
     let c = cellNear(p)
+    if snakePath.len == 0:
+      # from an empty start cell: as soon as the finger moves, the word's first letter lands there
+      if norm(p - snakeDown) <= 6: return
+      let li = puz.letters.find(puz.clues[snakeWord].word[0])
+      let b = stage.state
+      var placed = false
+      for j in 0 .. 5:
+        if b.cells.find(li * 6 + j) < 0:
+          stage.setState(b.place(li * 6 + j, snakeStart))
+          placed = true
+          break
+      if not placed:                     # no tile of that letter left below
+        snakeWord = -1
+        return
+      snakePath = @[snakeStart]
+      snakeStepped = true
     if snakeBack and c >= 0 and c != snakePath[^2]:
       # the finger was on the cell before the head, and went on: backwards or a turn takes the head off,
       # anywhere else it was only on its way (Pietro, SERATA): no letter is taken off
@@ -1265,14 +1304,30 @@ nbJsFromCode:
           snakeStepped = true
           stage.setState(b.place(li * 6 + j, c))
           break
-    if not snakeStepped and norm(p - snakeDown) > 6 and not isGiven(head):
-      let n = stage.nodes[snakeKey]      # no step yet: the head follows the finger, to be moved
-      n.setAttribute("class", "item grab lifted")
-      n.setStyle("transform", tr(p))
+    if not snakeStepped and norm(p - snakeDown) > 6:
+      if not snakeLoose:
+        # no step yet: off the word the head behaves like any placed letter (Pietro, 6 November 2026): a quick drag
+        # pulls out a copy and leaves the head; held still for a moment first, the head itself moves
+        snakeLoose = true
+        snakeCopy = ""
+        if now() - snakeDownAt < stage.holdMs.float or isGiven(head):
+          let li = parseInt(snakeKey[1 .. ^1]) div 6
+          for j in 0 .. 5:
+            if stage.state.cells.find(li * 6 + j) < 0:
+              snakeCopy = &"t{li * 6 + j}"
+              break
+          if snakeCopy.len == 0 and isGiven(head): snakeLoose = false   # no copy left: a given stays put
+      if snakeLoose:
+        let n = stage.nodes[if snakeCopy.len > 0: snakeCopy else: snakeKey]
+        n.setAttribute("class", "item grab lifted")
+        n.setStyle("transform", tr(p))
     elif snakeStepped:
       stage.draw(stage.state))
   let snakeUp = proc (ev: Event) =
     if snakeWord < 0: return
+    if snakePath.len == 0:               # pressed on an empty start cell and let go without moving: a tap
+      snakeWord = -1
+      return
     let p = toBoard(ev)
     if snakeBack:
       let (col, row) = (int(floor((p.x - bx) / cell)), int(floor((p.y - by) / cell)))
@@ -1284,11 +1339,14 @@ nbJsFromCode:
     let w = snakeWord
     snakeWord = -1
     let head = snakePath[^1]
-    if not snakeStepped and norm(p - snakeDown) > 6 and not isGiven(head):
+    if not snakeStepped and snakeLoose:
       let (col, row) = (int(floor((p.x - bx) / cell)), int(floor((p.y - by) / cell)))
       let c = row * 6 + col
       if col in 0 .. 5 and row in 0 .. 5 and stage.state.cells[c] < 0 and not isGiven(c):
-        stage.setState(stage.state.place(stage.state.cells[head], c))   # moved
+        if snakeCopy.len > 0:
+          stage.setState(stage.state.place(parseInt(snakeCopy[1 .. ^1]), c))   # copied
+        else:
+          stage.setState(stage.state.place(stage.state.cells[head], c))   # moved
         return
     discard w
     stage.draw(stage.state)              # glide back
