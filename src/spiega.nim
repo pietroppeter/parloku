@@ -11,7 +11,8 @@ let root = currentSourcePath().parentDir.parentDir
 var list = ""
 var files: seq[string]
 for f in walkFiles(root / "data" / "puzzle*.json"): files.add f
-files.sort()
+files.sort(proc (a, b: string): int = cmp(a.extractFilename.strip(chars = Letters).split('-')[0].parseInt,
+  b.extractFilename.strip(chars = Letters).split('-')[0].parseInt))   # by number: puzzle10 after puzzle9
 for f in files:
   let j = parseFile(f)
   let p = j["problem"]
