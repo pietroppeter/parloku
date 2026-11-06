@@ -40,6 +40,7 @@ nbRawHtml: """
   <div class="status">
     <span class="acts">
       <button class="btn" id="undo" data-it="↶<span class='tx'> annulla</span>" aria-label="undo" disabled>↶<span class="tx"> undo</span></button>
+      <button class="btn" id="redo" data-it="↷<span class='tx'> rifai</span>" aria-label="redo" disabled>↷<span class="tx"> redo</span></button>
       <button class="btn" id="hint" data-it="💡<span class='tx'> aiuto</span>" aria-label="hint">💡<span class="tx"> hint</span></button>
       <button class="btn" id="reset" aria-label="reset">↺ restart</button>
       <button class="btn" id="share" data-it="🔗<span class='tx'> link</span>" aria-label="link">🔗<span class="tx"> link</span></button>
@@ -1169,6 +1170,7 @@ nbJsFromCode:
   var snakeKey = ""
   var snakeStepped = false
   var snakeDown = vec(0, 0)
+  var snakeBack = false                  # the finger is on the cell before the head: a back step, not done yet
   proc toBoard(ev: Event): Vec =
     let (l, t0, rw, rh) = rectOf(stage.svg)
     let c = clientXY(ev)
@@ -1196,23 +1198,41 @@ nbJsFromCode:
     if snakeWord < 0: return
     snakeKey = $k
     snakeStepped = false
+    snakeBack = false
     snakeDown = toBoard(ev))
+  proc backStep() =
+    ## take the head's letter back below: the word is one letter shorter
+    let head = snakePath[^1]
+    discard snakePath.pop
+    snakeBack = false
+    snakeStepped = true
+    stage.setState(stage.state.home(stage.state.cells[head]))
+  proc growsTo(c: int): bool =
+    ## can the word's next letter go on c, next to its head?
+    let head = snakePath[^1]
+    c >= 0 and stage.state.cells[c] < 0 and not isGiven(c) and snakePath.len < puz.clues[snakeWord].word.len and
+      c notin othersStarts(puz.clues, snakeWord) and   # a word never runs over another word's start cell
+      abs(c div 6 - head div 6) + abs(c mod 6 - head mod 6) == 1
   stage.svg.addEventListener("pointermove", proc (ev: Event) =
     if snakeWord < 0: return
     let p = toBoard(ev)
-    let head = snakePath[^1]
     let c = cellNear(p)
-    var b = stage.state
-    let word = puz.clues[snakeWord].word
+    if snakeBack and c >= 0 and c != snakePath[^2]:
+      # the finger was on the cell before the head, and went on: backwards or a turn takes the head off,
+      # anywhere else it was only on its way (Pietro, SERATA): no letter is taken off
+      let before = snakePath[^1]
+      snakePath.setLen(snakePath.len - 1)
+      let turn = (snakePath.len >= 2 and c == snakePath[^2]) or (c != before and growsTo(c))
+      snakePath.add before
+      if turn: backStep()
+      else: snakeBack = false
+    let head = snakePath[^1]
     if c >= 0 and snakePath.len >= 2 and c == snakePath[^2] and not isGiven(head):
-      b = b.home(b.cells[head])          # back: the head letter returns below
-      discard snakePath.pop
-      snakeStepped = true
-      stage.setState(b)
-    elif c >= 0 and b.cells[c] < 0 and not isGiven(c) and snakePath.len < word.len and
-        c notin othersStarts(puz.clues, snakeWord) and   # a word never runs over another word's start cell
-        abs(c div 6 - head div 6) + abs(c mod 6 - head mod 6) == 1:
+      snakeBack = true                   # back onto the cell before: the head goes below if the drag ends or goes on back
+    elif growsTo(c):
+      let word = puz.clues[snakeWord].word
       let li = puz.letters.find(word[snakePath.len])
+      let b = stage.state
       for j in 0 .. 5:
         if b.cells.find(li * 6 + j) < 0:
           snakePath.add c
@@ -1227,10 +1247,17 @@ nbJsFromCode:
       stage.draw(stage.state))
   let snakeUp = proc (ev: Event) =
     if snakeWord < 0: return
+    let p = toBoard(ev)
+    if snakeBack:
+      let (col, row) = (int(floor((p.x - bx) / cell)), int(floor((p.y - by) / cell)))
+      if col in 0 .. 5 and row in 0 .. 5 and row * 6 + col == snakePath[^2]:
+        backStep()                       # let go on the cell before: the head goes below
+        snakeWord = -1
+        return
+      snakeBack = false
     let w = snakeWord
     snakeWord = -1
     let head = snakePath[^1]
-    let p = toBoard(ev)
     if not snakeStepped and norm(p - snakeDown) > 6 and not isGiven(head):
       let (col, row) = (int(floor((p.x - bx) / cell)), int(floor((p.y - by) / cell)))
       let c = row * 6 + col
@@ -1357,7 +1384,7 @@ nbJsFromCode:
     "!!#.target.closest('button,a,input,label,select,summary,.clues,.stage,.coach,.skins,.picker,.status,.sp')".}
   proc scrollTop() {.importjs: "window.scrollTo(0, 0)".}
   proc inPlay(ev: Event): bool {.importjs: "!!#.target.closest('.play')".}
-  proc inBar(ev: Event): bool {.importjs: "!!#.target.closest('.picker')".}
+  proc inBar(ev: Event): bool {.importjs: "!!#.target.closest('.picker,.undos')".}
   proc setVar(e: Element, k, v: cstring) {.importjs: "#.style.setProperty(#, #)".}
   proc onClue(ev: Event): bool {.importjs: "!!#.target.closest('.clue,button,a')".}
   proc inStage(ev: Event): bool {.importjs: "!!#.target.closest('.stage')".}
@@ -1375,6 +1402,7 @@ nbJsFromCode:
       discard barTop
       let (_, cluesTop, _, _) = rectOf(document.getElementById("clues"))
       drop = max(0.0, barH + 6 - cluesTop)
+      setVar(document.body, "--barh", cstring(&"{barH:.0f}px"))
     for k in ["focus", "chrome", "explain"]:
       if k == m: document.body.classList.add(cstring(k))
       else: document.body.classList.remove(cstring(k))
@@ -1403,6 +1431,14 @@ nbJsFromCode:
     # one menu bar, at the top only: the puzzles and restart
     let bar = document.querySelector(".picker")
     bar.appendChild(document.getElementById("reset"))
+    # ↶ and ↷ come down with the menu, on their own at the top right, next to the first word
+    let undos = document.createElement("div")
+    undos.className = "undos"
+    undos.appendChild(document.getElementById("undo"))
+    undos.appendChild(document.getElementById("redo"))
+    document.querySelector(".game").appendChild(undos)
+    for ev in ["pointerdown"]:
+      undos.addEventListener(cstring(ev), proc (e: Event) = armHide())
     for ev in ["pointerdown", "scroll"]:
       bar.addEventListener(cstring(ev), proc (e: Event) = armHide())
     document.addEventListener("click", proc (ev: Event) =
@@ -1523,13 +1559,15 @@ nbJsFromCode:
     showCoach()
 
   var history: seq[Board]               # boards before each change, for ↶ undo
+  var future: seq[Board]                # boards undone, for ↷ redo (a new move forgets them)
   var last = stage.state
   let undoBtn = document.getElementById("undo")
+  let redoBtn = document.getElementById("redo")
   proc setDisabled(e: Element, d: bool) {.importjs: "#.disabled = #".}
   var undoable = false                  # the restart button reads "undo restart" (below)
   var quiet = false                     # our own setState calls, which are not the player's moves
   var before: Board                     # the board, its history and clock before the restart
-  var beforeHistory: seq[Board]
+  var beforeHistory, beforeFuture: seq[Board]
   var beforeStarted, beforeWon = 0.0
   var undoTimer = 0
   var endUndoCb: proc ()                # set below, with the restart button
@@ -1537,10 +1575,12 @@ nbJsFromCode:
   stage.onCommit = proc () =
     if started == 0 and stage.state.moves > 0: started = now()
     if undoable and not quiet and stage.state.cells != last.cells: endUndoCb()   # a move: no going back to before the restart
-    if stage.state.cells != last.cells:
+    if stage.state.cells != last.cells:   # a move of the player's (undo and redo set `last` first)
       history.add last
+      future = @[]
       last = stage.state
     undoBtn.setDisabled(history.len == 0)
+    redoBtn.setDisabled(future.len == 0)
     refresh()
     save()
     if not afterChange.isNil: afterChange()
@@ -1579,10 +1619,12 @@ nbJsFromCode:
     confetti.innerHTML = ""
     banner.innerHTML = cstring(&"<b>Bravo!</b><span>{b.moves} " & L("moves", "mosse") & &" · {clock()}</span>")
     renderPicker()
-    stage.setState(b)
     history = @[]
-    last = stage.state
+    future = @[]
+    last = b
+    stage.setState(b)
     undoBtn.setDisabled(true)
+    redoBtn.setDisabled(true)
 
 
   proc dataI(ev: Event): cstring {.importjs: "(#.target.closest('[data-i]')?.dataset.i ?? null)".}
@@ -1684,11 +1726,13 @@ nbJsFromCode:
       stage.setState(before)
       quiet = false
       history = beforeHistory
+      future = beforeFuture
       last = stage.state
       started = beforeStarted
       wonAt = beforeWon
       celebrated = solved(puz, stage.state.grid)
       undoBtn.setDisabled(history.len == 0)
+      redoBtn.setDisabled(future.len == 0)
       save()
       refresh()
       resetLabel()
@@ -1699,6 +1743,7 @@ nbJsFromCode:
       if stage.state.cells[c] >= 0 and not isGiven(c): had = true
     before = stage.state
     beforeHistory = history
+    beforeFuture = future
     beforeStarted = started
     beforeWon = wonAt
     lsSet(storeKey(), "")
@@ -1713,8 +1758,18 @@ nbJsFromCode:
 
   undoBtn.addEventListener("click", proc (ev: Event) =
     if history.len == 0: return
+    endUndoCb()
+    future.add stage.state
     last = history.pop
-    stage.setState(last))
+    stage.setState(last)
+    armHide())
+  redoBtn.addEventListener("click", proc (ev: Event) =
+    if future.len == 0: return
+    endUndoCb()
+    history.add stage.state
+    last = future.pop
+    stage.setState(last)
+    armHide())
 
   document.getElementById("share").addEventListener("click", proc (ev: Event) =
     let url = $pageUrl() & "?p=" & code
