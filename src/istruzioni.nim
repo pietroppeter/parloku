@@ -78,6 +78,14 @@ quella lettera e quelle dopo, le prime restano.
 <li>è l'ultima casella libera di una riga, di una colonna o di un riquadro: arriva la lettera che manca.</li></ul>
 Sulle altre caselle il doppio tocco non fa niente: lì la lettera la trovi tu.
 <span class="do">Prova: doppio tocco sull'ultima casella della prima riga, sull'ultima libera della terza colonna, sull'ultima libera del riquadro in basso a destra, e poi sul quadratino verde.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I,1T,2A,3S,8L,14S,20T,26P,27T,28I,33P,34L,35A" title="Riempire una casella sicura"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Letterine: prendere appunti</b>Fai doppio tocco in uno spazio vuoto tra le sei lettere in basso: diventano
+letterine (restano grandi da prendere, si vede il contorno). Ora una lettera trascinata su una casella vuota ci va piccola,
+come un appunto, e una casella può averne fino a quattro. Lasciala sul bordo tra due caselle vuote vicine e resta lì a cavallo: vuol dire
+che quella lettera è in una delle due (e ti dice da che parte va la parola). Puoi trascinarla da sotto, da una lettera della griglia o da un altro appunto:
+è sempre una copia, e niente si sposta. Doppio tocco su un appunto per cancellarlo. Un altro doppio tocco lì e tornano le letterone, per
+giocare davvero: gli appunti restano, e se metti una lettera su una casella i suoi appunti si nascondono sotto.
+<span class="do">Prova: doppio tocco nello spazio tra la A, la I e le lettere sotto, poi porta la L e la T su due caselle vuote, e una I dalla griglia accanto.
+Poi doppio tocco su un appunto, e doppio tocco in basso per tornare alle letterone.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I" title="Letterine: prendere appunti"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Dov'è una parola?</b>Tocca una parola in alto: sulla griglia il suo quadratino o il suo contorno vibra.
 <span class="do">Prova: tocca ALPI.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI" title="Dov'è una parola?"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Due lettere che si scontrano</b>Se la stessa lettera è due volte nella stessa riga, colonna o riquadro, le due lettere

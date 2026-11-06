@@ -102,6 +102,9 @@ nbCodeAnd(nbJsFromCode):
     Board = object
       cells: array[36, int]  # tile id in each cell, -1 when empty
       moves: int
+      marks: array[96, int]  # notes: bit li set when spot s has letter li noted; spots 0..35 are the cells,
+                             # 36..95 the edges between two cells side by side (a Snyder note: in one of the two)
+      small: bool            # small letters (notes): drags write notes instead of placing letters
 
   func idx(r, c: int): int = r * 6 + c
   func idx(p: Coord): int = idx(p.row, p.col)
@@ -531,6 +534,7 @@ nbCodeAnd(nbJsFromCode):
       key: string            ## identity across states (what your eye tracks)
       pos: Vec               ## where it sits in this state
       svg: string            ## what it looks like, drawn around (0, 0)
+      cls: string            ## extra classes on its group (CSS may restyle it)
     Render[S] = proc (s: S): seq[Item]
     Choice[S] = object
       ok: bool
@@ -628,8 +632,50 @@ nbCodeAnd(nbJsFromCode):
     ## all three shapes are drawn; the page's skin (CSS) shows one, and sets the colours
     var cls = "tile"
     if given: cls = "tile given"
-    result = shapes(li, cls) &
-      &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{letter}</text>"""
+    # the body is what small-letter mode shrinks below the board; the hit square keeps the tile's full size to grab
+    result = """<rect class="hit" x="-31" y="-31" width="62" height="62"/><g class="body">""" & shapes(li, cls) &
+      &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{letter}</text></g>"""
+
+  proc notesIn(marks: int): int =
+    for j in 0 .. 5:
+      if (marks and (1 shl j)) != 0: inc result
+
+  proc edgeCells(s: int): (int, int) =
+    ## the two cells either side of edge spot s (36..95): first 30 between a cell and the one on its right, then 30
+    ## between a cell and the one below
+    let e = s - 36
+    if e < 30: ((e div 5) * 6 + e mod 5, (e div 5) * 6 + e mod 5 + 1)
+    else: (e - 30, e - 30 + 6)
+
+  proc maxNotes(s: int): int = (if s < 36: 4 else: 2)   # four in a cell, two by two; two on an edge
+
+  proc spotCentre(s: int): Vec =
+    if s < 36: return cellPos(s)
+    let (a, b) = edgeCells(s)
+    vec((cellPos(a).x + cellPos(b).x) / 2, (cellPos(a).y + cellPos(b).y) / 2)
+
+  proc spotOpen(b: Board, s: int): bool =
+    ## a spot can show and take notes while its cell, or both cells of its edge, are empty
+    if s < 36: return b.cells[s] < 0
+    let (c1, c2) = edgeCells(s)
+    b.cells[c1] < 0 and b.cells[c2] < 0
+
+  proc markPos(marks, s, li: int): Vec =
+    ## where letter li's note sits in spot s, given the spot's notes, in the order of the letters below:
+    ## in a cell two by two, on an edge one or two along it
+    var k = 0
+    for j in 0 ..< li:
+      if (marks and (1 shl j)) != 0: inc k
+    let p = spotCentre(s)
+    if s < 36: return vec(p.x - 15 + float(k mod 2) * 30, p.y - 15 + float(k div 2) * 30)
+    let along = if notesIn(marks) < 2: 0.0 else: float(k) * 24 - 12
+    if s - 36 < 30: vec(p.x, p.y + along) else: vec(p.x + along, p.y)
+
+  proc markSvg(li: int, edge: bool): string =
+    ## a note is the letter's tile, small: the size of the small letters below the board (a bit smaller on an edge)
+    let h = if edge: 12 else: 15
+    &"""<rect class="hit" x="-{h}" y="-{h}" width="{2 * h}" height="{2 * h}"/><g class="note">{shapes(li)}""" &
+      &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{puz.letters[li]}</text></g>"""
 
   proc renderBoard(b: Board): seq[Item] =
     var at: array[36, int]
@@ -642,7 +688,15 @@ nbCodeAnd(nbJsFromCode):
       let pos = if c >= 0: cellPos(c) else: stackPos(id div 6)
       var svg = tileSvg(id div 6, c >= 0 and isGiven(c))
       if c >= 0 and c in bad: svg = """<g class="shake">""" & svg & "</g>"
-      result.add Item(key: &"t{id}", pos: pos, svg: svg)
+      let where = if c < 0: "home" else: ""
+      result.add Item(key: &"t{id}", pos: pos, svg: svg, cls: where)
+    # notes (small letters), in the empty cells only (a letter on the cell hides them; they come back when it goes)
+    for s in 0 ..< 96:
+      if b.marks[s] != 0 and b.spotOpen(s):
+        for li in 0 .. 5:
+          if (b.marks[s] and (1 shl li)) != 0:
+            let cls = if s < 36: "mark" else: "mark side"
+            result.add Item(key: &"m{s}-{li}", pos: markPos(b.marks[s], s, li), svg: markSvg(li, s >= 36), cls: cls)
 
 nbText: """
 And here is the entire interaction. Grabbing tile `id` lists one future per empty cell (a tile never replaces a letter already placed), snaps to the nearest within
@@ -676,9 +730,40 @@ nbCodeAnd(nbJsFromCode):
       if path.len > 0 and path[^1] == at: return true
     false
 
+  proc mark(b: Board, c, li: int): Board =
+    result = b
+    result.marks[c] = b.marks[c] or (1 shl li)
+
+  proc noteSpec(b: Board, li: int): Behavior[Board] =
+    ## small letters: the held letter writes itself small into the empty cell it is over (a copy: no tile moves);
+    ## anywhere else it goes back to its letter and nothing changes
+    ## (a cell, or the edge between two empty cells side by side: a Snyder note, the letter is in one of the two)
+    var spots: seq[int]
+    for s in 0 ..< 96:                     # open spots with room for this note (or that have it already)
+      if b.spotOpen(s) and (notesIn(b.marks[s]) < maxNotes(s) or (b.marks[s] and (1 shl li)) != 0): spots.add s
+    result = proc (render: Render[Board], key: string): Picker[Board] =
+      result.lands = spots.mapIt(markPos(b.mark(it, li).marks[it], it, li))
+      result.pick = proc (p: Vec): Choice[Board] =
+        result = Choice[Board](ok: true, state: b, land: vec(NaN, NaN), dist: Inf)
+        # the nearest cell centre or edge middle wins: over the line between two cells, it is the edge
+        var best = -1
+        var bestD = Inf
+        for s in 0 ..< 96:
+          let d = norm(spotCentre(s) - p)
+          if d < bestD and (s < 36 or b.spotOpen(s)):
+            best = s
+            bestD = d
+        if best >= 0 and bestD < cell * 0.6 and best in spots:
+          let nb = b.mark(best, li)
+          result = Choice[Board](ok: true, state: nb, land: markPos(nb.marks[best], best, li), dist: bestD)
+
   proc tileSpec(b: Board, key: string): Behavior[Board] =
+    if key[0] == 'm': return nil           # a note is never lifted itself: grabbing it pulls a copy
     let id = parseInt(key[1 .. ^1])
     let src = b.cells.find(id)
+    if b.small:
+      if src >= 0: return nil              # small letters move no letter on the board (grabbing one pulls a copy)
+      return noteSpec(b, id div 6)
     if src >= 0 and isGiven(src): return nil
     var futures: seq[Board]
     for c in 0 ..< 36:                     # only empty cells: a tile never pushes out a letter already placed
@@ -743,6 +828,8 @@ nbCodeAnd(nbJsFromCode):
       if b.cells.find(id) < 0: inc left[id div 6]
     for li in 0 .. 5:
       let s = stackPos(li)
+      if b.small and left[li] > 0:       # small letters: a thin round outline where the big letter was (its grab area too)
+        result.add &"""<circle class="was" cx="{s.x}" cy="{s.y}" r="31"/>"""
       if left[li] == 0:
         result.add &"""<rect class="empty" x="{s.x - 31}" y="{s.y - 31}" width="62" height="62" rx="12"/>"""
         result.add &"""<text class="done" x="{s.x}" y="{s.y + 9}" text-anchor="middle" font-size="26">✓</text>"""
@@ -819,7 +906,7 @@ nbCodeAnd(nbJsFromCode):
     maskTag = "sm"
     result = """<svg viewBox="40 -10 520 520"><defs><filter id="rough2"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout2"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs>""" & backdrop(b)
     for it in renderBoard(b):
-      if b.cells.find(parseInt(it.key[1 .. ^1])) >= 0:
+      if it.key[0] == 't' and b.cells.find(parseInt(it.key[1 .. ^1])) >= 0:
         result.add &"""<g transform="translate({it.pos.x},{it.pos.y})">{it.svg}</g>"""
     result.add overlay(b) & "</svg>"
     maskTag = "wm"
@@ -874,6 +961,8 @@ nbCodeDisplay(nbJsFromCode):
     redirected: bool
     holdMs: int                   # how long a press on a redirected item waits before lifting the item itself
     targetAt: proc (p: Vec): bool # whether a landing spot gets the drop-target outline (nil: always)
+    targetHalf: float             # half the size of the drop-target outline
+    centreGrab: bool              # the held item sits right under the pointer, wherever it was grabbed
 
   proc tr(p: Vec): cstring = cstring(&"translate({p.x:.2f}px, {p.y:.2f}px)")
 
@@ -885,14 +974,25 @@ nbCodeDisplay(nbJsFromCode):
           if l.x == l.x: g.add &"""<circle class="land" cx="{l.x}" cy="{l.y}" r="6"/>"""
       if st.choice.ok and (st.targetAt.isNil or st.targetAt(st.choice.land)):
         let c = st.choice.land
-        g.add &"""<rect class="target" x="{c.x - 36}" y="{c.y - 36}" width="72" height="72" rx="13"/>"""
+        let h = st.targetHalf
+        g.add &"""<rect class="target" x="{c.x - h}" y="{c.y - h}" width="{2 * h}" height="{2 * h}" rx="{h * 0.36:.1f}"/>"""
         if st.showGhosts:
           g.add &"""<line class="tether" x1="{st.at.x}" y1="{st.at.y}" x2="{c.x}" y2="{c.y}"/>"""
     st.ghosts.innerHTML = cstring(g)
 
   proc draw[S](st: Stage[S], s: S) =
     st.bg.innerHTML = cstring(st.backdrop(s))
-    for it in st.render(s):
+    let items = st.render(s)
+    var shown: seq[string]
+    for it in items: shown.add it.key
+    var gone: seq[string]
+    for k in st.nodes.keys:                # an item this state does not draw (a note rubbed out) goes away
+      if k notin shown: gone.add k
+    for k in gone:
+      st.fg.removeChild(st.nodes[k])
+      st.nodes.del k
+      st.looks.del k
+    for it in items:
       let held = it.key == st.dragKey
       var n = st.nodes.getOrDefault(it.key)
       if n.isNil:
@@ -907,7 +1007,8 @@ nbCodeDisplay(nbJsFromCode):
       let grab = if st.spec(s, it.key).isNil: "" else: " grab"
       let lifted = if held: " lifted" else: ""
       let pos = if held: st.at else: it.pos
-      n.setAttribute("class", cstring("item" & grab & lifted))
+      let extra = if it.cls.len > 0: " " & it.cls else: ""
+      n.setAttribute("class", cstring("item" & grab & lifted & extra))
       n.setStyle("transform", tr(pos))
     st.top.innerHTML = cstring(st.overlay(s))
     st.drawGhosts()
@@ -929,6 +1030,7 @@ nbCodeDisplay(nbJsFromCode):
     st.redirected = key != grabbed
     st.origin = st.render.locate(st.state, grabbed)
     st.grab = p - st.origin               # a redirected item starts where the grabbed one is
+    if st.centreGrab: st.grab = vec(0, 0)
     st.picker = behavior(st.render, key)   # speculative renders happen here
     st.fg.appendChild(st.nodes[key])       # float above the others
     st.svg.classList.add("dragging")
@@ -938,13 +1040,15 @@ nbCodeDisplay(nbJsFromCode):
     if st.dragKey.len == 0: return
     let key = st.dragKey
     let was = st.render.locate(st.state, key)
+    let before = st.state
     if st.choice.ok: st.state = st.choice.state
     let now = st.render.locate(st.state, key)
     st.dragKey = ""
     st.svg.classList.remove("dragging")
     let n = st.nodes[key]
-    let snap = st.redirected and now.x == was.x and now.y == was.y
-    if snap: n.setStyle("transition", "none")   # a copy let go nowhere melts back into the grabbed one: no glide
+    # a copy let go nowhere, or a letter that left a note and went back: it melts into its letter, no glide
+    let snap = (st.redirected or st.state != before) and now.x == was.x and now.y == was.y
+    if snap: n.setStyle("transition", "none")
     st.draw(st.state)                      # the held tile glides home
     if snap:
       discard rectOf(n)
@@ -963,7 +1067,7 @@ nbCodeDisplay(nbJsFromCode):
     host.innerHTML = cstring(&"""<svg class="d2" viewBox="{x0} 0 {w} {h}"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs><g class="bg"></g>""" &
       """<g class="fg"></g><g class="overlay"></g><g class="ghosts"></g></svg>""" &
       """<label class="ghost-toggle"><input type="checkbox"> <span data-it="mostra il meccanismo">show machinery</span></label>""")
-    let st = Stage[S](state: init, render: render, spec: spec, backdrop: backdrop, overlay: overlay, holdMs: 320)
+    let st = Stage[S](state: init, render: render, spec: spec, backdrop: backdrop, overlay: overlay, holdMs: 320, targetHalf: 36)
     st.svg = host.querySelector("svg")
     st.bg = host.querySelector(".bg")
     st.fg = host.querySelector(".fg")
@@ -1073,10 +1177,18 @@ nbJsFromCode:
   let stage = mount(host, 500, 664, emptyBoard(), renderBoard, tileSpec, backdrop, overlay, 50)   # cropped to the board: bigger on a phone
   # letters on the board stay put: grabbing one pulls out a copy of it (a double tap sends it back)
   stage.targetAt = proc (p: Vec): bool = p.y < by + 6 * cell   # only cells are targets: a letter going back below is not
+  proc homeCopy(b: Board, li: int): string =
+    ## a tile of letter li still below the board ("" when all six are on it)
+    for k in 0 .. 5:
+      if b.cells.find(li * 6 + k) < 0: return &"t{li * 6 + k}"
+    ""
   stage.redirect = proc (b: Board, key: string): string =
+    if key[0] == 'm':                      # a note: grabbing it pulls a copy of its letter, to write it elsewhere
+      return homeCopy(b, parseInt(key.split('-')[1]))
     let id = parseInt(key[1 .. ^1])
     let at = b.cells.find(id)
     if at < 0: return key
+    if b.small: return homeCopy(b, id div 6)   # small letters: any letter on the board, even a head, gives a copy
     if b.isHead(at): return ""             # a snake's head is drawn by hand (below): no copy
     for k in 0 .. 5:
       if b.cells.find((id div 6) * 6 + k) < 0: return &"t{(id div 6) * 6 + k}"
@@ -1141,7 +1253,7 @@ nbJsFromCode:
     var d = ""
     var li = 0
     var pulling = false
-    if held.len > 0:
+    if held.len > 0 and not stage.state.small:
       let id = parseInt(held[1 .. ^1])
       li = id div 6
       let fromCell = stage.state.cells.find(id)
@@ -1184,7 +1296,7 @@ nbJsFromCode:
   stage.svg.addEventListener("pointerdown", proc (ev: Event) =
     let k = keyAt(ev)
     snakeWord = -1
-    if k.isNil: return
+    if k.isNil or ($k)[0] != 't' or stage.state.small: return   # with small letters there are no snakes to draw
     let id = parseInt(($k)[1 .. ^1])
     let at = stage.state.cells.find(id)
     if at < 0: return
@@ -1269,6 +1381,14 @@ nbJsFromCode:
   stage.svg.addEventListener("pointerup", snakeUp)
   stage.svg.addEventListener("pointercancel", snakeUp)
 
+  # ---- small letters (notes): a double tap on an empty spot among the letters below the board shrinks them, and
+  # from then on a letter dragged onto an empty cell writes itself there small; another double tap makes them big again
+  proc setSmall(on: bool) =
+    if stage.state.small == on: return
+    var b = stage.state
+    b.small = on
+    stage.setState(b)
+
   proc sureLetter(g: Grid, c: int): char =
     ## the only letter a double tap can put in cell c: a start ring's first letter, or the one missing
     ## from a row, column or box that already has the other five, all different ('.': none)
@@ -1309,10 +1429,22 @@ nbJsFromCode:
       let x = 50 + (up.x - l) * 500 / rw
       let y = (up.y - t0) * 664 / rh
       let (col, row) = (int(floor((x - bx) / cell)), int(floor((y - by) / cell)))
+      if y > by + 6 * cell + 4:            # below the board, between the letters: small or big letters
+        let t = now()
+        if tapKey == "below" and t - tapAt < 400:
+          tapKey = ""
+          setSmall(not stage.state.small)
+        else:
+          tapKey = "below"
+          tapAt = t
+        return
       if col notin 0 .. 5 or row notin 0 .. 5:
         tapKey = ""
         return
       let c = row * 6 + col
+      if stage.state.small:                # small letters: a double tap fills nothing in
+        tapKey = ""
+        return
       let forced = sureLetter(stage.state.grid, c)
       if forced == '.' or stage.state.cells[c] >= 0:
         tapKey = ""
@@ -1327,6 +1459,18 @@ nbJsFromCode:
             break
       else:
         tapKey = &"c{c}"
+        tapAt = t
+      return
+    if ($k)[0] == 'm':                     # a double tap on a note rubs it out
+      let t = now()
+      if tapKey == $k and t - tapAt < 400:
+        tapKey = ""
+        let parts = ($k)[1 .. ^1].split('-')
+        var b = stage.state
+        b.marks[parseInt(parts[0])] = b.marks[parseInt(parts[0])] and not (1 shl parseInt(parts[1]))
+        stage.setState(b)
+      else:
+        tapKey = $k
         tapAt = t
       return
     let id = parseInt(($k)[1 .. ^1])
@@ -1517,7 +1661,9 @@ nbJsFromCode:
     cstring(prefix & code)
   proc save() =
     if demo: return
-    lsSet(storeKey(), cstring(stage.state.cells.join(",") & ";" & $stage.state.moves & ";" & $started & ";" & $wonAt))
+    let small = if stage.state.small: "1" else: "0"
+    lsSet(storeKey(), cstring(stage.state.cells.join(",") & ";" & $stage.state.moves & ";" & $started & ";" & $wonAt &
+      ";" & stage.state.marks.join(",") & ";" & small))
 
   proc celebrate() =
     var bits = ""
@@ -1573,9 +1719,20 @@ nbJsFromCode:
   var endUndoCb: proc ()                # set below, with the restart button
   var afterChange: proc ()              # set below: shows or hides the restart button
   stage.onCommit = proc () =
+    if stage.state.small:
+      stage.svg.classList.add("small")
+      stage.targetHalf = 16                # the drop target is the note's own spot
+      stage.centreGrab = true              # a small letter grabbed anywhere in its outline comes under the finger
+    else:
+      stage.svg.classList.remove("small")
+      stage.targetHalf = 36
+      stage.centreGrab = false
     if started == 0 and stage.state.moves > 0: started = now()
-    if undoable and not quiet and stage.state.cells != last.cells: endUndoCb()   # a move: no going back to before the restart
-    if stage.state.cells != last.cells:   # a move of the player's (undo and redo set `last` first)
+    # a move: a letter placed or taken, or a note written or rubbed out (switching the letters' size is not one);
+    # undo and redo set `last` first
+    let moved = stage.state.cells != last.cells or stage.state.marks != last.marks
+    if undoable and not quiet and moved: endUndoCb()   # no going back to before the restart
+    if moved:
       history.add last
       future = @[]
       last = stage.state
@@ -1592,6 +1749,7 @@ nbJsFromCode:
     for i in 0 ..< 36: solution[i] = '.'
     if sols.len > 0: solution = sols[0]
     var b = emptyBoard()
+    b.small = stage.state.small          # the letters stay small (or big) from one puzzle to the next
     started = 0
     wonAt = 0
     let saved = if demo: nil else: lsGet(storeKey())
@@ -1610,11 +1768,16 @@ nbJsFromCode:
     if not saved.isNil:
       let parts = ($saved).split(';')
       let cells = parts[0].split(',')
-      if parts.len == 4 and cells.len == 36:
+      if parts.len in [4, 6] and cells.len == 36:
         for i in 0 ..< 36: b.cells[i] = parseInt(cells[i])
         b.moves = parseInt(parts[1])
         started = parseFloat(parts[2])
         wonAt = parseFloat(parts[3])
+        if parts.len == 6:                 # the notes and the small-letter mode
+          let ms = parts[4].split(',')
+          if ms.len in [36, 96]:
+            for i in 0 ..< ms.len: b.marks[i] = parseInt(ms[i])
+          b.small = parts[5] == "1"
     celebrated = solved(puz, b.grid)     # don't throw confetti again on reload
     confetti.innerHTML = ""
     banner.innerHTML = cstring(&"<b>Bravo!</b><span>{b.moves} " & L("moves", "mosse") & &" · {clock()}</span>")
@@ -1704,6 +1867,8 @@ nbJsFromCode:
     var placed = false
     for c in 0 ..< 36:
       if stage.state.cells[c] >= 0 and not isGiven(c): placed = true
+    for m in stage.state.marks:
+      if m != 0: placed = true
     resetBtn.setHidden(not placed and not undoable)
   proc resetLabel() =
     if undoable: resetBtn.innerHTML = cstring(L("↶ undo restart", "↶ annullo rifaccio"))
@@ -1741,6 +1906,8 @@ nbJsFromCode:
     var had = false                     # nothing to undo on an untouched board
     for c in 0 ..< 36:
       if stage.state.cells[c] >= 0 and not isGiven(c): had = true
+    for m in stage.state.marks:
+      if m != 0: had = true
     before = stage.state
     beforeHistory = history
     beforeFuture = future
@@ -1761,6 +1928,7 @@ nbJsFromCode:
     endUndoCb()
     future.add stage.state
     last = history.pop
+    last.small = stage.state.small     # undo and redo leave the letters' size as it is
     stage.setState(last)
     armHide())
   redoBtn.addEventListener("click", proc (ev: Event) =
@@ -1768,6 +1936,7 @@ nbJsFromCode:
     endUndoCb()
     history.add stage.state
     last = future.pop
+    last.small = stage.state.small     # undo and redo leave the letters' size as it is
     stage.setState(last)
     armHide())
 
