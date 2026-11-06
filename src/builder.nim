@@ -744,7 +744,12 @@ nbJsFromCode:
   proc setSkin(v: cstring) {.importjs: "document.body.dataset.skin = #".}
   setSkin("niki")
 
-  const playUrl = "https://pietroppeter.github.io/parloku/?p="
+  # links point to the site the builder is served from (github.io or parloku.pietroppeter.xyz); anywhere else,
+  # such as a preview, to the site's Pages address, which forwards to the custom domain
+  proc onSite(): bool {.importjs: "(h => h.endsWith('github.io') || h.endsWith('pietroppeter.xyz'))(location.hostname)".}
+  proc siteDir(): cstring {.importjs: "(location.origin + location.pathname.slice(0, location.pathname.lastIndexOf('/') + 1))".}
+  let site = if onSite(): $siteDir() else: "https://pietroppeter.github.io/parloku/"
+  let playUrl = site & "?p="
   proc templateText(id: cstring): cstring {.importjs: "(document.getElementById(#)?.innerHTML ?? '')".}
   var sets: seq[string]          # from data/terne.txt, minus the triples that already have a puzzle
   for line in ($templateText("terne")).split('|'):
@@ -1830,9 +1835,7 @@ nbJsFromCode:
     say "Ripreso dallo stato salvato."
     true
   proc builderUrl(): string =
-    let here = $location()
-    if "github.io" in here: here.split('?')[0] & "?s=" & stateCode()
-    else: "https://pietroppeter.github.io/parloku/builder.html?s=" & stateCode()
+    site & "builder.html?s=" & stateCode()
   proc copied(e: Element, what: string) =
     let old = e.innerHTML
     e.innerHTML = "✓"
