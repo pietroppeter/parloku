@@ -5,7 +5,7 @@
 ## The explanations live in builder_howto.nim (builder-howto.html), so this page stays compact.
 ## The model, rules, drag engine, view and runtime blocks are copied from `parloku.nim` (the game), so the
 ## builder looks and feels the same; only the builder wiring at the end is new. Writes builder.html.
-import std/[json, os, strformat, strutils]
+import std/[algorithm, json, os, strformat, strutils]
 import nimib
 import style, builder_style
 import parloku/[types, solver]
@@ -41,6 +41,23 @@ nbRawHtml: """
 <div hidden><button id="undo" disabled></button><span id="sol"></span><input type="checkbox" id="nou" checked><button id="dice"></button><div id="panel"></div></div>
 </div>
 """
+
+# Word triples: data/terne.txt, without the ones that already have a puzzle in data/.
+proc tripleKey(words: seq[string]): string =
+  var w = words
+  w.sort()
+  w.join(" ")
+var made: seq[string]
+for f in walkFiles(currentSourcePath().parentDir.parentDir / "data" / "puzzle*.json"):
+  var words: seq[string]
+  for h in parseFile(f)["problem"]["wordHints"]: words.add h["word"].getStr.toUpperAscii
+  made.add tripleKey(words)
+var terne: seq[string]
+for line in lines(currentSourcePath().parentDir.parentDir / "data" / "terne.txt"):
+  let t = line.strip.toUpperAscii
+  if t.len == 0 or t.startsWith("#"): continue
+  if tripleKey(t.splitWhitespace) notin made: terne.add t.splitWhitespace.join(" ")
+nbRawHtml: "<template id=\"terne\">" & terne.join("|") & "</template>"
 
 nbJsFromCode:
   import std/[math, strformat, strutils, sequtils]
@@ -705,10 +722,11 @@ nbJsFromCode:
   setSkin("niki")
 
   const playUrl = "https://pietroppeter.github.io/parloku/?p="
-  const sets = [
-    "IMPARA PRIMA MATITA", "PAROLE PERLE OPERA", "LOGICA GIOCA CALCOLI", "ALBA LUNA NUBE",
-    "CENA PANE PERA", "ESTATE MARE SERATA", "CANE PESCE APE", "NERO ROSA ORO",
-    "CANTO NOTE TONO", "PROVA TROVA PORTA", "ITALIA PASTA ALPI", "AMICA GIOCO MAGIA"]
+  proc templateText(id: cstring): cstring {.importjs: "(document.getElementById(#)?.innerHTML ?? '')".}
+  var sets: seq[string]          # from data/terne.txt, minus the triples that already have a puzzle
+  for line in ($templateText("terne")).split('|'):
+    if line.len > 0: sets.add line
+  if sets.len == 0: sets.add "NERO ROSA ORO"
 
   let host = document.getElementById("board")
   let cluesEl = document.getElementById("clues")
