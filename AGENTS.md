@@ -29,4 +29,4 @@ Notes for coding agents (and people) changing this repository. How the game beha
 ## Pages
 
 - Every page is a nimib notebook in `src/` that writes a standalone HTML file. A new devlog post goes in
-  `devlog/<slug>/` with a line in the README devlog list; a garden page (an idea still growing) in `garden/<slug>/`.
+  `devlog/<slug>/` with a line in the README devlog list (link its Pages URL, https://pietroppeter.github.io/parloku/devlog/<slug>/, since the HTML is not in the repo); a garden page (an idea still growing) in `garden/<slug>/`.

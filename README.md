@@ -33,11 +33,11 @@ Specs: [how Parloku behaves](https://pietroppeter.github.io/parloku/specs/), wri
 `openspec/`. The gameplay scenarios are played on the built game and shown as small animations.
 
 Devlog:
-- [Built in CI](devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
-- [Specs that play](devlog/openspec/): adopting OpenSpec, and drag scenarios that are animations and tests at once.
-- [A daily hello and a first lesson](devlog/splash/): the daily splash screen and the animated lesson for first-time players.
-- [Back to basics](devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
-- [Ten skins for a letter game](devlog/pastel-skins/): how the skins were chosen and checked.
+- [Built in CI](https://pietroppeter.github.io/parloku/devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
+- [Specs that play](https://pietroppeter.github.io/parloku/devlog/openspec/): adopting OpenSpec, and drag scenarios that are animations and tests at once.
+- [A daily hello and a first lesson](https://pietroppeter.github.io/parloku/devlog/splash/): the daily splash screen and the animated lesson for first-time players.
+- [Back to basics](https://pietroppeter.github.io/parloku/devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
+- [Ten skins for a letter game](https://pietroppeter.github.io/parloku/devlog/pastel-skins/): how the skins were chosen and checked.
 
 ## Files
 
