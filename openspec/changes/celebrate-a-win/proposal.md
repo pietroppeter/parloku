@@ -9,7 +9,7 @@ more festive: the letters on the board could do something.
 - The banner says **Evviva! 🥳** (gender neutral) instead of Bravo!. The other masculine words the player reads go too:
   the tutorial's "Benvenuto!" and "da solo", and the splash's "Gioco da solo".
 - When the last tile solves the grid, the letters on the board dance for about three seconds before the banner pops
-  up. Four dances (a wave, the snakes, the letters, a firework); Pietro chose to keep them all and pick one at random on every win.
+  up. Three dances, one picked at random on every win (Pietro): ripples spreading from the last letter placed, like a stone in a pond; the snakes, each word hopping letter by letter; the letters, all copies of a letter jumping and spinning together. The firework was previewed and left out for now.
 - The banner sits over the empty letter trays at the bottom, so the solved board stays in view.
 - A board that was already solved (a reload) shows the banner at once, with no dance and no confetti.
 - With reduced motion, the letters stay still.

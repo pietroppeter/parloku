@@ -1485,10 +1485,11 @@ nbJsFromCode:
 
   # ---- the party when a puzzle is solved: the letters on the board dance, then the banner pops up. Like the marbles,
   # an SVG transform set every frame on each tile's drawing, so it looks the same in every browser
-  type Party = enum pWave, pSnakes, pLetters, pBurst
+  type Party = enum pWave, pSnakes, pLetters
   var party = pSnakes                  # picked at random on every win
   var cheer = "Evviva! 🥳"             # not "Bravo!": the player may be a girl or a boy
   var partyT0 = -1.0
+  var winCell = 14                     # the cell of the last letter placed: the ripples start there
   var partyRun = 0                     # a new party stops the one before
   var dancers: seq[(Element, int, int)]   # each tile on the board: its drawing, its cell, its letter
   var wordOf, letterAt: array[36, int]   # the word a cell belongs to (-1: none) and its place in that word
@@ -1499,10 +1500,9 @@ nbJsFromCode:
     if u > 0 and u < 1: result = sin(PI * u)
   proc partyLen(p: Party): float =
     case p
-    of pWave: 1900.0
+    of pWave: 3100.0
     of pSnakes: 3200.0
     of pLetters: 2900.0
-    of pBurst: 1600.0
   proc bannerHtml(moves: int): cstring =
     cstring(&"<b>{cheer}</b><span>{moves} " & L("moves", "mosse") & &" · {clock()}</span>")
 
@@ -1530,7 +1530,7 @@ nbJsFromCode:
       for k, c in path:
         wordOf[c] = i
         letterAt[c] = k
-    party = Party(int(rnd() * 4) mod 4)
+    party = Party(int(rnd() * 3) mod 3)
     inc partyRun
     let me = partyRun
     partyT0 = -1
@@ -1545,10 +1545,13 @@ nbJsFromCode:
         let r = float(c div 6)
         let col = float(c mod 6)
         case party
-        of pWave:                          # a wave across the board, corner to corner, twice
-          let h = hop(e, (r + col) * 70, 420) + hop(e, 900 + (r + col) * 70, 420)
-          dy = -20 * h
-          s = 1 + 0.12 * h
+        of pWave:                          # ripples spreading from the last letter placed, like a stone in a pond
+          let d = hypot(r - float(winCell div 6), col - float(winCell mod 6))   # in cells
+          let behind = e / 1000 * 3.6 - d   # cells behind the front: the front moves 3.6 cells a second
+          if behind > 0 and behind < 4:     # three crests, two cells apart, fading
+            let h = sin(behind / 2 * 2 * PI) * (1 - behind / 4) * (1 - d / 12)
+            dy = -20 * h
+            s = 1 + 0.12 * h
         of pSnakes:                        # each word in turn, letter after letter like a snake; then everyone
           var h = hop(e, 2400 + (r + col) * 30, 450) * 0.6
           if wordOf[c] >= 0:
@@ -1566,24 +1569,6 @@ nbJsFromCode:
           let h2 = hop(e, 6 * 360 + 150, 500)
           dy = -24 * h - 16 * h2
           s = 1 + 0.15 * h + 0.1 * h2
-        of pBurst:                         # out from the middle like a firework, and back with a bounce
-          let p = cellPos(c)
-          let vx = p.x - 300
-          let vy = p.y - 250
-          let d = max(1.0, hypot(vx, vy))
-          let u = (e - d / 250 * 160) / 1250
-          if u > 0 and u < 1:
-            var amt = 0.0
-            if u < 0.22: amt = sin(u / 0.22 * PI / 2)
-            else:
-              let w = (u - 0.22) / 0.78
-              amt = cos(w * PI * 2.5) * (1 - w) * (1 - w)
-            dx = vx / d * 34 * amt
-            dy = vy / d * 34 * amt
-            var turn = 360.0
-            if (c + c div 6) mod 2 == 1: turn = -360.0
-            rot = turn * min(1.0, u / 0.6)
-            s = 1 + 0.18 * max(0.0, amt)
         for k in n.kids:
           if done: k.unset("transform")
           else: k.setAttr("transform", cstring(&"translate({dx:.1f} {dy:.1f}) rotate({rot:.1f}) scale({s:.3f})"))
@@ -1637,6 +1622,8 @@ nbJsFromCode:
     if started == 0 and stage.state.moves > 0: started = now()
     if undoable and not quiet and stage.state.cells != last.cells: endUndoCb()   # a move: no going back to before the restart
     if stage.state.cells != last.cells:
+      for c in 0 ..< 36:
+        if stage.state.cells[c] >= 0 and last.cells[c] < 0: winCell = c
       history.add last
       last = stage.state
     undoBtn.setDisabled(history.len == 0)
