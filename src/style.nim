@@ -100,7 +100,7 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
   border:var(--border) solid var(--line);box-shadow:var(--btn-shadow);cursor:default;transition:transform .2s}
 .clue .n{width:26px;height:26px;border-radius:50%;color:#fff;font:700 14px "JetBrains Mono",monospace;display:grid;place-items:center}
 .clue .l{width:26px;height:30px;border-radius:7px;display:grid;place-items:center;font:var(--glyph-weight) 18px var(--font-glyph);
-  border:1.5px dashed var(--line);color:var(--muted);transition:background .25s,color .25s}
+  border:1.5px solid var(--line);color:var(--muted);transition:background .25s,color .25s}
 /* a clue letter already on the board: bold, dark, with a thick dark edge; the ones still to place stay light */
 .clue.done{border-color:var(--ink)}
 .clue .ok{font-size:18px;width:18px;text-align:center;color:var(--c4);font-weight:700}
@@ -128,8 +128,13 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .cell{stroke:color-mix(in srgb,var(--ink) 16%,transparent);stroke-width:1.5} .cell.ca{fill:var(--ca)} .cell.cb{fill:var(--cb)} .cell.tint{fill:var(--hl)} .cell.bad{fill:var(--bad)}
 .badline{fill:none;stroke:var(--bad-line);stroke-width:3}
 /* no red while a tile is held: only once it is let go */
+/* two letters in conflict tremble, gently at first and more over a few seconds (no red); not while a tile is held */
 .dragging .cell.bad.ca{fill:var(--ca)} .dragging .cell.bad.cb{fill:var(--cb)} .dragging .cell.bad.tint{fill:var(--hl)} .dragging .badline{display:none}
+@media (prefers-reduced-motion: reduce){.shake .tile rect,.shake .tile circle,.shake .tile path{stroke:var(--bad-line)}}
 .boxline{fill:var(--boxline)}
+.thin{stroke:color-mix(in srgb,var(--boxline) 35%,transparent);stroke-width:1.5}
+.edge{fill:none;stroke:var(--boxline);stroke-width:5}
+
 .lbl{fill:var(--muted);display:none} .tutoring .lbl{display:inline}
 .glow{fill:var(--hl);stroke:var(--c0);stroke-width:3}
 .empty{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 5} .done{fill:var(--c4)}
@@ -175,7 +180,7 @@ body.focus,body.chrome{padding-bottom:0}
 body.focus .play,body.chrome .play{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:8px 0}
 body.focus .play>h1,body.focus .play>.lede,body.focus .play>.rules,body.focus .play>.skins,
 body.chrome .play>h1,body.chrome .play>.lede,body.chrome .play>.rules,
-body.focus .picker,body.focus .status{display:none}
+body.focus .status{display:none}
 body.focus .game,body.chrome .game{margin:0}
 body.chrome .play>.skins{display:none}
 .clue .ok:empty{display:none}
@@ -184,15 +189,32 @@ body.chrome .play>.skins{display:none}
 @keyframes wig{0%,100%{transform:none}15%{transform:rotate(-5deg) scale(1.04)}35%{transform:rotate(4deg) scale(1.04)}55%{transform:rotate(-3deg)}75%{transform:rotate(2deg)}}
 @media (prefers-reduced-motion: reduce){.wig{animation:none}}
 @media (max-width:440px){body.chrome .status .tx{display:none} body.chrome .status .btn{min-width:48px}}
-body.chrome .picker,body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
+body.chrome .status{position:fixed;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
   padding:10px 16px;background:color-mix(in srgb,var(--bg) 94%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
-body.chrome .picker{top:0;padding-top:max(10px,env(safe-area-inset-top))}
-/* the menu bar: one row, scrolled sideways; only tutorial, puzzles and styles */
-body.chrome .picker{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0}
-body.chrome .picker::-webkit-scrollbar{display:none}
-body.chrome .picker>*{flex:none}
-body.chrome .picker .langs,body.chrome .status,body.chrome .picker .tut,body.chrome .play>.skins{display:none}
-body.chrome .status{bottom:0;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+body.chrome .picker .langs,body.chrome .status,body.chrome .picker .tut,body.chrome .play>.skins,body.focus .picker .langs,body.focus .picker .tut{display:none}
+/* the menu: a bar that slides down from the top, while words, grid and letters shrink a little to make room;
+   it slides back up after a few idle seconds or a tap in the game. "again!" swaps its buttons for the puzzles, scrolled sideways */
+body.focus .picker,body.chrome .picker{display:flex;position:fixed;top:0;left:0;right:0;z-index:20;margin:0 auto;max-width:760px;
+  padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));flex-wrap:nowrap;justify-content:center;gap:8px;
+  overflow-x:auto;scrollbar-width:none;background:color-mix(in srgb,var(--bg) 94%,transparent);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:transform .35s ease,visibility .35s}
+body.focus .picker{transform:translateY(-105%);visibility:hidden}
+body.chrome .picker{transform:none;visibility:visible}
+.picker::-webkit-scrollbar{display:none}
+.picker>*{flex:none}
+.play .clues,.play .stage{transition:transform .35s ease,gap .35s ease}
+body.chrome .play .clues{transform:translateY(var(--drop,0px));gap:3px}
+body.chrome .play .stage{transform:translateY(calc(var(--drop,0px) - 10px))}
+.menu-only{display:none}
+body.focus .picker .menu-only,body.chrome .picker .menu-only{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
+body.focus .picker #picker,body.chrome .picker #picker{display:none}
+body.focus .picker.listing,body.chrome .picker.listing{justify-content:flex-start}
+body.focus .picker.listing>:not(#picker),body.chrome .picker.listing>:not(#picker){display:none}
+body.focus .picker.listing #picker,body.chrome .picker.listing #picker{display:contents}
+#picker .btn{white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
+#picker .ck{color:var(--w1);font-weight:800}
+#picker .ck:empty{display:none}
+@media (max-width:400px){body.chrome .picker{gap:6px;padding-left:8px;padding-right:8px} body.chrome .picker .menu-only{padding:6px 11px;font-size:13px}}
 @media (prefers-reduced-motion: reduce){.ripple{animation:none;opacity:0}}
 .machinery-slot{margin:10px 0}
 .machinery-slot .ghost-toggle{position:static;font-size:14px}

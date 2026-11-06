@@ -36,6 +36,7 @@ Devlog:
 
 - `index.html`: the generated page (served by GitHub Pages from `main`, root). Don't edit it by hand.
 - `src/parloku.nim`: the notebook. Model, rules, solver and drag spec run natively at build time and in the browser.
+- `src/istruzioni.nim` → `istruzioni.html`: how to play (rules, then gestures), linked from the game menu.
 - `src/splash.nim`: the daily splash screen and the animated first lesson (game page only; `?splash=first`, `?learn`, `?nosplash`).
 - `src/devlog_splash.nim` → `devlog/splash/index.html`: devlog post on the splash and the lesson.
 - `src/style.nim`: the page CSS (ten skins plus the original maiolica), inlined in place of nimib's default theme.
