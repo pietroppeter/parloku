@@ -195,8 +195,10 @@ New things the check turned up, for you to decide:
 - **The tutorial doesn't fit the screen.** With the coach box on top, the letters end at 806 px on an iPhone 13, past
   the 664 px that `first-principles` asks for.
 - **The code notebook is invisible.** The game page is still the nimib explainer underneath, but nothing shows it
-  now. You said the first explainer would move: to a devlog post, or to the garden?
-- **No way to switch language while playing.** An Italian player with an English browser has to use `?lang=it`.
+  now. You decided it moves to a devlog post: that is the change `move-notebook-to-devlog`.
+- **No way to switch language while playing.** You decided Italian is the game's language for now, English is a
+  draft, and there is no switch: the change `italian-first`. English stays the language of development (specs, code,
+  PRs), which `way-of-working` now says.
 """
 
 nbRawHtml: """<h2><span class="num">05 · WHAT WRITING THEM TURNED UP</span>Six things you decided</h2>"""
@@ -244,9 +246,7 @@ nbText: """
 """
 
 nbRawHtml: """<div class="ask"><b>For Pietro to check</b><ul>
-<li>The tutorial is taller than one phone screen: fine for a tutorial, or trim it?</li>
-<li>The code notebook under the game is never shown now: move it to a devlog post or to the garden?</li>
-<li>A way to switch language while playing (in the menu?), or links only?</li>
+<li>The tutorial (<a href="https://pietroppeter.github.io/parloku/?tutorial">?tutorial</a>) is taller than one phone screen: fine, or trim it?</li>
 <li>Retiring <code>tests/gestures</code> once you trust the drag scenarios.</li>
 </ul></div>"""
 

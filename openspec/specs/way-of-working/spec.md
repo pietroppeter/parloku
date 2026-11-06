@@ -29,6 +29,14 @@ complete, and they are come back to and grown over time. How the garden works in
 - **WHEN** a change reaches the game
 - **THEN** a dated devlog post tells what changed and why, and can link the garden articles behind it
 
+### Requirement: English for development
+Specs, proposals, code, comments, commits, PRs and the devlog SHALL be written in English, the language of development
+and iteration, even though the game itself speaks Italian first and Pietro often writes in Italian or mixes the two.
+
+#### Scenario: A request in Italian
+- **WHEN** Pietro asks for a change in Italian
+- **THEN** the change's proposal, specs and PR are written in English
+
 ### Requirement: Preview first, one clean PR
 A change SHALL be shown to Pietro as a published preview (an artifact, which opens on a phone) before anything is
 merged. Nothing SHALL be pushed to `main` until Pietro says so, and each change SHALL arrive as one clean PR. Old
