@@ -131,9 +131,12 @@ The rule for growing it: **a check joins CI when we catch ourselves running it b
 
 nbRawHtml: """<div class="ask">"""
 nbText: """
-**Open question.** The devlog posts embed the game *as it is now*, so an old post always shows today's game. That's
-usually what we want, but a post about a change could also want to keep the game *as it was then*. If we want that, a post can
-pin a snapshot of the game from git instead of slicing the current build.
+**Today's game, or the game as it was?** A devlog post slices its game out of the built `index.html`, so it embeds
+*today's* game. That's the default: a post about the splash or about the screen layout still reads fine with a newer game.
+One post didn't: *Ten skins* is about switching skins, and the game has since dropped its skin picker (only Niki now).
+With today's game the post lost its subject, so it now embeds a **snapshot**: the game and its CSS from an old commit,
+read with `git show fc3e6b4:index.html` while the page builds. The rule: a post pins a snapshot only when today's
+game contradicts what the post shows.
 """
 nbRawHtml: """</div>"""
 

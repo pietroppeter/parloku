@@ -22,6 +22,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # a devlog post can embed the game from an old commit (git show <commit>:index.html)
 
       # Generated pages must not be committed again (a branch from before CI may bring them back).
       - name: No committed HTML
