@@ -18,7 +18,7 @@
 ##
 ## Notes (small letters): `small: on` starts with the letters small, `notes: r1c1 AI, r2c2-r2c3 I` writes notes on
 ## the start board (`r2c2-r2c3`: on the edge between two cells, also a waypoint); `end small: on|off` and `end notes: r1c1 AI` (or `none`) check them after the gesture.
-## `swipe: down` (or `up`) swipes in the empty space between the letters below the board.
+## The waypoint `space` is the empty spot between the letters below the board (`double-tap: space` switches size).
 ##
 ## This tool collects the scenarios; `tools/specdrag.js` plays them on the built page (`index.html`, so build
 ## `src/parloku.nim` first) in headless Chromium on an iPhone 13, with real pointer events, the way
@@ -93,9 +93,6 @@ proc parseDragBlock*(body: seq[string]): DragScenario =
     elif content.startsWith("end small:"): result.endSmall = content[10 .. ^1].strip
     elif content.startsWith("notes:"): result.notes = content[6 .. ^1].strip
     elif content.startsWith("end notes:"): result.endNotes = content[10 .. ^1].strip
-    elif content.startsWith("swipe:"):
-      result.gesture = "swipe"
-      result.points = @[content[6 .. ^1].strip]
     inc i
 
 proc collectFile(path, cap, change, rel: string): seq[DragScenario] =

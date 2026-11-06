@@ -2,18 +2,18 @@
 
 ## Purpose
 Notes ("letterine"): small letters the player writes in empty cells, or between two cells, to keep track of where a
-letter may go. A swipe below the board switches between small letters (notes) and big letters (moves).
+letter may go. A double tap below the board switches between small letters (notes) and big letters (moves).
 
 ## Requirements
 
 ### Requirement: Small letters and big letters
-A swipe down that starts in an empty spot of the letters area below the board SHALL make the six letters small;
-a swipe up that starts there SHALL make them big again. Small letters SHALL each keep a thin outline of the big
+A double tap on an empty spot among the letters below the board SHALL make the six letters small, and another
+double tap there SHALL make them big again. Small letters SHALL each keep a thin outline of the big
 letter's size, and SHALL be grabbed anywhere inside it, as big letters are. The letters' size SHALL be saved with the
 progress, and SHALL stay when the player picks another puzzle.
 
-#### Scenario: Swipe down
-- **WHEN** the letters are big and the player swipes down between the letters below the board
+#### Scenario: Double tap below: small letters
+- **WHEN** the letters are big and the player double taps between the letters below the board
 - **THEN** the letters are small and the board does not change
 
 ```drag
@@ -25,7 +25,7 @@ start:
   . . . . . .
   . I O . . .
   . . . . I O
-swipe: down
+double-tap: space
 end:
   . . . . . .
   . . . . . .
@@ -36,8 +36,8 @@ end:
 end small: on
 ```
 
-#### Scenario: Swipe up
-- **WHEN** the letters are small and the player swipes up between them
+#### Scenario: Double tap below again: big letters
+- **WHEN** the letters are small and the player double taps between them
 - **THEN** the letters are big again
 
 ```drag
@@ -50,7 +50,7 @@ start:
   . . . . . .
   . I O . . .
   . . . . I O
-swipe: up
+double-tap: space
 end small: off
 ```
 

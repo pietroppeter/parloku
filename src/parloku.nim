@@ -1381,26 +1381,13 @@ nbJsFromCode:
   stage.svg.addEventListener("pointerup", snakeUp)
   stage.svg.addEventListener("pointercancel", snakeUp)
 
-  # ---- small letters (notes): a swipe down in an empty spot of the letters below the board shrinks them, and from
-  # then on a letter dragged onto an empty cell writes itself there small; a swipe up makes them big again
-  var swipeFrom = vec(NaN, NaN)
+  # ---- small letters (notes): a double tap on an empty spot among the letters below the board shrinks them, and
+  # from then on a letter dragged onto an empty cell writes itself there small; another double tap makes them big again
   proc setSmall(on: bool) =
     if stage.state.small == on: return
     var b = stage.state
     b.small = on
     stage.setState(b)
-  stage.svg.addEventListener("pointerdown", proc (ev: Event) =
-    swipeFrom = vec(NaN, NaN)
-    let p = toBoard(ev)
-    if keyAt(ev).isNil and p.y > by + 6 * cell + 4: swipeFrom = p)
-  stage.svg.addEventListener("pointermove", proc (ev: Event) =
-    if swipeFrom.x != swipeFrom.x: return
-    let d = toBoard(ev) - swipeFrom
-    if abs(d.y) > 40 and abs(d.y) > 1.5 * abs(d.x):
-      swipeFrom = vec(NaN, NaN)
-      setSmall(d.y > 0))
-  for e in ["pointerup", "pointercancel"]:
-    stage.svg.addEventListener(cstring(e), proc (ev: Event) = swipeFrom = vec(NaN, NaN))
 
   proc sureLetter(g: Grid, c: int): char =
     ## the only letter a double tap can put in cell c: a start ring's first letter, or the one missing
@@ -1442,6 +1429,15 @@ nbJsFromCode:
       let x = 50 + (up.x - l) * 500 / rw
       let y = (up.y - t0) * 664 / rh
       let (col, row) = (int(floor((x - bx) / cell)), int(floor((y - by) / cell)))
+      if y > by + 6 * cell + 4:            # below the board, between the letters: small or big letters
+        let t = now()
+        if tapKey == "below" and t - tapAt < 400:
+          tapKey = ""
+          setSmall(not stage.state.small)
+        else:
+          tapKey = "below"
+          tapAt = t
+        return
       if col notin 0 .. 5 or row notin 0 .. 5:
         tapKey = ""
         return

@@ -111,6 +111,7 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
         const along = here.length < 2 ? 0 : k * 24 - 12
         return c - 36 < 30 ? [x, y + along] : [x + along, y]
       }
+      if (w === 'space') return [225, 583]   // the empty spot between the letters below the board
       if (w === 'off') return [560, 650]
       throw new Error('unknown waypoint ' + w)
     }
@@ -157,18 +158,6 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
           await grab(at)
         }
         await p.waitForTimeout(60); await grab(at)
-      }
-      await p.mouse.up()
-      for (let k = 0; k < 6; k++) { await p.waitForTimeout(60); await grab(null) }
-    } else if (s.gesture === 'swipe') {
-      // in the gap between the first two letters below the board, down or up
-      const [y0, y1] = s.points[0] === 'up' ? [640, 520] : [520, 640]
-      let at = [225, y0]
-      await p.mouse.move(...toScreen(at)); await p.mouse.down(); await grab(at)
-      for (let k = 1; k <= 10; k++) {
-        at = [225, y0 + (y1 - y0) * k / 10]
-        await p.mouse.move(...toScreen(at)); await p.waitForTimeout(16)
-        await grab(at)
       }
       await p.mouse.up()
       for (let k = 0; k < 6; k++) { await p.waitForTimeout(60); await grab(null) }

@@ -12,9 +12,12 @@ the player, the way sudoku players write small candidate digits in a cell. He ch
 Notes first used the builder's look (grey pencil letters in a 3×2 grid). Pietro then asked (same day) for notes that
 stay coloured tiles, at most four per cell, and for Snyder notation: a small letter between two cells.
 
+Later the same day Pietro found that a vertical swipe scrolls the page inside an artifact on the phone, so the
+switch became a double tap on an empty spot among the letters below the board.
+
 ## What Changes
 
-- A vertical swipe that starts in an empty spot below the board switches between big letters and small letters.
+- A double tap on an empty spot among the letters below the board switches between big letters and small letters.
   The six letters shrink, each keeping a thin outline of its big size, which is still where it is grabbed.
 - With small letters, a letter dragged onto an empty cell writes itself there as a note, in its fixed spot of the
   cell. It can come from below, from any letter on the board (a given, a word's head) or from another
@@ -44,9 +47,9 @@ stay coloured tiles, at most four per cell, and for Snyder notation: a small let
 
 ## Impact
 - `src/parloku.nim`: `Board` gets `marks` and `small`; the view draws notes as items and shrinks the letters below;
-  the drag engine removes items a state no longer draws; the swipe, the note drop and the double tap on a note.
+  the drag engine removes items a state no longer draws; the double tap below the board, the note drop and the double tap on a note.
 - `src/style.nim`: the small letters, their outlines, and the notes.
-- `tools/specdrag.*`, `tools/specview.nim`: `small:`, `notes:`, `swipe:` and `note A r3c3` in drag scenarios.
+- `tools/specdrag.*`, `tools/specview.nim`: `small:`, `notes:`, `space` waypoint and `note A r3c3` in drag scenarios.
 - Saved progress gains two fields (notes, letter size); older saves still load.
 - `src/istruzioni.nim`: a "Letterine" gesture with a practice board.
 - Built in PR #23, after PR #20 (game).
