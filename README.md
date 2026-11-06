@@ -72,7 +72,7 @@ Givens are `<row><col><letter>` and words `<row><col><word>`, 0-based and separa
 ## Builder
 
 `builder.html` ([src/builder.nim](src/builder.nim)) makes new puzzles with the game's board and gestures. Pick a
-set of three words. Each word is listed with a ring: drag the ring onto a cell to start the word there with its first
+set of three words. The sets come from [`data/terne.txt`](data/terne.txt), one per line; a set that already has a puzzle in `data/` is left out of the list, so the builder only offers triples still to be made. Each word is listed with a ring: drag the ring onto a cell to start the word there with its first
 letter. Hold the word's last letter to see where the next one can go, then drag there (or tap one) to add it. The head can also be walked along the cells in one drag: each free next cell adds the next letter, stepping back onto the letter before shrinks the word, and letting go on an empty cell without a step moves the head there (as in the game). A double
 tap on a letter sends it back, together with the rest of its word after it; a double tap on the ring removes the word.
 Every empty cell shows in pencil the letters some complete grid can still put there, and a cell with none turns red.
