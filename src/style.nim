@@ -185,6 +185,7 @@ body.focus>header,body.focus footer,body.chrome>header,body.chrome footer,
 body.focus main>:not(.play):not(.sp),body.chrome main>:not(.play):not(.sp){display:none}
 body.focus,body.chrome{padding-bottom:0}
 body.focus .play,body.chrome .play{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:8px 0}
+body.demo .play{min-height:0}      /* a practice board on the istruzioni page: as tall as its game */
 body.focus .play>h1,body.focus .play>.lede,body.focus .play>.rules,body.focus .play>.skins,
 body.chrome .play>h1,body.chrome .play>.lede,body.chrome .play>.rules,
 body.focus .status{display:none}

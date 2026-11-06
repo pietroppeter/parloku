@@ -20,6 +20,10 @@ nb.doc.context["stylesheet"] = %(pageStyle & """
 .howto .k.given{border-width:3.5px}
 .howto .w0{color:var(--w0);font-weight:800} .howto .w1{color:var(--w1);font-weight:800} .howto .w2{color:var(--w2);font-weight:800}
 .howto .note{color:var(--muted);font-size:15px;margin-top:14px}
+.howto .do{display:block;margin-top:8px;font-weight:600}
+.howto .try{margin:10px -4px 2px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.howto .try iframe{width:min(100%,330px);height:600px;border:var(--border) solid var(--line);border-radius:14px;background:var(--bg)}
+.howto .again{font:700 14px var(--font-body);border:var(--border) solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 14px;cursor:pointer}
 </style>""")
 nb.doc.context["highlight"] = %""
 nb.doc.context["disableHighlightJs"] = %true
@@ -46,25 +50,49 @@ Quelle non si toccano.</li>
 Quando la griglia è giusta e le tre parole ci sono tutte, hai vinto.</p>
 
 <h2>I gesti</h2>
+<p class="note">Sotto ogni gesto c'è una piccola griglia vera: provalo lì. Il primo puzzle è sempre ITALIA · PASTA · ALPI, e qui
+non si salva niente. <i>↺ da capo</i> la rimette com'era.</p>
 <ul>
-<li><b>Mettere una lettera</b>Trascina una delle sei lettere in basso su una casella vuota. Le lettere già in griglia non vengono mai coperte.</li>
-<li><b>Copiare una lettera</b>Trascina una lettera della griglia: ne parte una copia, che puoi mettere su un'altra casella.</li>
-<li><b>Spostare una lettera</b>Tienila premuta finché si solleva, poi portala dove vuoi.</li>
+<li><b>Mettere una lettera</b>Trascina una delle sei lettere in basso su una casella vuota. Le lettere già in griglia non vengono mai coperte.
+<span class="do">Prova: porta la I sulla casella con il quadratino rosso, in alto a sinistra.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI" title="Mettere una lettera"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Copiare una lettera</b>Trascina una lettera della griglia: ne parte una copia, che puoi mettere su un'altra casella.
+<span class="do">Prova: trascina la P già in griglia, in alto a destra, e lasciala più in basso.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI" title="Copiare una lettera"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Spostare una lettera</b>Tienila premuta finché si solleva, poi portala dove vuoi.
+<span class="do">Prova: la T in alto è nel posto sbagliato. Tienila premuta e spostala una casella a sinistra.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=2T" title="Spostare una lettera"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Scrivere una parola</b>Trascina l'ultima lettera di una parola sulle caselle vicine: a ogni passo si aggiunge la lettera
-che viene dopo, e tornando indietro la togli. Il contorno colorato cresce con la parola.</li>
-<li><b>Togliere</b>Doppio tocco su una lettera: torna in basso. Se fa parte di una parola, torna in basso tutta la parola.</li>
-<li><b>Riempire una casella sicura</b>Doppio tocco su una casella vuota dove può andare una sola lettera: il cerchietto di una
-parola, o l'ultima casella libera di una riga, di una colonna o di un riquadro.</li>
-<li><b>Dov'è una parola?</b>Tocca una parola in alto: sulla griglia il suo cerchietto o il suo contorno vibra.</li>
-<li><b>Il menu</b>Tocca uno spazio vuoto: in alto compaiono <i>istruzioni</i>, <i>ancora!</i> per scegliere un altro puzzle
+che viene dopo, e tornando indietro la togli. Il contorno colorato cresce con la parola.
+<span class="do">Prova: trascina la I di ITALIA verso destra: arrivano la T e la A. Poi torna indietro.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I" title="Scrivere una parola"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Togliere</b>Doppio tocco su una lettera: torna in basso. Se fa parte di una parola, torna in basso tutta la parola.
+<span class="do">Prova: doppio tocco sulla T da sola, al centro. Poi doppio tocco su una lettera di ITALIA.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I,1T,2A,20T" title="Togliere"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Riempire una casella sicura</b>Doppio tocco su una casella vuota dove può andare una sola lettera: il quadratino di una
+parola, o l'ultima casella libera di una riga, di una colonna o di un riquadro.
+<span class="do">Prova: doppio tocco sull'ultima casella della prima riga, poi sul quadratino verde.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I,1T,2A,3S" title="Riempire una casella sicura"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Dov'è una parola?</b>Tocca una parola in alto: sulla griglia il suo quadratino o il suo contorno vibra.
+<span class="do">Prova: tocca ALPI.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI" title="Dov'è una parola?"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Il menu</b>Nel gioco, tocca uno spazio vuoto sopra la griglia: in alto compaiono <i>istruzioni</i>, <i>ancora!</i> per scegliere un altro puzzle
 (quelli già risolti hanno ✓) e <i>rifaccio</i> per ricominciare. Subito dopo, per qualche secondo, puoi ancora
 <i>annullare</i> il rifaccio.</li>
 </ul>
 <p><a class="back" href="index.html">← al gioco</a></p>
 </div>
-<script>
-try { document.body.dataset.skin = localStorage.getItem('parloku:look') || 'niki' } catch (e) { document.body.dataset.skin = 'niki' }
-</script>
 """
+
+nbJsFromCode:
+  import std/dom
+  proc setSkin(e: Element, v: cstring) {.importjs: "#.dataset.skin = #".}
+  proc frameOf(e: Element): Element {.importjs: "#.closest('.try').querySelector('iframe')".}
+  proc reload(f: Element) {.importjs: "(f => { f.src = f.src })(#)".}
+  proc onHeight(cb: proc (f: Element, h: float)) {.importjs:
+    "(cb => addEventListener('message', ev => { const h = ev.data && ev.data.parlokuHeight; if (!h) return; " &
+    "for (const f of document.querySelectorAll('.try iframe')) if (f.contentWindow === ev.source) cb(f, h) }))(#)".}
+  proc setHeight(f: Element, h: float) {.importjs: "#.style.height = # + 'px'".}
+  document.body.setSkin("niki")          # the game's one look
+  # each board as tall as its game (words, grid and the six letters): the game in the frame says how tall it is
+  onHeight(proc (f: Element, h: float) = f.setHeight(h))
+  # ↺ da capo: the practice board starts again from its letters
+  for b in document.querySelectorAll(".try .again"):
+    b.addEventListener("click", proc (ev: Event) =
+      let f = Element(ev.currentTarget).frameOf
+      f.reload)
 
 nbSave

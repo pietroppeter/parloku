@@ -1023,6 +1023,9 @@ nbJsFromCode:
   if fromUrl.contains("p=") and decode(fromUrl).valid:
     code = decode(fromUrl).encode
     if games.allIt(it[0] != code): games.add (code, "")
+  # ?demo: a practice board for the istruzioni page (in an iframe). It starts from the letters in &g= (cell+letter,
+  # e.g. g=0I,1T), saves nothing, and has no menu
+  let demo = fromUrl.contains("demo")
   # language: Italian, whatever the browser says. The English draft only by link (?lang=en)
   if fromUrl.contains("lang=en"): lang = "en"
 
@@ -1349,6 +1352,14 @@ nbJsFromCode:
   proc inDevlog(): bool {.importjs: "location.pathname.includes('/devlog/')".}
   # the game page shows only the game; the devlog post (the same notebook) shows the game as a plain block in the page
   var playEl = document.getElementById("play")
+  if demo:
+    # tell the istruzioni page how tall this practice board is, so its frame fits it
+    proc tellHeight() {.importjs:
+      "(() => { const p = document.querySelector('.play'); if (p && parent !== window) parent.postMessage({parlokuHeight: Math.ceil(p.getBoundingClientRect().height + 4)}, '*') })()".}
+    document.body.classList.add("demo")
+    discard setTimer(proc () = tellHeight(), 50)
+    discard setTimer(proc () = tellHeight(), 800)   # again once the fonts are in
+    window.addEventListener("resize", proc (ev: Event) = tellHeight())
   if inDevlog(): playEl = nil
   if not playEl.isNil:
     setMode("focus")
@@ -1366,7 +1377,7 @@ nbJsFromCode:
         # the menu's zone: anywhere above the grid that is not a word (a word wiggles instead)
         if onClue(ev) or inStage(ev): return
         let (_, gridTop, _, _) = rectOf(host)
-        if clientXY(ev).y < gridTop: setMode("chrome")
+        if clientXY(ev).y < gridTop and not demo: setMode("chrome")
         return
       if interactive(ev): return
       if inPlay(ev):
@@ -1385,6 +1396,7 @@ nbJsFromCode:
     let v = lsGet("parloku:solved")
     if not v.isNil and ($v).len > 0: result = ($v).split(',')
   proc markSolved(c: string) =
+    if demo: return
     var cs = solvedCodes()
     if c notin cs:
       cs.add c
@@ -1430,6 +1442,7 @@ nbJsFromCode:
     let prefix = if tutorial: "parloku:tutorial:" else: "parloku:"
     cstring(prefix & code)
   proc save() =
+    if demo: return
     lsSet(storeKey(), cstring(stage.state.cells.join(",") & ";" & $stage.state.moves & ";" & $started & ";" & $wonAt))
 
   proc celebrate() =
@@ -1503,7 +1516,19 @@ nbJsFromCode:
     var b = emptyBoard()
     started = 0
     wonAt = 0
-    let saved = lsGet(storeKey())
+    let saved = if demo: nil else: lsGet(storeKey())
+    if demo:
+      let gi = fromUrl.find("&g=")
+      if gi >= 0:
+        for item in fromUrl[gi + 3 .. ^1].split('&')[0].split(','):
+          if item.len < 2: continue
+          let c = parseInt(item[0 .. ^2])
+          let li = puz.letters.find(item[^1])
+          if li < 0 or c notin 0 ..< 36 or b.cells[c] >= 0: continue
+          for k in 0 .. 5:
+            if b.cells.find(li * 6 + k) < 0:
+              b = b.place(li * 6 + k, c)
+              break
     if not saved.isNil:
       let parts = ($saved).split(';')
       let cells = parts[0].split(',')
