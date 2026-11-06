@@ -19,6 +19,8 @@ nb.doc.context["stylesheet"] = %(pageStyle & """
 .howto .k.g0{background:var(--g0)} .howto .k.g1{background:var(--g1)} .howto .k.g2{background:var(--g2)}
 .howto .k.given{border-width:3.5px}
 .howto .w0{color:var(--w0);font-weight:800} .howto .w1{color:var(--w1);font-weight:800} .howto .w2{color:var(--w2);font-weight:800}
+.howto .start{background:var(--card);border:var(--border) solid var(--line);border-radius:14px;padding:10px 14px;line-height:1.45;margin:8px 0 0}
+.howto .start a{color:var(--ink);font-weight:700}
 .howto .note{color:var(--muted);font-size:15px;margin-top:14px}
 .howto ul.cases{list-style:disc;padding-left:1.2em;margin:4px 0;display:block}
 .howto ul.cases li{background:none;border:0;border-radius:0;padding:0;margin:2px 0}
@@ -36,6 +38,9 @@ nbRawHtml: """
 <div class="howto">
 <a class="back" href="index.html">← al gioco</a>
 <h1>Come si gioca</h1>
+<p class="start">Prima volta? <a href="index.html?learn">Guarda come si gioca</a>: un minuto di lezione animata, su un esempio
+tutto suo. Vuoi una mano col primo puzzle? <a href="index.html?tutorial">🎓 Il tutorial</a> lo risolve con te, passo per passo
+(attenzione: spoiler!).</p>
 
 <h2>Le regole</h2>
 <ol>
@@ -43,7 +48,7 @@ nbRawHtml: """
 una volta sola in ogni riga, in ogni colonna e in ogni riquadro.</li>
 <li><b>2 · Tre parole nascoste</b>In alto ci sono tre parole, ognuna con il suo colore:
 <span class="w0">rosso</span>, <span class="w1">verde</span>, <span class="w2">blu</span>.
-Una parola parte dalla casella con il cerchietto del suo colore e si legge una lettera dopo l'altra,
+Una parola parte dalla casella con il quadratino del suo colore e si legge una lettera dopo l'altra,
 passando ogni volta a una casella accanto: su, giù, a destra o a sinistra, mai in diagonale.</li>
 <li><b>3 · Lettere fisse</b>Le lettere che metti tu hanno il bordo sottile, come <span class="k" style="background:var(--g0);color:var(--i0)">A</span>.
 Alcune lettere sono già in griglia quando il puzzle parte, e hanno il bordo più spesso, come <span class="k given" style="background:var(--g4);color:var(--i4)">S</span>:
