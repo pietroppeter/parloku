@@ -47,8 +47,8 @@ let skinsRow = slice(built, """<div class="skins"""", "\n")
 let game = slice(built, """<div class="game">""", """<div class="rules">""")
 let builtinList = slice(built, """<template id="builtin">""", "\n")
 let gameScript = slice(built, "<script>", "</script>") & "</script>"
-let overlay = slice(built, """<div class="sp" id="splash"""", "</script>").replace(
-  """id="splash" hidden""", """id="splash" data-manual hidden""") & "</script>"
+let overlay = slice(built, """<div class="sp" id="splash"""", "<!-- /splash -->").replace(
+  """<div class="sp" id="splash"""", """<div class="sp" id="splash" data-manual""")
 
 nbRawHtml: """
 <p class="kicker">DEVLOG · 03</p>

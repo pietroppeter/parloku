@@ -1931,6 +1931,8 @@ block:
   nbRawHtml: splashHtml(p.letters, sol, p.givens.mapIt(idx(it.pos)), p.clues.mapIt((it.word, it.pos.row, it.pos.col)))
   gameBlocks.add nb.blk
 let splashBlock = nb.blk
+nbJsFromCodeGlobal:
+  import src/splashrt                  # the splash's behaviour, in Nim: it starts by itself when the page has #splash
 
 nbText: """
 That's the game. Puzzles live in [`data/`](https://github.com/pietroppeter/parloku/tree/main/data) as puzzlepaw JSON,
