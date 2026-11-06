@@ -1694,8 +1694,10 @@ nbJsFromCode:
       stage.targetHalf = 36
       stage.centreGrab = false
     if started == 0 and stage.state.moves > 0: started = now()
-    if undoable and not quiet and stage.state.cells != last.cells: endUndoCb()   # a move: no going back to before the restart
-    if stage.state.cells != last.cells:
+    # a move: a letter placed or taken, or a note written or rubbed out (switching the letters' size is not one)
+    let moved = stage.state.cells != last.cells or stage.state.marks != last.marks
+    if undoable and not quiet and moved: endUndoCb()   # no going back to before the restart
+    if moved:
       history.add last
       last = stage.state
     undoBtn.setDisabled(history.len == 0)
