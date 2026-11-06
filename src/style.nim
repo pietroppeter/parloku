@@ -92,7 +92,8 @@ details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:
 .coach{position:fixed;z-index:15;left:0;right:0;top:0;margin:0 auto;width:min(calc(100vw - 24px),400px);box-sizing:border-box;
   background:rgba(255,255,255,.84);-webkit-backdrop-filter:blur(1px);backdrop-filter:blur(1px);color:var(--ink);
   border-radius:30px 24px 32px 22px / 24px 30px 22px 32px;padding:10px 16px 12px;
-  box-shadow:0 6px 24px rgba(0,0,0,.14),0 0 0 1px rgba(0,0,0,.05);transition:top .35s ease}
+  box-shadow:0 6px 24px rgba(0,0,0,.14),0 0 0 1px rgba(0,0,0,.05);transition:top .35s ease;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+.coach.held{transition:none;cursor:grabbing;box-shadow:0 10px 30px rgba(0,0,0,.2),0 0 0 1px rgba(0,0,0,.06)}
 .coach .hd{font:700 11px "JetBrains Mono",monospace;letter-spacing:.1em;color:var(--muted)}
 .coach p{margin:4px 0 8px;font-size:15px;line-height:1.4}
 .coach p b{background:rgba(0,0,0,.07);padding:0 4px;border-radius:4px}

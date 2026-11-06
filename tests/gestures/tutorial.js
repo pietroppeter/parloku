@@ -30,6 +30,15 @@ const os = require('os');
   });
   let bad = 0, worst = 0;
   const used = { start: 0, stretch: 0, sure: 0, show: 0 };
+  // the blob can be dragged away, and stays where it is put
+  { const r0 = await (await p.$('#coach')).boundingBox();
+    await p.mouse.move(r0.x + 30, r0.y + 12); await p.mouse.down();
+    await p.mouse.move(r0.x + 30, 40, { steps: 8 }); await p.mouse.up(); await p.waitForTimeout(200);
+    const r1 = await (await p.$('#coach')).boundingBox();
+    await p.click('#coach [data-act="next"]'); await p.waitForTimeout(500);
+    const r2 = await (await p.$('#coach')).boundingBox();
+    console.log('blob dragged from', Math.round(r0.y), 'to', Math.round(r1.y), '| after next:', Math.round(r2.y));
+    await p.goto(p.url()); await p.waitForTimeout(900); }
   for (let i = 0; i < 4; i++) { const c = await check(); bad += c.covered; worst = Math.max(worst, c.lettersEnd);
     await p.click('#coach [data-act="next"]'); await p.waitForTimeout(500); }
   for (let n = 0; n < 40; n++) {

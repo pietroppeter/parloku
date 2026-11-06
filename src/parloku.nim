@@ -1452,6 +1452,7 @@ nbJsFromCode:
   var guided = true                    # false once the player chose to finish the sudoku alone
   var wordsAck = false                 # the "all words are in" page was seen
   var coachStep: Step
+  var coachMoved = false               # tutorial: the player dragged the blob, so it stays where they put it
   var taughtAt: array[StepKind, int]   # tutorial: the step where each gesture was first explained (-1: not yet)
   proc showCoach()
   proc refresh() =
@@ -1725,7 +1726,7 @@ nbJsFromCode:
   proc overlapArea(a, b: Box): float =
     max(0.0, min(a.x + a.w, b.x + b.w) - max(a.x, b.x)) * max(0.0, min(a.y + a.h, b.y + b.h) - max(a.y, b.y))
   proc placeCoach() =
-    if not coachEl.attr("hidden").isNil: return
+    if not coachEl.attr("hidden").isNil or coachMoved: return
     var must, nice: seq[Box]
     if coachTarget >= 0: must.add svgBox(cellPos(coachTarget), cell / 2)
     for li in coachStacks: must.add svgBox(stackPos(li), 34)
@@ -1756,6 +1757,34 @@ nbJsFromCode:
     coachEl.style.top = cstring(&"{best:.0f}px")
 
   window.addEventListener("resize", proc (ev: Event) = placeCoach())
+
+  # the player can move the blob out of the way: drag it anywhere but its buttons
+  proc onBtn(ev: Event): bool {.importjs: "!!#.target.closest('button')".}
+  proc viewWidth(): float {.importjs: "(window.innerWidth)".}
+  var coachGrab = vec(-1, -1)            # where the finger holds the blob, inside it (-1: not held)
+  coachEl.addEventListener("pointerdown", proc (ev: Event) =
+    if onBtn(ev): return
+    let (x, y, _, _) = rectOf(coachEl)
+    let p = clientXY(ev)
+    coachGrab = vec(p.x - x, p.y - y)
+    coachEl.capture(ev)
+    coachEl.classList.add("held")
+    ev.preventDefault())
+  coachEl.addEventListener("pointermove", proc (ev: Event) =
+    if coachGrab.x < 0: return
+    let (_, _, w, h) = rectOf(coachEl)
+    let p = clientXY(ev)
+    let x = max(0.0, min(viewWidth() - w, p.x - coachGrab.x))
+    let y = max(0.0, min(viewH() - h, p.y - coachGrab.y))
+    coachMoved = true
+    coachEl.style.left = cstring(&"{x:.0f}px")
+    coachEl.style.right = "auto"
+    coachEl.style.margin = "0"
+    coachEl.style.top = cstring(&"{y:.0f}px"))
+  for name in ["pointerup", "pointercancel"]:
+    coachEl.addEventListener(cstring(name), proc (ev: Event) =
+      coachGrab = vec(-1, -1)
+      coachEl.classList.remove("held"))
 
   proc showCoach() =
     coachTint = @[]
@@ -1842,6 +1871,8 @@ nbJsFromCode:
     guided = true
     wordsAck = false
     for k in StepKind: taughtAt[k] = -1
+    coachMoved = false
+    for k in ["left", "right", "margin"]: coachEl.style.removeProperty(cstring(k))
     code = games[0][0]
     lsSet(storeKey(), "")
     load(code)
