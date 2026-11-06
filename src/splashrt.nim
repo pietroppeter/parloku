@@ -512,9 +512,9 @@ proc play() {.async.} =
   resizing = nil                       # the board is done: it folds away, so the three choices fit on any phone
   stage.classList.add("gone")
   say(T("Your turn! Play the first puzzle on your own, let the tutorial guide you (it shows the solution), or try the gestures in istruzioni.",
-        "Tocca a te! Gioca da solo il primo puzzle, fatti guidare dal tutorial (ti mostra la soluzione) o prova i gesti nelle istruzioni."), 6)
+        "Tocca a te! Gioca il primo puzzle senza aiuto, fatti guidare dal tutorial (ti mostra la soluzione) o prova i gesti nelle istruzioni."), 6)
   let me = run
-  let how = await ask(@[(T("▸ Play on my own", "▸ Gioco da solo"), "play", true),
+  let how = await ask(@[(T("▸ Play on my own", "▸ Gioco e basta"), "play", true),
                         (T("🎓 Guide me (spoilers)", "🎓 Guidami (spoiler!)"), "guide", false),
                         (T("📖 Istruzioni", "📖 Istruzioni"), "howto", false)], column = true)
   if me != run: return

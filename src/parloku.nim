@@ -1519,6 +1519,29 @@ nbJsFromCode:
     if demo: return
     lsSet(storeKey(), cstring(stage.state.cells.join(",") & ";" & $stage.state.moves & ";" & $started & ";" & $wonAt))
 
+  # ---- the party when a puzzle is solved: the letters on the board dance, then the banner pops up. Like the marbles,
+  # an SVG transform set every frame on each tile's drawing, so it looks the same in every browser
+  type Party = enum pWave, pSnakes, pLetters
+  var party = pSnakes                  # picked at random on every win
+  var cheer = "Evviva! 🥳"             # not "Bravo!": the player may be a girl or a boy
+  var partyT0 = -1.0
+  var winCell = 14                     # the cell of the last letter placed: the ripples start there
+  var partyRun = 0                     # a new party stops the one before
+  var dancers: seq[(Element, int, int)]   # each tile on the board: its drawing, its cell, its letter
+  var wordOf, letterAt: array[36, int]   # the word a cell belongs to (-1: none) and its place in that word
+  proc kids(e: Element): seq[Element] {.importjs: "Array.from(#.children)".}
+  proc hop(e, start, dur: float): float =
+    let u = (e - start) / dur
+    result = 0.0
+    if u > 0 and u < 1: result = sin(PI * u)
+  proc partyLen(p: Party): float =
+    case p
+    of pWave: 3100.0
+    of pSnakes: 3200.0
+    of pLetters: 2900.0
+  proc bannerHtml(moves: int): cstring =
+    cstring(&"<b>{cheer}</b><span>{moves} " & L("moves", "mosse") & &" · {clock()}</span>")
+
   proc celebrate() =
     var bits = ""
     for k in 0 ..< 60:
@@ -1530,6 +1553,67 @@ nbJsFromCode:
       let d = rnd() * 0.6
       bits.add &"""<i style="--x:{x}%;--dx:{dx}px;--r:{r}deg;--t:{t:.2f}s;--d:{d:.2f}s;background:var(--g{li});color:var(--i{li})">{puz.letters[li]}</i>"""
     confetti.innerHTML = cstring(bits)
+    host.classList.remove("cheer")
+    dancers = @[]
+    for c in 0 ..< 36:
+      let id = stage.state.cells[c]
+      if id < 0: continue
+      let n = host.querySelector(cstring(&"""[data-key="t{id}"]"""))
+      if not n.isNil: dancers.add (n, c, id div 6)
+    let paths = stage.state.grid.outlines(puz.clues)
+    for c in 0 ..< 36: wordOf[c] = -1
+    for i, path in paths:
+      for k, c in path:
+        wordOf[c] = i
+        letterAt[c] = k
+    party = Party(int(rnd() * 3) mod 3)
+    for (k, name) in [(pWave, "wave"), (pSnakes, "snakes"), (pLetters, "letters")]:   # ?party=wave: always that one
+      if fromUrl.contains("party=" & name): party = k
+    inc partyRun
+    let me = partyRun
+    partyT0 = -1
+    proc dance(t: float) =
+      if me != partyRun: return
+      if partyT0 < 0: partyT0 = t
+      let e = t - partyT0
+      let done = e > partyLen(party) or lessMotion()
+      for (n, c, li) in dancers:
+        var dx, dy, rot = 0.0
+        var s = 1.0
+        let r = float(c div 6)
+        let col = float(c mod 6)
+        case party
+        of pWave:                          # ripples spreading from the last letter placed, like a stone in a pond
+          let d = hypot(r - float(winCell div 6), col - float(winCell mod 6))   # in cells
+          let behind = e / 1000 * 3.6 - d   # cells behind the front: the front moves 3.6 cells a second
+          if behind > 0 and behind < 4:     # three crests, two cells apart, fading
+            let h = sin(behind / 2 * 2 * PI) * (1 - behind / 4) * (1 - d / 12)
+            dy = -20 * h
+            s = 1 + 0.12 * h
+        of pSnakes:                        # each word in turn, letter after letter like a snake; then everyone
+          var h = hop(e, 2400 + (r + col) * 30, 450) * 0.6
+          if wordOf[c] >= 0:
+            let h1 = hop(e, float(wordOf[c]) * 750 + float(letterAt[c]) * 110, 380)
+            h = max(h, h1)
+            var turn = 12.0
+            if letterAt[c] mod 2 == 1: turn = -12.0
+            rot = turn * h1
+          dy = -26 * h
+          s = 1 + 0.2 * h
+        of pLetters:                       # all six copies of a letter jump and spin together, one letter after another
+          let start = float(li) * 360
+          let h = hop(e, start, 440)
+          if h > 0: rot = 360 * (e - start) / 440
+          let h2 = hop(e, 6 * 360 + 150, 500)
+          dy = -24 * h - 16 * h2
+          s = 1 + 0.15 * h + 0.1 * h2
+        for k in n.kids:
+          if done: k.unset("transform")
+          else: k.setAttr("transform", cstring(&"translate({dx:.1f} {dy:.1f}) rotate({rot:.1f}) scale({s:.3f})"))
+      if not done: nextFrame(dance)
+    nextFrame(dance)
+    discard setTimer(proc () =
+      if me == partyRun: host.classList.add("cheer"), int(partyLen(party) * 0.8))
 
   let coachEl = document.getElementById("coach")
   let coachHd = document.getElementById("coach-hd")
@@ -1551,10 +1635,12 @@ nbJsFromCode:
       renderPicker()
     if won and not celebrated:
       celebrated = true
-      banner.innerHTML = cstring(&"<b>Bravo!</b><span>{stage.state.moves} " & L("moves", "mosse") & &" · {clock()}</span>")
+      banner.innerHTML = bannerHtml(stage.state.moves)
       celebrate()
     if won: host.classList.add("won")
-    else: host.classList.remove("won")
+    else:
+      host.classList.remove("won")
+      host.classList.remove("cheer")
     showClues()
     showCoach()
 
@@ -1576,6 +1662,8 @@ nbJsFromCode:
     if started == 0 and stage.state.moves > 0: started = now()
     if undoable and not quiet and stage.state.cells != last.cells: endUndoCb()   # a move: no going back to before the restart
     if stage.state.cells != last.cells:   # a move of the player's (undo and redo set `last` first)
+      for c in 0 ..< 36:
+        if stage.state.cells[c] >= 0 and last.cells[c] < 0: winCell = c
       history.add last
       future = @[]
       last = stage.state
@@ -1617,7 +1705,8 @@ nbJsFromCode:
         wonAt = parseFloat(parts[3])
     celebrated = solved(puz, b.grid)     # don't throw confetti again on reload
     confetti.innerHTML = ""
-    banner.innerHTML = cstring(&"<b>Bravo!</b><span>{b.moves} " & L("moves", "mosse") & &" · {clock()}</span>")
+    banner.innerHTML = bannerHtml(b.moves)
+    if celebrated: host.classList.add("cheer")   # solved before: the banner at once, no party
     renderPicker()
     history = @[]
     future = @[]
@@ -1643,7 +1732,6 @@ nbJsFromCode:
   proc slideIn(e: Element, dx: float, delay: int) {.importjs:
     "#.animate([{transform: 'translateX(' + # + 'px)', opacity: 0}, {transform: 'translateX(0px)', opacity: 1}], {duration: 300, delay: #, easing: 'ease-out', fill: 'both'})".}
   proc stopAnims(e: Element) {.importjs: "#.getAnimations().forEach(a => a.cancel())".}
-  proc kids(e: Element): seq[Element] {.importjs: "Array.from(#.children)".}
   proc clueEls(): seq[Element] {.importjs: "Array.from(document.querySelectorAll('.clues .clue'))".}
   proc viewW(): float {.importjs: "(window.innerWidth)".}
   proc lessMotion2(): bool {.importjs: "matchMedia('(prefers-reduced-motion: reduce)').matches".}
@@ -1820,7 +1908,7 @@ nbJsFromCode:
   proc introText(): string =
     case intro
     of 0: L("Welcome! <b>Spoiler warning:</b> this tutorial solves the first puzzle with you, step by step. To try it on your own first, tap <i>exit</i>. Fill the grid with the six letters <b>A I L P S T</b>, pulling copies out of the six letters below the board.",
-            "Benvenuto! <b>Attenzione, spoiler:</b> questo tutorial risolve con te il primo puzzle, passo per passo. Se vuoi provarci prima da solo, tocca <i>esci</i>. Riempi la griglia con le sei lettere <b>A I L P S T</b>, tirando fuori delle copie dalle sei lettere sotto la griglia.")
+            "Ciao! <b>Attenzione, spoiler:</b> questo tutorial risolve con te il primo puzzle, passo per passo. Se vuoi provarci prima senza aiuto, tocca <i>esci</i>. Riempi la griglia con le sei lettere <b>A I L P S T</b>, tirando fuori delle copie dalle sei lettere sotto la griglia.")
     of 1: L("As in sudoku, each letter appears once in every row, every column and every 2×3 box. One of each is highlighted.",
             "Come nel sudoku, ogni lettera compare una volta in ogni riga, in ogni colonna e in ogni riquadro 2×3. Ne vedi evidenziato uno per tipo.")
     of 2: L("The three words above are the clues. Each one starts in the cell ringed in its colour and goes one step at a time: up, down, left or right.",
@@ -1927,16 +2015,16 @@ nbJsFromCode:
       if intro == 1: coachTint = units[2] & units[10] & units[12]
       if intro == 2: coachTint = puz.clues.mapIt(idx(it.pos))
     elif solved(puz, g):
-      text = L("<b>Bravo, solved!</b> Now try puzzle 2, AMICA · GIOCO · MAGIA, on your own: the same method works.",
-               "<b>Bravo, risolto!</b> Ora prova da solo il puzzle 2, AMICA · GIOCO · MAGIA: il metodo è lo stesso.")
+      text = L("<b>Solved!</b> Now try puzzle 2, AMICA · GIOCO · MAGIA, on your own: the same method works.",
+               "<b>Evviva, risolto!</b> Ora prova tu il puzzle 2, AMICA · GIOCO · MAGIA, senza aiuto: il metodo è lo stesso.")
       acts = @[("exit", L("close", "chiudi"))]
     else:
       let s = logicalStep(puz, g, solution)
       coachStep = s
       if s.kind in {skNaked, skHidden, skReveal} and not wordsAck:
         text = L("<b>All three words are in!</b> The rest is plain sudoku: from now on, every move is a cell with only one letter left. I can keep guiding you, or you can finish on your own.",
-                 "<b>Le tre parole sono al loro posto!</b> Il resto è sudoku puro: da qui in poi ogni mossa è una casella con una sola lettera possibile. Posso continuare a guidarti, oppure puoi finire da solo.")
-        acts = @[("guide", L("keep guiding me", "continua a guidarmi")), ("alone", L("on my own", "faccio da solo"))]
+                 "<b>Le tre parole sono al loro posto!</b> Il resto è sudoku puro: da qui in poi ogni mossa è una casella con una sola lettera possibile. Posso continuare a guidarti, oppure puoi finire tu.")
+        acts = @[("guide", L("keep guiding me", "continua a guidarmi")), ("alone", L("on my own", "continuo io"))]
       elif not guided and s.kind != skFix:
         coachEl.setHidden(true)
       else:

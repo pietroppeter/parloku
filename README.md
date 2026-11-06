@@ -41,6 +41,7 @@ Living documents, kept up to date as the game changes (a new one gets a row in `
 - [Specs](https://pietroppeter.github.io/parloku/specs/): how Parloku behaves today, rebuilt from `openspec/` on every push.
 - [How it works](https://pietroppeter.github.io/parloku/devlog/how-it-works/): the game's own notebook. The model, the rules as code, a logical solver, the drag spec and the browser runtime.
 - [Istruzioni](https://pietroppeter.github.io/parloku/istruzioni.html): how to play, with a practice board for each gesture.
+- [Le feste](https://pietroppeter.github.io/parloku/garden/feste/): the dances the letters do when a puzzle is solved, each on a board to finish (a garden page).
 - [Builder](https://pietroppeter.github.io/parloku/builder.html) and its [how-to](https://pietroppeter.github.io/parloku/builder-howto.html).
 
 Posts, dated and not updated afterwards (the index reads them from their sources, newest first):
