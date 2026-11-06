@@ -175,6 +175,7 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .wo,.wl,.wm{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .wf.w0{fill:var(--w0)} .wf.w1{fill:var(--w1)} .wf.w2{fill:var(--w2)} .wo.w0,.wl.w0{stroke:var(--w0)} .wo.w1,.wl.w1{stroke:var(--w1)} .wo.w2,.wl.w2{stroke:var(--w2)}
 .wo,.wl{transition:stroke-width .2s}
+.wbase{opacity:.2} .eye .white{fill:#fff} .eye .pupil{fill:#222}
 /* tiles that divide */
 .neck{stroke:var(--tstroke);stroke-width:var(--tsw)}
 .necks,.fx{pointer-events:none}

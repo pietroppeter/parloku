@@ -50,7 +50,7 @@ nbRawHtml: """
 </div>
 <div class="rules">
   <div data-it="<b>01 · SUDOKU</b>Ognuna delle sei lettere compare una volta in ogni riga, in ogni colonna e in ogni riquadro 2×3."><b>01 · SUDOKU</b>Each of the six letters appears once in every row, every column and every 2×3 box.</div>
-  <div data-it="<b>02 · PAROLE</b>Ogni parola parte dalla casella con il suo cerchio colorato e si scrive un passo alla volta: in su, in giù, a destra o a sinistra. Il contorno cresce con le lettere."><b>02 · WORDS</b>Each word starts in the cell ringed in its colour and is spelled one step at a time, up, down, left or right. Its outline grows with the letters.</div>
+  <div data-it="<b>02 · PAROLE</b>Ogni parola parte dalla casella velata del suo colore e si scrive un passo alla volta: in su, in giù, a destra o a sinistra. Il contorno cresce con le lettere, e la testa ha due occhietti che guardano dove va."><b>02 · WORDS</b>Each word starts in the cell tinted in its colour and is spelled one step at a time, up, down, left or right. Its outline grows with the letters, and its head has two eyes looking the way it goes.</div>
   <div data-it="<b>03 · TESSERE</b>Sotto la griglia c'è una tessera per lettera. Tirala e si divide: la copia va su una casella. Riporta una tessera alla sua lettera e si riuniscono."><b>03 · TILES</b>Below the board is one tile per letter. Pull it and it divides: the copy goes on a cell. Bring a tile back to its letter and they merge.</div>
 </div>
 <div class="skins" id="skins" hidden></div>
@@ -737,6 +737,11 @@ nbCodeAnd(nbJsFromCode):
     for li in coachStacks:
       let s = stackPos(li)
       result.add &"""<rect class="glow pulse" x="{s.x - 38}" y="{s.y - 38}" width="76" height="76" rx="18"/>"""
+    # under the tiles, each word's start cell holds a soft tint of its colour: where the word starts
+    let starts = g.outlines(puz.clues)
+    for i, clue in puz.clues:
+      let p0 = cellPos(if starts[i].len > 0: starts[i][0] else: idx(clue.pos))
+      result.add &"""<rect class="wf w{i mod 3} wbase" x="{p0.x - 32:.1f}" y="{p0.y - 32:.1f}" width="64" height="64" rx="10"/>"""
     # a letter with no tiles left shows an empty ring and a tick
     var left: array[6, int]
     for id in 0 ..< 36:
@@ -810,6 +815,15 @@ nbCodeAnd(nbJsFromCode):
           squares(wOut, corner, "#fff") & &"""<path d="{fillOut}" fill="#fff"/>""" &
           squares(wIn, corner - t, "#000") & &"""<path d="{fillIn}" fill="#000"/></mask>""" &
           &"""<rect class="wf {ink}" x="0" y="0" width="600" height="650" mask="url(#{m})"/>"""
+      if path.len >= 2:                    # the head has two eyes on its front edge, looking the way the word goes
+        let (h, q) = (cellPos(path[^1]), cellPos(path[^2]))
+        let (ux, uy) = ((h.x - q.x) / cell, (h.y - q.y) / cell)
+        let (nx, ny) = (-uy, ux)
+        let e = rr + t / 2                 # on the middle of the outline
+        for sgn in [-1.0, 1.0]:
+          let (ex, ey) = (h.x + ux * e + nx * 13 * sgn, h.y + uy * e + ny * 13 * sgn)
+          result.add &"""<g class="eye"><circle class="wf {ink}" cx="{ex:.1f}" cy="{ey:.1f}" r="8.5"/>""" &
+            &"""<circle class="white" cx="{ex:.1f}" cy="{ey:.1f}" r="6"/><circle class="pupil" cx="{ex + ux * 2.2:.1f}" cy="{ey + uy * 2.2:.1f}" r="3"/></g>"""
       if wiggleClue == i: result.add "</g>"
     if coachTarget >= 0:
       let p = cellPos(coachTarget)
