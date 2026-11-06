@@ -1170,6 +1170,7 @@ nbJsFromCode:
   var snakeKey = ""
   var snakeStepped = false
   var snakeDown = vec(0, 0)
+  var snakeBack = false                  # the finger is on the cell before the head: a back step, not done yet
   proc toBoard(ev: Event): Vec =
     let (l, t0, rw, rh) = rectOf(stage.svg)
     let c = clientXY(ev)
@@ -1197,23 +1198,41 @@ nbJsFromCode:
     if snakeWord < 0: return
     snakeKey = $k
     snakeStepped = false
+    snakeBack = false
     snakeDown = toBoard(ev))
+  proc backStep() =
+    ## take the head's letter back below: the word is one letter shorter
+    let head = snakePath[^1]
+    discard snakePath.pop
+    snakeBack = false
+    snakeStepped = true
+    stage.setState(stage.state.home(stage.state.cells[head]))
+  proc growsTo(c: int): bool =
+    ## can the word's next letter go on c, next to its head?
+    let head = snakePath[^1]
+    c >= 0 and stage.state.cells[c] < 0 and not isGiven(c) and snakePath.len < puz.clues[snakeWord].word.len and
+      c notin othersStarts(puz.clues, snakeWord) and   # a word never runs over another word's start cell
+      abs(c div 6 - head div 6) + abs(c mod 6 - head mod 6) == 1
   stage.svg.addEventListener("pointermove", proc (ev: Event) =
     if snakeWord < 0: return
     let p = toBoard(ev)
-    let head = snakePath[^1]
     let c = cellNear(p)
-    var b = stage.state
-    let word = puz.clues[snakeWord].word
+    if snakeBack and c >= 0 and c != snakePath[^2]:
+      # the finger was on the cell before the head, and went on: backwards or a turn takes the head off,
+      # anywhere else it was only on its way (Pietro, SERATA): no letter is taken off
+      let before = snakePath[^1]
+      snakePath.setLen(snakePath.len - 1)
+      let turn = (snakePath.len >= 2 and c == snakePath[^2]) or (c != before and growsTo(c))
+      snakePath.add before
+      if turn: backStep()
+      else: snakeBack = false
+    let head = snakePath[^1]
     if c >= 0 and snakePath.len >= 2 and c == snakePath[^2] and not isGiven(head):
-      b = b.home(b.cells[head])          # back: the head letter returns below
-      discard snakePath.pop
-      snakeStepped = true
-      stage.setState(b)
-    elif c >= 0 and b.cells[c] < 0 and not isGiven(c) and snakePath.len < word.len and
-        c notin othersStarts(puz.clues, snakeWord) and   # a word never runs over another word's start cell
-        abs(c div 6 - head div 6) + abs(c mod 6 - head mod 6) == 1:
+      snakeBack = true                   # back onto the cell before: the head goes below if the drag ends or goes on back
+    elif growsTo(c):
+      let word = puz.clues[snakeWord].word
       let li = puz.letters.find(word[snakePath.len])
+      let b = stage.state
       for j in 0 .. 5:
         if b.cells.find(li * 6 + j) < 0:
           snakePath.add c
@@ -1228,10 +1247,17 @@ nbJsFromCode:
       stage.draw(stage.state))
   let snakeUp = proc (ev: Event) =
     if snakeWord < 0: return
+    let p = toBoard(ev)
+    if snakeBack:
+      let (col, row) = (int(floor((p.x - bx) / cell)), int(floor((p.y - by) / cell)))
+      if col in 0 .. 5 and row in 0 .. 5 and row * 6 + col == snakePath[^2]:
+        backStep()                       # let go on the cell before: the head goes below
+        snakeWord = -1
+        return
+      snakeBack = false
     let w = snakeWord
     snakeWord = -1
     let head = snakePath[^1]
-    let p = toBoard(ev)
     if not snakeStepped and norm(p - snakeDown) > 6 and not isGiven(head):
       let (col, row) = (int(floor((p.x - bx) / cell)), int(floor((p.y - by) / cell)))
       let c = row * 6 + col
