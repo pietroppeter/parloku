@@ -27,6 +27,17 @@ nb.doc.context["stylesheet"] = %(pageStyle & """
 .howto .do{display:block;margin-top:8px;font-weight:600}
 .howto .try{margin:10px -4px 2px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .howto .try iframe{width:min(100%,330px);height:600px;border:var(--border) solid var(--line);border-radius:14px;background:var(--bg)}
+.howto .toc{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.howto .toc a{font:700 15px var(--font-body);border:var(--border) solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 14px;text-decoration:none}
+.howto h2{scroll-margin-top:12px}
+/* the gestures: a gallery, one card at a time, swiped from right to left */
+.howto ul.gallery{flex-direction:row;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin:0 -16px;padding:4px 16px 10px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.howto ul.gallery>li{flex:0 0 86%;scroll-snap-align:center;box-sizing:border-box}
+.howto .swipe{color:var(--muted);font-size:14px;margin:6px 0}
+.howto .share{font-size:22px;line-height:1.2;letter-spacing:1px;white-space:pre-line;background:var(--card);border:var(--border) solid var(--line);
+  border-radius:14px;padding:10px 14px;margin:8px 0}
+.howto .share small{display:block;font-size:14px;letter-spacing:0;color:var(--muted)}
 .howto .again{font:700 14px var(--font-body);border:var(--border) solid var(--ink);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 14px;cursor:pointer}
 </style>""")
 nb.doc.context["highlight"] = %""
@@ -41,8 +52,9 @@ nbRawHtml: """
 <p class="start">Prima volta? <a href="index.html?learn">Guarda come si gioca</a>: un minuto di lezione animata, su un esempio
 tutto suo. Vuoi una mano col primo puzzle? <a href="index.html?tutorial">🎓 Il tutorial</a> lo risolve con te, passo per passo
 (attenzione: spoiler!).</p>
+<p class="toc"><a href="#regole">Le regole</a><a href="#gesti">I gesti</a><a href="#condividere">Condividere</a></p>
 
-<h2>Le regole</h2>
+<h2 id="regole">Le regole</h2>
 <ol>
 <li><b>1 · Un sudoku di lettere</b>La griglia è 6×6, divisa in sei riquadri da 2×3. Ci sono sei lettere: ognuna va
 una volta sola in ogni riga, in ogni colonna e in ogni riquadro.</li>
@@ -57,10 +69,11 @@ quelle restano dove sono (se le trascini, ne parte una copia).</li>
 <p class="note">C'è una sola soluzione, e ci si arriva ragionando: non serve tirare a indovinare.
 Quando la griglia è giusta e le tre parole ci sono tutte, hai vinto.</p>
 
-<h2>I gesti</h2>
+<h2 id="gesti">I gesti</h2>
 <p class="note">Sotto ogni gesto c'è una piccola griglia vera: provalo lì. Il primo puzzle è sempre ITALIA · PASTA · ALPI, e qui
 non si salva niente. <i>↺ da capo</i> la rimette com'era.</p>
-<ul>
+<p class="swipe">Scorri verso sinistra per il gesto dopo →</p>
+<ul class="gallery">
 <li><b>Mettere una lettera</b>Trascina una delle sei lettere in basso su una casella vuota. Le lettere già in griglia non vengono mai coperte.
 <span class="do">Prova: porta la I sulla casella con il quadratino rosso, in alto a sinistra.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI" title="Mettere una lettera"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Copiare una lettera</b>Trascina una lettera della griglia: ne parte una copia, che puoi mettere su un'altra casella.
@@ -90,6 +103,30 @@ Il gioco ti dice solo quando due lettere si scontrano, non se una lettera è giu
 (quelli già risolti hanno ✓) e <i>rifaccio</i> per ricominciare. Subito dopo, per qualche secondo, puoi ancora
 <i>annullare</i> il rifaccio.</li>
 </ul>
+
+<h2 id="condividere">Condividere una partita</h2>
+<p>Quando risolvi un puzzle, sotto <i>Evviva! 🥳</i> c'è <i>📤 condividi</i>: copia (o manda, sul telefono) un messaggio
+come questo, che racconta come hai giocato senza dire dove vanno le lettere.</p>
+<p class="share">Parloku 1 🥳🐍 · 37 mosse · 5:55
+🔴🟢🔵🟢🟢🟢
+🟢🔴🔴⚪⚫🔴
+🔴🔴🔵🔵🔵⚪
+⚪⚪⚪⚪⚪⚪
+⚪⚫⚪⚪⚪⚪
+⚪⚪⚪⚪⚪⚪
+⚪<small>pietroppeter.github.io/parloku/?p=1</small></p>
+<ul>
+<li><b>Una pallina per mossa</b>Ogni lettera che metti sulla griglia, o che rimandi in basso, è una mossa: sei palline per riga,
+come una riga della griglia.</li>
+<li><b>🔴 🟢 🔵 le parole</b>Ogni lettera giusta di una parola prende il colore della parola: ITALIA fa sei palline
+<span class="w0">rosse</span>, PASTA cinque <span class="w1">verdi</span>, ALPI quattro <span class="w2">blu</span>.
+Conta la lettera che resta: se scrivi una parola nel posto sbagliato e poi la togli, quelle mosse sono ⚪.</li>
+<li><b>⚪ ⚫ il resto</b>⚪ è ogni altra lettera messa, ⚫ una lettera rimandata in basso (anche con ↶ annulla).
+Oltre le 48 mosse si vedono le prime sette righe, poi … e quante ne mancano.</li>
+<li><b>🥳 e la festa</b>Accanto a 🥳 c'è la festa che hai visto: 🌊 le onde, 🐍 i serpenti, 🪀 le lettere.
+Il numero dopo Parloku è il puzzle, e ⭐ vuol dire nessuna lettera mossa due volte: tante mosse quante caselle vuote.</li>
+</ul>
+<p class="note">Chi non ha giocato vede solo palline. Chi ha giocato capisce con quale parola hai cominciato, quanto sudoku ti restava e dove hai sbagliato.</p>
 <p><a class="back" href="index.html">← al gioco</a></p>
 </div>
 """
