@@ -20,6 +20,14 @@ Notes for coding agents (and people) changing this repository. How the game beha
   step as it happened, and is not updated when the specs change. A post that shows scenario animations keeps frozen
   runs next to its source (as `src/devlog_openspec/before.json` and `after.json`) instead of replaying the current game.
 
+- A link can show only part of the spec viewer: `specs/?change=<name>` for open changes, `specs/?spec=<name>` for
+  specs (comma-separated, repeatable, `all`, `name*` for a prefix; the same after `#`, as `specs/#change=<name>`, where
+  a link drops its query). Give Pietro such a link, not the whole page, when a change is under review. The filter runs
+  in the browser, so it works when you open the page in Playwright; a fetch tool that does not run JavaScript gets the
+  whole page. To read one spec or change, read its markdown in `openspec/` (or
+  `https://raw.githubusercontent.com/pietroppeter/parloku/<branch>/openspec/...`). The `way-of-working` spec has the
+  rules and the page's "Links to a part of this page" has examples.
+
 ## Previews and PRs
 
 - Show Pietro a published preview (an artifact) before asking to merge; he reviews on his phone.
