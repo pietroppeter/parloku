@@ -35,17 +35,18 @@ const os = require('os');
   console.log('restart then 8.5s: button', await reset());
   await p.mouse.click(6, 30); await p.waitForTimeout(300);
   if (!(await p.$eval('body', b => b.classList.contains('chrome')))) { await p.mouse.click(6, 30); await p.waitForTimeout(300); }
-  await p.click('#again'); await p.waitForTimeout(300);
-  console.log('list (instead of the buttons):', await p.$$eval('#picker .btn', xs => xs.map(x => x.textContent)), '| buttons shown:', await p.$$eval('.picker > .btn', xs => xs.filter(x => getComputedStyle(x).display !== 'none').length));
+  await p.click('#again'); await p.waitForTimeout(1000);
+  console.log('list (the buttons gone up):', await p.$$eval('#games .row', xs => xs.map(x => x.textContent)), '| buttons shown:', await p.$$eval('.picker > .btn', xs => xs.filter(x => getComputedStyle(x).display !== 'none').length));
   await p.screenshot({ path: os.tmpdir() + '/again.png' });
   // solve puzzle 1 through the page's own solution, then the list ticks it
   await p.evaluate(() => localStorage.setItem('parloku:solved', 'AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI'));
   await p.reload(); await p.waitForTimeout(800);
   await p.mouse.click(6, 30); await p.waitForTimeout(300);
-  await p.click('#again'); await p.waitForTimeout(300);
-  console.log('list with puzzle 1 solved:', await p.$$eval('#picker .btn', xs => xs.map(x => x.textContent)));
+  await p.click('#again'); await p.waitForTimeout(1000);
+  console.log('list with puzzle 1 solved:', await p.$$eval('#games .row', xs => xs.map(x => x.textContent)));
   await p.screenshot({ path: os.tmpdir() + '/again-solved.png' });
-  await closeMenu(); await p.waitForTimeout(400); await p.mouse.click(6, 30); await p.waitForTimeout(500);
+  await p.mouse.click(195, 40); await p.waitForTimeout(1000);   // a tap beside the rows closes the list
+  await p.mouse.click(6, 30); await p.waitForTimeout(500);
   await p.click('#howto'); await p.waitForTimeout(500);
   console.log('istruzioni:', await p.title());
   console.log('errors', errs);

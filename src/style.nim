@@ -227,13 +227,20 @@ body.chrome .undos{display:flex;gap:10px;position:fixed;z-index:20;top:calc(var(
 .undos .btn:disabled{opacity:.3;box-shadow:none}
 .undos .btn:not(:disabled):active{transform:translateY(2px);box-shadow:none}
 body.focus .picker .menu-only,body.chrome .picker .menu-only{display:inline-flex;align-items:center;text-decoration:none;color:inherit}
-body.focus .picker #picker,body.chrome .picker #picker{display:none}
-body.focus .picker.listing,body.chrome .picker.listing{justify-content:flex-start}
-body.focus .picker.listing>:not(#picker),body.chrome .picker.listing>:not(#picker){display:none}
-body.focus .picker.listing #picker,body.chrome .picker.listing #picker{display:contents}
-#picker .btn{white-space:nowrap;display:inline-flex;gap:6px;align-items:center}
-#picker .ck{color:var(--w1);font-weight:800}
-#picker .ck:empty{display:none}
+/* ancora!: the list of puzzles rises from the bottom while the words and the grid are off to the sides */
+.games{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;
+  margin:0 auto;max-width:520px;padding:16px 16px calc(24px + env(safe-area-inset-bottom));box-sizing:border-box;overflow-y:auto}
+.games .row{display:flex;align-items:center;gap:12px;width:100%;padding:9px 14px;border:var(--border) solid var(--ink);
+  border-radius:calc(var(--radius) + 4px);background:var(--card);color:var(--ink);font:700 16px var(--font-body);
+  letter-spacing:.04em;text-align:left;cursor:pointer;box-shadow:0 2px 0 var(--ink)}
+.games .row:active{transform:translateY(2px);box-shadow:none}
+.games .row.on{background:var(--accent,var(--soft))}
+.games .n{flex:none;width:1.6em;text-align:right;font-weight:800;color:var(--muted)}
+.games .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.games .box{flex:none;width:26px;height:26px;display:grid;place-items:center;border:2px solid var(--ink);border-radius:7px;
+  background:var(--card);color:var(--w1);font-weight:900;font-size:18px;line-height:1}
+.games .row.done .box{border-color:var(--w1)}
+html.listing,html.listing body{overflow:hidden}
 @media (max-width:400px){body.chrome .picker{gap:6px;padding-left:8px;padding-right:8px} body.chrome .picker .menu-only{padding:6px 11px;font-size:13px}}
 @media (prefers-reduced-motion: reduce){.ripple{animation:none;opacity:0}}
 .machinery-slot{margin:10px 0}
