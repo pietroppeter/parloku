@@ -47,7 +47,8 @@ const pageStyle* = """
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 :root{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
-html{background:var(--bg)}
+html{background:var(--bg);touch-action:manipulation}   /* a quick second tap is a tap, never a zoom (iPhone Safari); pinch zoom stays */
+button,.btn,a{touch-action:manipulation}
 body{margin:0 auto;max-width:760px;padding:0 16px 60px;color:var(--ink);font:17px/1.6 var(--font-body);background:var(--bg);
   transition:background .3s}
 header,footer .nb-box{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);padding:12px 0}
@@ -174,6 +175,7 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .wo,.wl,.wm{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .wf.w0{fill:var(--w0)} .wf.w1{fill:var(--w1)} .wf.w2{fill:var(--w2)} .wo.w0,.wl.w0{stroke:var(--w0)} .wo.w1,.wl.w1{stroke:var(--w1)} .wo.w2,.wl.w2{stroke:var(--w2)}
 .wo,.wl{transition:stroke-width .2s}
+.wbase{opacity:.2} .eye .white{fill:#fff} .eye .pupil{fill:#222}
 /* tiles that divide */
 .neck{stroke:var(--tstroke);stroke-width:var(--tsw)}
 .necks,.fx{pointer-events:none}
@@ -244,12 +246,12 @@ body.focus .picker.listing #picker,body.chrome .picker.listing #picker{display:c
   .langs .btn{min-height:40px;padding:6px 12px}
   .skins button{min-height:40px}
 }
-.banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;
+.banner{position:absolute;left:50%;top:87%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;
   background:var(--card);color:var(--ink);border-radius:var(--radius);padding:14px 28px;text-align:center;border:3px solid var(--ink);
   transition:all .45s cubic-bezier(.2,1.4,.4,1);white-space:nowrap}
 .banner b{display:block;font:700 42px var(--font-head)}
 .banner span{font:600 13px "JetBrains Mono",monospace;color:var(--muted)}
-.stage.won .banner{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.stage.won.cheer .banner{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .confetti i{position:absolute;left:var(--x);top:-30px;width:20px;height:20px;border-radius:50%;
   font:700 11px/20px var(--font-glyph);text-align:center;font-style:normal;
