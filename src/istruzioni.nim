@@ -114,7 +114,7 @@ come questo, che racconta come hai giocato senza dire dove vanno le lettere.</p>
 ⚪⚪⚪⚪⚪⚪
 ⚪⚫⚪⚪⚪⚪
 ⚪⚪⚪⚪⚪⚪
-⚪<small>pietroppeter.github.io/parloku/?p=1</small></p>
+⚪<small>parloku.pietroppeter.xyz/?p=1</small></p>
 <ul>
 <li><b>Una pallina per mossa</b>Ogni lettera che metti sulla griglia, o che rimandi in basso, è una mossa: sei palline per riga,
 come una riga della griglia.</li>

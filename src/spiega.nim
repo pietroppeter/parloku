@@ -120,7 +120,7 @@ nbJsFromCode:
     moves.add &"{follow} segui la parola ({look} guardando avanti)"
     moves.add &"{hidden} unico posto"
     if other > 0: moves.add &"{other} altre mosse"
-    let play = &"""<a href="https://pietroppeter.github.io/parloku/?p={code}">gioca</a>"""
+    let play = &"""<a href="./?p={code}">gioca</a>"""
     var sum: string
     if r.count > 1:
       sum = &"""<div class="sum stuck">Attenzione: questo puzzle ha più di una soluzione. Il risolutore si ferma dove serve una scelta. · {play}</div>"""
