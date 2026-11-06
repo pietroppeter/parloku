@@ -2,7 +2,7 @@
 
 Pietro, 6 November 2026 (project thread "Add new puzzles to Parloku", PR #24): puzzles now come from more than one
 hand. Pietro makes them in the builder, and Claude proposes some for him to playtest (ESTATE · MARE · SERATA,
-MONTE · NEVE · VENTO and LOGICA · GIOCA · CALCOLI are the first ones he kept). Each puzzle file should say who made it and when.
+MONTE · NEVE · VENTO, LOGICA · GIOCA · CALCOLI and IMPARA · PRIMA · MATITA are the first ones he kept). Each puzzle file should say who made it and when.
 
 ## What Changes
 
@@ -10,7 +10,7 @@ MONTE · NEVE · VENTO and LOGICA · GIOCA · CALCOLI are the first ones he kept
   or `claude`) and `created` (the day it was made, `YYYY-MM-DD`).
 - Puzzles 1 and 2 are Pietro's, created on 2026-02-22 (the day they were saved in puzzlepaw, commit 9d12d50).
   Puzzle 3 (PAROLE · PERLE · OPERA) is Pietro's, from the builder, 2026-11-06. Puzzles 4 (ESTATE · MARE · SERATA),
-  5 (MONTE · NEVE · VENTO) and 6 (LOGICA · GIOCA · CALCOLI) are Claude's, 2026-11-06.
+  5 (MONTE · NEVE · VENTO), 6 (LOGICA · GIOCA · CALCOLI) and 7 (IMPARA · PRIMA · MATITA) are Claude's, 2026-11-06.
 - The solver test checks that every puzzle has both fields.
 - The game does not show them yet.
 
