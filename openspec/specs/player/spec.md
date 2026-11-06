@@ -30,19 +30,15 @@ left off.
 - **THEN** the ten tiles are still there
 
 ### Requirement: Undo, hint, reset, link
-The page SHALL offer ↶ undo (takes back the last change, any number of times), 💡 hint (glides one correct tile into
-an empty or wrong cell), rifaccio (starts the puzzle again, right away, without asking) and 🔗 link (copies a link to
-this puzzle). For 8 seconds after a reset, or until the first move if that comes sooner, rifaccio SHALL read
+While playing, the page SHALL offer rifaccio (starts the puzzle again, right away, without asking) and SHALL keep ↶
+undo, 💡 hint and 🔗 link hidden, on purpose (Pietro, 6 November 2026): the way back from a mistake is rifaccio's undo
+window. For 8 seconds after a reset, or until the first move if that comes sooner, rifaccio SHALL read
 "annullo rifaccio" and bring back the board, its undo history and the clock. A reset of an untouched board SHALL NOT
 offer it.
 
-#### Scenario: Undo after a wrong drop
-- **WHEN** the player drops a tile and taps ↶
-- **THEN** the board is as before the drop
-
-#### Scenario: Hint with a wrong tile on the board
-- **WHEN** one tile is wrong and the player taps 💡
-- **THEN** a correct tile glides into a cell that was empty or wrong
+#### Scenario: No undo while playing
+- **WHEN** the player drops a tile on the wrong cell
+- **THEN** no ↶, 💡 or 🔗 button is on the screen, and a double tap sends the tile back to its stack
 
 #### Scenario: Reset by mistake
 - **WHEN** the player taps rifaccio with ten tiles placed, then taps "annullo rifaccio" within 8 seconds

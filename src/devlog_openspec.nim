@@ -179,17 +179,16 @@ stay as they are for now.</p>
 <p>Reset restarts at once and offers "annullo rifaccio" for 8 seconds. It came in with PR #13, so the change
 <code>rework-player-menu</code> is archived: the menu, ancora!, the classic grid, the rolling conflicts and the thinner
 outlines are all in the specs now.</p>
-<h4>3 · Undo, hint and link are gone from the play screen</h4>
-<p>Since #13 the play screen shows only clues, board and stacks, and the menu has istruzioni, ancora! and rifaccio.
-↶ undo, 💡 hint and 🔗 link are still in the page but hidden while playing, and so are the tutorial and EN / IT.
-<code>first-principles</code> says every change to the board is undoable, and <code>player</code> still lists them.
-Is that on purpose (and the specs should drop them), or should some come back into the menu?</p>
-<h4>4 · istruzioni is only in Italian</h4>
-<p>The new <code>languages</code> spec says every text a player reads exists in English and Italian. The istruzioni
-page is Italian only for now.</p>
-<h4>5 · Givens give copies</h4>
+<h4>3 · Undo, hint and link hidden while playing: on purpose</h4>
+<p>Since #13 the menu has only istruzioni, ancora! and rifaccio. You confirmed that hiding ↶ undo, 💡 hint and 🔗 link
+is on purpose, so <code>player</code> now says so, and <code>first-principles</code> says a move is taken back with the
+same gestures that made it (and a reset with "annullo rifaccio").</p>
+<h4>4 · istruzioni in Italian only, for now</h4>
+<p>The <code>languages</code> spec says every text a player reads exists in English and Italian, except istruzioni,
+which stays Italian for now, as you said.</p>
+<h4>5 · Givens give copies: confirmed</h4>
 <p>A given can't be moved or sent back, but a drag on it, quick or after holding, pulls a copy of its letter, like any
-letter on the board. I wrote that down as it is; say if givens should give nothing.</p>
+letter on the board. You confirmed it, so <code>tiles-and-dragging</code> stays as it is.</p>
 <h4>6 · Two kinds of gesture tests</h4>
 <p><code>tests/gestures/*.js</code> check the snake and menu cases with console output you read by eye. The snake cases
 are now drag scenarios that pass or fail on their own, and they pass on main after #13 too. I'd keep
@@ -213,9 +212,7 @@ nbText: """
 """
 
 nbRawHtml: """<div class="ask"><b>For Pietro to check</b><ul>
-<li>Undo, hint and link hidden while playing: on purpose?</li>
-<li>istruzioni in English too?</li>
-<li>Givens giving copies, and retiring <code>tests/gestures</code> later.</li>
+<li>Retiring <code>tests/gestures</code> once you trust the drag scenarios.</li>
 </ul></div>"""
 
 nbRawHtml: """<h2><span class="num">06 · THE SPECS</span>All of them, as they are</h2>""" & summary(report)

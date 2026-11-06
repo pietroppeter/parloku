@@ -55,8 +55,8 @@ Every touch SHALL get an answer right away, and a drag SHALL show what will happ
 - **THEN** it also works with a tap
 
 ### Requirement: Mistakes are cheap
-Any change to the board SHALL be undoable, and the one action that wipes the board SHALL be undoable right after it,
-without a confirmation in the way.
+Any single move SHALL be easy to take back with the same gestures that made it (a double tap or a drag sends a letter
+back), and the one action that wipes the board SHALL be undoable right after it, without a confirmation in the way.
 
 #### Scenario: Reset
 - **WHEN** the player taps reset by mistake
@@ -67,7 +67,7 @@ Everything tapped on a touch screen SHALL be at least 44 px tall.
 
 #### Scenario: The action buttons on a phone
 - **WHEN** the page is on a touch screen
-- **THEN** undo, hint, reset and link are 44 px tall
+- **THEN** the menu buttons (istruzioni, ancora!, rifaccio) are 44 px tall
 
 ### Requirement: Watch a real player
 A change to a gesture or a screen SHALL be tried by a real player before it is called done, and their hesitations SHALL
