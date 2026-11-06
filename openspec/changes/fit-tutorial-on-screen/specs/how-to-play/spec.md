@@ -4,7 +4,10 @@
 The 🎓 tutorial SHALL walk the first puzzle along the logical path (see `logical-path`), asking for the next step
 after every drop and explaining it. It SHALL fit one phone screen like the game: its messages SHALL sit on
 semi-transparent, white-ish blobs over the play area, and a blob SHALL NOT cover the cells, the letter or the clue the
-current step is about. It opens with `?tutorial`, from the first lesson, and from a link on the istruzioni page.
+current step is about; the player MAY drag a blob aside, and it stays there. Before it starts it SHALL warn that it
+solves the first puzzle (a spoiler). It SHALL teach the gestures as they come up (a double tap on a sure cell,
+stretching a word from its last letter, a double tap to take a letter back), in full the first time and by name after.
+It opens with `?tutorial`, from the first lesson, and from a link on the istruzioni page.
 
 #### Scenario: Starting the tutorial
 - **WHEN** the player opens `?tutorial`
