@@ -6,12 +6,14 @@ After you have played a few handcrafted puzzles, challenge yourself to create yo
 
 **Build it:** https://pietroppeter.github.io/parloku/builder.html
 
+**Specs:** https://pietroppeter.github.io/parloku/specs/ (how Parloku behaves today, kept current by CI)
+
 Parloku is a mini sudoku spelled in letters (a *wordoku*) with words hidden in it.
 Fill the 6×6 grid so each of six letters appears once per row, column and 2×3 box, and
-so every clue word can be spelled from its numbered cell, one step at a time up, down, left or right.
+so every clue word can be spelled from its marked cell, one step at a time up, down, left or right.
 
-Here you play by dragging: every letter has a stack of six coloured tiles below the board,
-and you drag them up into the cells. The dragging is a small port of
+Here you play by dragging: below the board each letter is one coloured tile, and pulling it
+divides it, so the copy goes up into a cell. The dragging is a small port of
 [Declarative Dragging](https://declarative-dragging.github.io/) (Horowitz, Blinn & Heer, UIST 2026):
 the code never handles a drop, it only lists the boards a drag can reach.
 
@@ -27,12 +29,16 @@ or with `?skin=tullet`. The Nim view only names classes, so a skin can change pa
 The page is a [nimib](https://github.com/pietroppeter/nimib) notebook written in Nim and compiled to JavaScript.
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
+Specs: [how Parloku behaves](https://pietroppeter.github.io/parloku/specs/), written down with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in
+`openspec/`. The gameplay scenarios are played on the built game and shown as small animations.
+
 Devlog:
-- [Tiles that divide like cells](devlog/cells/): an experiment, a round tile that buds a copy and coalesces back, and how the animation is drawn.
-- [Built in CI](devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
-- [A daily hello and a first lesson](devlog/splash/): the daily splash screen and the animated lesson for first-time players.
-- [Back to basics](devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
-- [Ten skins for a letter game](devlog/pastel-skins/): how the skins were chosen and checked.
+- [Tiles that divide like cells](https://pietroppeter.github.io/parloku/devlog/cells/): an experiment, a round tile that buds a copy and coalesces back, and how the animation is drawn.
+- [Built in CI](https://pietroppeter.github.io/parloku/devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
+- [Specs that play](https://pietroppeter.github.io/parloku/devlog/openspec/): adopting OpenSpec, and drag scenarios that are animations and tests at once.
+- [A daily hello and a first lesson](https://pietroppeter.github.io/parloku/devlog/splash/): the daily splash screen and the animated lesson for first-time players.
+- [Back to basics](https://pietroppeter.github.io/parloku/devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
+- [Ten skins for a letter game](https://pietroppeter.github.io/parloku/devlog/pastel-skins/): how the skins were chosen and checked.
 
 ## Files
 
@@ -48,6 +54,12 @@ Devlog:
 - `src/style.nim`: the page CSS (ten skins plus the original maiolica), inlined in place of nimib's default theme.
 - `src/devlog_pastel_skins.nim` → `devlog/pastel-skins/index.html`: devlog post on how the skins were picked, built and
   audited (contrast and colour distance computed at build time). Build `src/parloku.nim` first, the post embeds its game.
+- `openspec/`: the specs (`specs/`) and the open changes (`changes/`); `openspec/config.yaml` has the project's rules.
+  `AGENTS.md` has the working rules.
+- `tools/specdrag.nim`: collects the ```` ```drag ```` scenarios of the specs and `tools/specdrag.js` plays
+  them on the built `index.html` in headless Chromium (`nim r tools/specdrag.nim`, needs Node and Playwright); `tools/specview.nim` draws specs and changes for the pages below.
+- `src/specs_page.nim` → `specs/index.html`: the living spec page. `src/devlog_openspec.nim` →
+  `devlog/openspec/index.html`: the dated post on adopting OpenSpec (it does not follow later spec changes).
 - `src/solver.nim`: the solver the builder uses (counts and lists complete grids, exact pencil marks), moved from puzzlepaw; `tests/test_solver.nim` checks it.
 - `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
   At build time the solver checks each puzzle has a unique solution that matches its key.
@@ -61,6 +73,7 @@ Needs Nim 2.x (built with 2.2.4) and libpcre (PCRE1). From the repo root:
 sh src/deps.sh
 nim c -r -d:release src/all.nim       # every page, in one program (about 20 s, 3 s once Nim's cache is warm)
 nim c -r -d:release src/parloku.nim   # or one page: writes index.html (devlog posts embed it, so build it first)
+nim r tools/specdrag.nim              # runs the drag scenarios in openspec/ (needs Node and Playwright)
 ```
 
 The pages are written next to the sources (`index.html`, `devlog/<post>/index.html`, ...) and ignored by git.

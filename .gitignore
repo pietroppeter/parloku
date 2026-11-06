@@ -8,6 +8,8 @@ src/devlog_splash
 src/builder
 src/builder_howto
 src/istruzioni
+src/specs_page
 # every page is generated (src/all.nim) and built by CI (.github/workflows/pages.yml)
 *.html
 src/all
+node_modules/
