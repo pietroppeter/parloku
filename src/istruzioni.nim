@@ -20,6 +20,8 @@ nb.doc.context["stylesheet"] = %(pageStyle & """
 .howto .k.given{border-width:3.5px}
 .howto .w0{color:var(--w0);font-weight:800} .howto .w1{color:var(--w1);font-weight:800} .howto .w2{color:var(--w2);font-weight:800}
 .howto .note{color:var(--muted);font-size:15px;margin-top:14px}
+.howto ul.cases{list-style:disc;padding-left:1.2em;margin:4px 0;display:block}
+.howto ul.cases li{background:none;border:0;border-radius:0;padding:0;margin:2px 0}
 .howto .do{display:block;margin-top:8px;font-weight:600}
 .howto .try{margin:10px -4px 2px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .howto .try iframe{width:min(100%,330px);height:600px;border:var(--border) solid var(--line);border-radius:14px;background:var(--bg)}
@@ -66,10 +68,11 @@ che viene dopo, e tornando indietro la togli. Il contorno colorato cresce con la
 <li><b>Togliere</b>Doppio tocco su una lettera: torna in basso. Se fa parte di una parola, la parola si accorcia lì: tornano in basso
 quella lettera e quelle dopo, le prime restano.
 <span class="do">Prova: doppio tocco sulla T da sola, al centro. Poi doppio tocco sulla T di ITALIA: resta solo la I.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I,1T,2A,20T" title="Togliere"></iframe><button class="again" type="button">↺ da capo</button></div></li>
-<li><b>Riempire una casella sicura</b>Due caselle si riempiono con un doppio tocco: il quadratino dove parte una parola, e
-l'ultima casella libera di una riga, di una colonna o di un riquadro. Sulle altre caselle il doppio tocco non fa niente: lì
-la lettera la trovi tu.
-<span class="do">Prova: doppio tocco sull'ultima casella della prima riga, poi sul quadratino verde.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I,1T,2A,3S" title="Riempire una casella sicura"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Riempire una casella sicura</b>Con un doppio tocco su una casella vuota, la lettera si mette da sola, ma solo in due casi:
+<ul class="cases"><li>è la casella con il quadratino, dove parte una parola: arriva la sua prima lettera;</li>
+<li>è l'ultima casella libera di una riga, di una colonna o di un riquadro: arriva la lettera che manca.</li></ul>
+Sulle altre caselle il doppio tocco non fa niente: lì la lettera la trovi tu.
+<span class="do">Prova: doppio tocco sull'ultima casella della prima riga, sull'ultima libera della terza colonna, sull'ultima libera del riquadro in basso a destra, e poi sul quadratino verde.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I,1T,2A,3S,8L,14S,20T,26P,27T,28I,33P,34L,35A" title="Riempire una casella sicura"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Dov'è una parola?</b>Tocca una parola in alto: sulla griglia il suo quadratino o il suo contorno vibra.
 <span class="do">Prova: tocca ALPI.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI" title="Dov'è una parola?"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Due lettere che si scontrano</b>Se la stessa lettera è due volte nella stessa riga, colonna o riquadro, le due lettere

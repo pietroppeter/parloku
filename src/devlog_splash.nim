@@ -110,7 +110,8 @@ goes at the reader's speed, and *salta ✕* is always in the corner. It uses an 
 nbRawHtml: """
 <ol class="beats">
   <li><b>Three words.</b>NERO, ROSA and ORO appear one at a time, as plain white tiles. They are an example of the lesson's own,
-    not one of the game's puzzles, so the lesson gives nothing away.</li>
+    not one of the game's puzzles, so the lesson gives nothing away. In its grid no word turns back on itself in a U, as in the
+    game's puzzles.</li>
   <li><b>Six letters.</b>The tiles take their colours, and you see that the same colours keep coming back. Then all the O's fly to one spot,
     all the R's to another, and so on: eleven tiles collapse into six. <i>“Una copia di ognuna si mette giù: sono i nostri sei simboli.”</i></li>
   <li><b>The mini sudoku.</b> The 6×6 grid appears above the six symbols. Then one rule at a time, each shown by filling it with tiles
@@ -119,8 +120,9 @@ nbRawHtml: """
     letters fade. <i>“Su, giù, a destra o a sinistra. Mai in diagonale.”</i> Then ROSA and ORO.</li>
   <li><b>How a puzzle starts.</b> Every tile flies back home except three given letters, and the three start cells stay.
     <i>“Le parole sono indizi: ti dicono dove vanno le lettere.”</i></li>
-  <li><b>The gestures.</b> A finger shows them one by one: dragging a letter onto a cell, a double tap on a sure cell (a word's start,
-    or the last free cell of a row, column or box), stretching a word from its last letter, and a double tap to take a letter back.</li>
+  <li><b>The gestures.</b> A finger shows them one by one: dragging a letter onto a cell; a double tap on a word's
+    start cell; stretching NERO from its last letter; a double tap on the last free cell of the bottom row (the only other cell a
+    double tap fills); and a double tap on NERO's second letter, which takes it back with the letters after it.</li>
   <li><b>Over to you,</b> the way Simon does it on Cracking the Cryptic: the rules are told, now pick how to go on. <b>▸ Gioco da solo</b>,
     <b>🎓 Guidami</b> (with a spoiler warning: the tutorial solves the first puzzle step by step), or <b>📖 Istruzioni</b>, where every gesture
     has a small board to try it on.</li>

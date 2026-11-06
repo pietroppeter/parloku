@@ -159,9 +159,10 @@ proc splash(first: bool) =
 # It explains the rules on an example of its own, not on a puzzle of the game: no spoilers. NERO, ROSA, ORO use six
 # letters; the grid below holds each of them as a single path from its start cell (made with a small search).
 const exampleLetters = "AENORS"
-const exampleSolution = "ERSANO" & "NOASRE" & "ANEROS" & "RSONEA" & "SEROAN" & "OANESR"
-const exampleWords = [("NERO", 6), ("ROSA", 15), ("ORO", 27)]
-const exampleGivens = @[4, 22, 31]
+# No word turns back on itself in a U, and the three givens leave one solution under the game's rules.
+const exampleSolution = "OASERN" & "ERNAOS" & "NOERSA" & "ASRONE" & "SEONAR" & "RNASEO"
+const exampleWords = [("NERO", 22), ("ROSA", 7), ("ORO", 21)]
+const exampleGivens = @[3, 8, 33]
 var letters, solution: string
 var givens: seq[int]
 var clues: seq[Clue]
@@ -431,40 +432,57 @@ proc play() {.async.} =
   say(T("<b>Put a letter:</b> drag one of the six letters below onto an empty cell.",
         "<b>Mettere una lettera:</b> trascina una delle sei lettere in basso su una casella vuota."), 6)
   await sleep(700)
-  cellT[35].classList.remove("ghost")
-  pointCell(35)
-  let (x35, y35) = cellXY(35)
-  cellT[35].at(x35, y35)
+  cellT[30].classList.remove("ghost")
+  pointCell(30)
+  let (x30, y30) = cellXY(30)
+  cellT[30].at(x30, y30)
   await sleep(800)
   await next()
-  say(T("<b>Two sure cells:</b> double tap the cell where a word starts, or the last free cell of a row, column or box. The letter goes in by itself.",
-        "<b>Due caselle sicure:</b> doppio tocco sulla casella dove parte una parola, o sull'ultima libera di una riga, colonna o riquadro. La lettera si mette da sola."), 6)
-  pointCell(6)
+  let w0 = clues[0]
+  say(T(&"<b>Where a word starts:</b> double tap the coloured cell, and the first letter of {w0.word} goes in by itself.",
+        &"<b>Dove parte una parola:</b> doppio tocco sulla casella colorata, e la prima lettera di {w0.word} si mette da sola."), 6)
+  pointCell(w0.path[0])
   await sleep(700)
   await finger.tap
-  cellT[6].place(6)
+  cellT[w0.path[0]].place(w0.path[0])
   await sleep(700)
   await next()
-  let w0 = clues[0]
   say(T(&"<b>Stretch a word:</b> drag its last letter onto the next cell, and the next letter comes by itself. Go back and it goes away.",
         &"<b>Allungare una parola:</b> trascina la sua ultima lettera sulla casella accanto, e arriva la lettera dopo. Tornando indietro la togli."), 6)
   await sleep(500)
   let paths = stage.querySelector("#tu-paths")
+  proc outline(n: int) =
+    var d = ""
+    for q, p in w0.path[0 ..< n]: d.add &"""{(if q > 0: "L" else: "M")}{float(p mod 6) + 0.5} {float(p div 6) + 0.5} """
+    paths.innerHTML = if n < 2: "" else: cstring(&"""<path class="tu-path out on" d="{d}" style="stroke:var(--w0);stroke-dasharray:none"/><path class="tu-path in on" d="{d}" style="stroke-dasharray:none"/>""")
   for k in 1 ..< w0.path.len:
     pointCell(w0.path[k])
     await sleep(350)
     cellT[w0.path[k]].place(w0.path[k])
-    var d = ""
-    for q, p in w0.path[0 .. k]: d.add &"""{(if q > 0: "L" else: "M")}{float(p mod 6) + 0.5} {float(p div 6) + 0.5} """
-    paths.innerHTML = cstring(&"""<path class="tu-path out on" d="{d}" style="stroke:var(--w0);stroke-dasharray:none"/><path class="tu-path in on" d="{d}" style="stroke-dasharray:none"/>""")
+    outline(k + 1)
     await sleep(450)
+  await next()
+  # the bottom row: R (put in by hand), a given, the end of the word; two more letters leave one free cell
+  for c in [31, 32]:
+    cellT[c].place(c)
+    await sleep(250)
+  say(T("<b>The last free cell</b> of a row, a column or a box: double tap it, and the missing letter goes in by itself. Here the bottom row has five letters.\nOn any other cell a double tap does nothing: there, the letter is for you to find.",
+        "<b>L'ultima casella libera</b> di una riga, di una colonna o di un riquadro: doppio tocco, e la lettera che manca si mette da sola. Qui la riga in basso ha già cinque lettere.\nSulle altre caselle il doppio tocco non fa niente: lì la lettera la trovi tu."), 6)
+  highlight(0, 5, 6, 1)
+  pointCell(34)
+  await sleep(900)
+  await finger.tap
+  cellT[34].place(34)
+  await sleep(700)
+  highlight()
   await next()
   say(T("<b>Take back:</b> double tap a letter and it goes back down. Inside a word, the letters after it go back too.",
         "<b>Togliere:</b> doppio tocco su una lettera e torna giù. Dentro una parola, tornano giù anche le lettere dopo."), 6)
-  pointCell(35)
+  pointCell(w0.path[1])
   await sleep(700)
   await finger.tap
-  cellT[35].home
+  for c in w0.path[1 .. ^1]: cellT[c].home
+  outline(1)
   await sleep(700)
   finger.classList.remove("on")
   await next()
