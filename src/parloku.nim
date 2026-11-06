@@ -1486,8 +1486,8 @@ nbJsFromCode:
   # ---- the party when a puzzle is solved: the letters on the board dance, then the banner pops up. Like the marbles,
   # an SVG transform set every frame on each tile's drawing, so it looks the same in every browser
   type Party = enum pWave, pSnakes, pLetters, pBurst
-  var party = pSnakes
-  var cheer = "Evviva!"                # not "Bravo!": the player may be a girl or a boy
+  var party = pSnakes                  # picked at random on every win
+  var cheer = "Evviva! 🥳"             # not "Bravo!": the player may be a girl or a boy
   var partyT0 = -1.0
   var partyRun = 0                     # a new party stops the one before
   var dancers: seq[(Element, int, int)]   # each tile on the board: its drawing, its cell, its letter
@@ -1530,6 +1530,7 @@ nbJsFromCode:
       for k, c in path:
         wordOf[c] = i
         letterAt[c] = k
+    party = Party(int(rnd() * 4) mod 4)
     inc partyRun
     let me = partyRun
     partyT0 = -1
