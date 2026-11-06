@@ -47,7 +47,8 @@ const pageStyle* = """
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 :root{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
-html{background:var(--bg)}
+html{background:var(--bg);touch-action:manipulation}   /* a quick second tap is a tap, never a zoom (iPhone Safari); pinch zoom stays */
+button,.btn,a{touch-action:manipulation}
 body{margin:0 auto;max-width:760px;padding:0 16px 60px;color:var(--ink);font:17px/1.6 var(--font-body);background:var(--bg);
   transition:background .3s}
 header,footer .nb-box{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);padding:12px 0}
