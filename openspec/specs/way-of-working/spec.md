@@ -22,7 +22,7 @@ Maggie Appleton's idea) SHALL hold articles that stand apart from the posts: the
 complete, and they are come back to and grown over time. How the garden works in detail is still being shaped.
 
 #### Scenario: An idea that keeps growing
-- **WHEN** a topic (like tiles that divide like cells) gets explored over several sessions
+- **WHEN** a topic (an experiment still being tried out) gets explored over several sessions
 - **THEN** it lives as one garden article that is updated each time, rather than as a series of dated posts
 
 #### Scenario: A step that ships

@@ -29,5 +29,5 @@ never completes. This is a rule of the puzzle, so it is Pietro's call.
 
 ## Impact
 
-- `src/parloku.nim` (`trace`, `solved`, `solve`), puzzlepaw `parloku/solver`, the builder.
+- `src/parloku.nim` (`trace`, `solved`, `solve`), `src/solver.nim` (the builder's, from puzzlepaw since #19), the builder.
 - Every shipped puzzle is re-checked for uniqueness under the new rule.

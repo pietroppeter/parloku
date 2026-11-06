@@ -68,6 +68,10 @@ jobs:
           key: nimcache-2.2.4-${{ hashFiles('src/**/*.nim', '*.nims', 'src/*.nims', 'src/deps.sh') }}
           restore-keys: nimcache-2.2.4-
 
+      # the solver: every puzzle in data/ has one solution, its answer key
+      - name: Solver tests
+        run: nim r -d:release tests/test_solver.nim
+
       # the specs page plays the drag scenarios of openspec/ on the built game in headless Chromium
       # (tools/specdrag.js); a failing scenario in the specs turns the build red
       - uses: actions/setup-node@v4

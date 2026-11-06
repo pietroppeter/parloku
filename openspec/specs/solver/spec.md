@@ -2,7 +2,8 @@
 
 ## Purpose
 Counting solutions: the backtracking solver that checks puzzles at build time and powers 💡 (hidden
-since #13), and its larger sibling in puzzlepaw (`parloku/solver`) that the builder uses.
+since #13), and its larger sibling `src/solver.nim` that the builder uses (moved from puzzlepaw in #19, checked
+by `tests/test_solver.nim` in CI).
 
 ## Requirements
 
