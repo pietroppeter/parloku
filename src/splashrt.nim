@@ -156,6 +156,12 @@ proc splash(first: bool) =
   if not first: timer = setTimeout(close, stay)
 
 # ---------- the lesson
+# It explains the rules on an example of its own, not on a puzzle of the game: no spoilers. NERO, ROSA, ORO use six
+# letters; the grid below holds each of them as a single path from its start cell (made with a small search).
+const exampleLetters = "AENORS"
+const exampleSolution = "ERSANO" & "NOASRE" & "ANEROS" & "RSONEA" & "SEROAN" & "OANESR"
+const exampleWords = [("NERO", 6), ("ROSA", 15), ("ORO", 27)]
+const exampleGivens = @[4, 22, 31]
 var letters, solution: string
 var givens: seq[int]
 var clues: seq[Clue]
@@ -217,14 +223,32 @@ proc colour(e: Element, ch: char) =
 proc cellXY(c: int): (float, float) = (float(c mod 6) + 0.07, float(c div 6) + 0.07)
 proc trayXY(i: int): (float, float) = (float(i) + 0.07, 6.4)
 
+proc home(t: Element) =
+  ## a tile flies back to its letter below the grid and fades out
+  let (x, y) = trayXY(li(($t.innerHTML)[0]))
+  t.at(x, y)
+  t.classList.add("ghost")
+
+proc place(t: Element, c: int) =
+  let (x, y) = cellXY(c)
+  t.classList.remove("ghost")
+  t.at(x, y)
+
+proc tap(f: Element) {.async.} =
+  ## two quick presses of the finger
+  f.classList.remove("tap")
+  f.reflow
+  f.classList.add("tap")
+  await sleep(650)
+
 proc say(html: string, step: int) =
   texts.innerHTML = cstring(html.split('\n').mapIt(&"""<p class="in">{it}</p>""").join(""))
   for i, d in kids(dots):
     if i <= step: d.classList.add("on") else: d.classList.remove("on")
 
-proc ask(buttons: seq[(string, string, bool)]): Future[cstring] =
+proc ask(buttons: seq[(string, string, bool)], column = false): Future[cstring] =
   ## buttons as (label, value, main?): the value clicked
-  acts.className = "tu-acts"
+  acts.className = if column: "tu-acts col" else: "tu-acts"
   newPromise(proc (resolve: proc (v: cstring)) =
     var html = ""
     for (t, v, m) in buttons:
@@ -306,7 +330,7 @@ proc trace(i: int, lit: var seq[int]) {.async.} =
 proc play() {.async.} =
   let words = clues.mapIt(it.word)
   # 1 · three words
-  say(T("Here are three words.", "Ecco tre parole."), 0)
+  say(T("Here are three words, just an example.", "Ecco tre parole, per esempio."), 0)
   for w, word in words:
     let x0 = float(6 - word.len) / 2 + 0.07
     for i, ch in word:
@@ -390,24 +414,77 @@ proc play() {.async.} =
   stage.querySelector("#tu-paths").innerHTML = ""
   for p in allCells:
     cellT[p].classList.remove("dim")
-    if p notin givens:
-      let (x, y) = trayXY(li(solution[p]))
-      cellT[p].at(x, y)
-      cellT[p].classList.add("ghost")
+    if p notin givens: cellT[p].home
   await sleep(700)
   say(T("A puzzle starts almost empty: a few letters, and for each word the coloured cell where it starts.\nThe words are clues: they tell you where letters go.",
         "Un puzzle parte quasi vuoto: qualche lettera e, per ogni parola, la casella colorata dove inizia.\nLe parole sono indizi: ti dicono dove vanno le lettere."), 5)
   await next()
-  say(T("To play, pull a copy out of a letter below the board and drop it on a cell. Want me to guide your first puzzle?",
-        "Per giocare tira fuori una copia da una lettera sotto la griglia e lasciala su una casella. Vuoi che ti guidi nel primo puzzle?"), 5)
+
+  # 6 · the gestures, shown by a finger
+  let finger = mk("tu-f", "<i></i>")
+  proc point(x, y: float) = finger.at(x, y)
+  proc pointCell(c: int) = point(float(c mod 6), float(c div 6))
+  proc pointTray(ch: char) = point(float(li(ch)), 6.33)
+  pointTray('R')
+  await frame()
+  finger.classList.add("on")
+  say(T("<b>Put a letter:</b> drag one of the six letters below onto an empty cell.",
+        "<b>Mettere una lettera:</b> trascina una delle sei lettere in basso su una casella vuota."), 6)
+  await sleep(700)
+  cellT[35].classList.remove("ghost")
+  pointCell(35)
+  let (x35, y35) = cellXY(35)
+  cellT[35].at(x35, y35)
+  await sleep(800)
+  await next()
+  say(T("<b>Two sure cells:</b> double tap the cell where a word starts, or the last free cell of a row, column or box. The letter goes in by itself.",
+        "<b>Due caselle sicure:</b> doppio tocco sulla casella dove parte una parola, o sull'ultima libera di una riga, colonna o riquadro. La lettera si mette da sola."), 6)
+  pointCell(6)
+  await sleep(700)
+  await finger.tap
+  cellT[6].place(6)
+  await sleep(700)
+  await next()
+  let w0 = clues[0]
+  say(T(&"<b>Stretch a word:</b> drag its last letter onto the next cell, and the next letter comes by itself. Go back and it goes away.",
+        &"<b>Allungare una parola:</b> trascina la sua ultima lettera sulla casella accanto, e arriva la lettera dopo. Tornando indietro la togli."), 6)
+  await sleep(500)
+  let paths = stage.querySelector("#tu-paths")
+  for k in 1 ..< w0.path.len:
+    pointCell(w0.path[k])
+    await sleep(350)
+    cellT[w0.path[k]].place(w0.path[k])
+    var d = ""
+    for q, p in w0.path[0 .. k]: d.add &"""{(if q > 0: "L" else: "M")}{float(p mod 6) + 0.5} {float(p div 6) + 0.5} """
+    paths.innerHTML = cstring(&"""<path class="tu-path out on" d="{d}" style="stroke:var(--w0);stroke-dasharray:none"/><path class="tu-path in on" d="{d}" style="stroke-dasharray:none"/>""")
+    await sleep(450)
+  await next()
+  say(T("<b>Take back:</b> double tap a letter and it goes back down. Inside a word, the letters after it go back too.",
+        "<b>Togliere:</b> doppio tocco su una lettera e torna giù. Dentro una parola, tornano giù anche le lettere dopo."), 6)
+  pointCell(35)
+  await sleep(700)
+  await finger.tap
+  cellT[35].home
+  await sleep(700)
+  finger.classList.remove("on")
+  await next()
+
+  # 7 · over to you, with the options
+  say(T("Now it's your turn. Try the first puzzle on your own, or let the tutorial guide you through it (it shows the solution step by step), or try every gesture on the istruzioni page.",
+        "Ora tocca a te. Prova il primo puzzle da solo, oppure fatti guidare dal tutorial (ti mostra la soluzione passo per passo), oppure prova tutti i gesti nella pagina delle istruzioni."), 6)
   let me = run
-  let how = await ask(@[(T("Just play", "Gioco da solo"), "play", false), (T("🎓 Guide me", "🎓 Guidami"), "guide", true)])
+  let how = await ask(@[(T("▸ Play on my own", "▸ Gioco da solo"), "play", true),
+                        (T("🎓 Guide me (spoilers)", "🎓 Guidami (spoiler!)"), "guide", false),
+                        (T("📖 Istruzioni", "📖 Istruzioni"), "howto", false)], column = true)
   if me != run: return
   lsSet("parloku:learned", "1")
   close()
   if how == "guide":
     let b = document.getElementById("tutorial")
     if not b.isNil: b.click()
+  elif how == "howto":
+    let a = document.getElementById("howto")
+    if not a.isNil: a.click()
 
 proc lesson() =
   clearTimeout(timer)
@@ -415,7 +492,7 @@ proc lesson() =
   let me = run
   lsSet("parloku:seen", "1")
   card.onclick = nil
-  card.innerHTML = cstring(&"""<div class="tu-head"><div class="tu-dots">{"<i></i>".repeat(6)}</div>
+  card.innerHTML = cstring(&"""<div class="tu-head"><div class="tu-dots">{"<i></i>".repeat(7)}</div>
     <button class="sp-x" id="tu-skip">{T("skip ✕", "salta ✕")}</button></div>
     <div class="tu-stage" id="tu-stage"><svg viewBox="0 0 6 7.35">{gridSvg()}</svg></div>
     <div class="tu-text" id="tu-text"></div><div class="tu-acts" id="tu-acts"></div>""")
@@ -443,13 +520,11 @@ proc start() =
   root = document.getElementById("splash")
   if root.isNil: return
   card = document.getElementById("splash-card")
-  letters = $root.attr("data-letters")
-  solution = $root.attr("data-solution")
-  givens = ($root.attr("data-givens")).split(',').filterIt(it != "").mapIt(parseInt(it))
-  for s in ($root.attr("data-clues")).split(','):
-    let f = s.split(':')
-    let (r, c) = (parseInt(f[1]), parseInt(f[2]))
-    clues.add Clue(word: f[0], r: r, c: c, path: pathOf(f[0], r * 6 + c))
+  letters = exampleLetters
+  solution = exampleSolution
+  givens = exampleGivens
+  for (w, start) in exampleWords:
+    clues.add Clue(word: w, r: start div 6, c: start mod 6, path: pathOf(w, start))
   root.addEventListener("click", proc (ev: Event) =
     if ev.isTarget(root) and card.querySelector("#tu-stage").isNil: close())
   expose(proc (first: bool) = (open(); splash(first)), proc () = (open(); lesson()), proc (d: JsDate): cstring = cstring(lineOf(d)))

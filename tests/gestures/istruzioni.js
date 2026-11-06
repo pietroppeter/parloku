@@ -33,7 +33,7 @@ const os = require('os');
   await g.dbl(20);
   console.log('remove: lone T at r4c3 gone:', await g.row([20]), '| ITALIA', await g.row([0, 1, 2]));
   await g.dbl(1);
-  console.log('remove: double tap inside ITALIA:', await g.row([0, 1, 2]), '(---)');
+  console.log('remove: double tap on the T of ITALIA cuts it there:', await g.row([0, 1, 2]), '(I--)');
   g = await board(5);
   await g.dbl(5);
   console.log('sure cell: r1c6 =', await g.row([5]), '(L)');

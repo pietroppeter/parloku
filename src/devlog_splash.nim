@@ -103,29 +103,33 @@ nbRawHtml: """<p style="margin-bottom:0">The next seven lines, starting today:</
 nbRawHtml: """<h2><span class="num">02 · THE FIRST LESSON</span>From three words to a puzzle</h2>"""
 
 nbText: """
-The lesson is an animation in six short beats (the six dots at the top). Each step ends with an *avanti →* button, so it
-goes at the reader's speed, and *salta ✕* is always in the corner. It uses the real first puzzle, so it ends exactly where the game begins,
-and it looks like the game: the classic grid, round tiles, a rounded square on each word's start cell and a thin outline along each word.
+The lesson is an animation in seven short beats (the seven dots at the top). Each step ends with an *avanti →* button, so it
+goes at the reader's speed, and *salta ✕* is always in the corner. It uses an example of its own, so it spoils no puzzle, and it looks like the game: the classic grid, round tiles, a rounded square on each word's start cell and a thin outline along each word.
 """
 
 nbRawHtml: """
 <ol class="beats">
-  <li><b>Three words.</b>ITALIA, PASTA and ALPI appear one at a time, as plain white tiles.</li>
-  <li><b>Six letters.</b>The tiles take their colours, and you see that the same colours keep coming back. Then all the A's fly to one spot,
-    all the I's to another, and so on: fifteen tiles collapse into six. <i>“Una copia di ognuna si mette giù: sono i nostri sei simboli.”</i></li>
+  <li><b>Three words.</b>NERO, ROSA and ORO appear one at a time, as plain white tiles. They are an example of the lesson's own,
+    not one of the game's puzzles, so the lesson gives nothing away.</li>
+  <li><b>Six letters.</b>The tiles take their colours, and you see that the same colours keep coming back. Then all the O's fly to one spot,
+    all the R's to another, and so on: eleven tiles collapse into six. <i>“Una copia di ognuna si mette giù: sono i nostri sei simboli.”</i></li>
   <li><b>The mini sudoku.</b> The 6×6 grid appears above the six symbols. Then one rule at a time, each shown by filling it with tiles
     that fly up from the symbols: a row, a column, a 2×3 box. Then the rest of the grid fills in: <i>“nessun doppione in righe, colonne e riquadri”</i>.</li>
-  <li><b>The words are in the grid.</b> On the solved grid, ITALIA lights up from its start cell, one step at a time, while the other
-    letters fade. <i>“Su, giù, a destra o a sinistra. Mai in diagonale.”</i> Then PASTA and ALPI.</li>
-  <li><b>How a puzzle starts.</b> Every tile flies back home except the three given letters, and the three start cells stay.
+  <li><b>The words are in the grid.</b> On the solved example, NERO lights up from its start cell, one step at a time, while the other
+    letters fade. <i>“Su, giù, a destra o a sinistra. Mai in diagonale.”</i> Then ROSA and ORO.</li>
+  <li><b>How a puzzle starts.</b> Every tile flies back home except three given letters, and the three start cells stay.
     <i>“Le parole sono indizi: ti dicono dove vanno le lettere.”</i></li>
-  <li><b>Over to you.</b> <i>“Vuoi che ti guidi nel primo puzzle?”</i> <b>🎓 Guidami</b> starts the tutorial on puzzle 1,
-    which also teaches the gestures (the double tap, stretching a word). <b>Gioco da solo</b> closes the lesson.</li>
+  <li><b>The gestures.</b> A finger shows them one by one: dragging a letter onto a cell, a double tap on a sure cell (a word's start,
+    or the last free cell of a row, column or box), stretching a word from its last letter, and a double tap to take a letter back.</li>
+  <li><b>Over to you,</b> the way Simon does it on Cracking the Cryptic: the rules are told, now pick how to go on. <b>▸ Gioco da solo</b>,
+    <b>🎓 Guidami</b> (with a spoiler warning: the tutorial solves the first puzzle step by step), or <b>📖 Istruzioni</b>, where every gesture
+    has a small board to try it on.</li>
 </ol>
 """
 
 nbText: """
-**What changed on 6 November.** The first version asked *Do you know what a mini sudoku is?* before beat 3, with three answers:
+**What changed on 6 November.** The lesson used to walk the first puzzle's solution; now it has its own example, shows the gestures,
+and ends with three choices. The first version also asked *Do you know what a mini sudoku is?* before beat 3, with three answers:
 *No, what's a sudoku?* got the five steps above, *I know sudoku, not the mini one* got two (a sudoku, only smaller), and *Yes, I know it*
 got none. Pietro dropped the question: hearing the rules again does no harm, and one path is simpler for everyone.
 

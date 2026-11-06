@@ -1,4 +1,4 @@
-// Pietro (2026-11-05): a double tap on any letter of a snake sends the whole snake back below, in headless Chromium on an iPhone 13. Build index.html first, then: node tests/gestures/snake.js
+// Pietro (2026-11-06): a double tap on a letter of a word cuts the word there: that letter and the ones after it go back below, in headless Chromium on an iPhone 13. Build index.html first, then: node tests/gestures/unsnake.js
 const { chromium, devices } = require('playwright');
 (async () => {
   const b = await chromium.launch();
@@ -27,7 +27,9 @@ const { chromium, devices } = require('playwright');
   await dbl(13);
   console.log('double tap on the loose A: r3c2', await at(13), '| MAGIA still', await col([5, 11, 17, 23, 29]), await word(2));
   await dbl(17);
-  console.log('double tap on the G inside MAGIA: col 6', await col([5, 11, 17, 23, 29]), 'MAGIA', await word(2));
+  console.log('double tap on the G inside MAGIA: col 6', await col([5, 11, 17, 23, 29]), '(MA---)', 'MAGIA', await word(2));
+  await dbl(11);
+  console.log('double tap on the A after M: col 6', await col([5, 11, 17, 23, 29]), '(M----)');
   console.log('errors', errs);
   await b.close();
 })();

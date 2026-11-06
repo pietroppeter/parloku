@@ -23,7 +23,7 @@ const { chromium, devices } = require('playwright');
   await p.click('#tu-skip'); await p.waitForTimeout(500);
   console.log('lesson skipped:', !(await shown()));
   await p.goto(url + '?learn'); await p.waitForTimeout(500);
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 20; i++) {
     await p.waitForSelector('#tu-acts [data-v]', { timeout: 15000 });
     const vs = await p.$$eval('#tu-acts [data-v]', bs => bs.map(x => x.dataset.v));
     if (vs.includes('guide')) { await p.click('#tu-acts [data-v="guide"]'); break; }

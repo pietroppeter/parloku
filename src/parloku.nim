@@ -179,7 +179,7 @@ nbCode:
 nbRawHtml: """<h2><span class="num">02 · THE RULES, AS CODE</span>Checking, tracing, solving</h2>"""
 
 nbText: """
-Three functions carry the rules. `clashes` finds repeated letters in a row, column or box (they glow red on the board).
+Three functions carry the rules. `clashes` finds repeated letters in a row, column or box (on the board they tremble like restless marbles).
 `trace` walks a clue through the grid with a depth-first search and returns the longest prefix it can spell, so
 the clue chips light up letter by letter and the path is drawn over the tiles.
 With `wild = true` an empty cell matches any letter, which is what a solver needs to prune early.
@@ -677,7 +677,7 @@ nbCode:
   echo &"pointer below the board → {off.state.cells.find(free[0])} (-1: back with its letter)"
 
 nbText: """
-Around the tiles, the backdrop draws the board and red cells for clashes; the overlay draws each word's outline
+Around the tiles, the backdrop draws the board (clashes tremble, they are never painted red); the overlay draws each word's outline
 on top: a ring on its start cell that grows around the letters as they are spelled. Both are plain functions of the board too, so nimib can also draw a
 finished board at build time:
 """
@@ -1235,7 +1235,7 @@ nbJsFromCode:
         for ch in puz.letters:
           if ch notin seen: return ch
 
-  # ---- a double tap on a tile on the board sends it (and the rest of its snake) back to its letter below; on an empty cell with only one possible letter (a start ring, or the last gap of a row, column or box), it fills that letter in
+  # ---- a double tap on a tile on the board sends it (and the rest of its word, from there on) back to its letter below; on an empty cell with only one possible letter (a start ring, or the last gap of a row, column or box), it fills that letter in
   var tapKey = ""
   var tapAt = 0.0
   var downAt = vec(0, 0)
@@ -1278,14 +1278,15 @@ nbJsFromCode:
     let id = parseInt(($k)[1 .. ^1])
     let at = stage.state.cells.find(id)
     if at < 0: return
-    # the whole snake goes: every word whose outline passes through this letter sends all its letters
-    # back below (givens stay where they are)
+    # inside a word, the word is cut there: this letter and every letter after it go back below,
+    # the letters before it stay (and so do givens)
     var gone: seq[int]
     let g = stage.state.grid
     for clue in puz.clues:
       let path = g.trace(clue)
-      if path.len >= 2 and at in path:
-        for c in path:
+      let k = path.find(at)
+      if path.len >= 2 and k >= 0:
+        for c in path[k .. ^1]:
           if c notin gone: gone.add c
     if gone.len == 0: gone.add at
     if gone.allIt(isGiven(it)): return
@@ -1734,8 +1735,8 @@ nbJsFromCode:
 
   proc introText(): string =
     case intro
-    of 0: L("Welcome! This is the first Parloku. Fill the grid with the six letters <b>A I L P S T</b>, pulling copies out of the six letters below the board.",
-            "Benvenuto! Questo è il primo Parloku. Riempi la griglia con le sei lettere <b>A I L P S T</b>, tirando fuori delle copie dalle sei lettere sotto la griglia.")
+    of 0: L("Welcome! <b>Spoiler warning:</b> this tutorial solves the first puzzle with you, step by step. To try it on your own first, tap <i>exit</i>. Fill the grid with the six letters <b>A I L P S T</b>, pulling copies out of the six letters below the board.",
+            "Benvenuto! <b>Attenzione, spoiler:</b> questo tutorial risolve con te il primo puzzle, passo per passo. Se vuoi provarci prima da solo, tocca <i>esci</i>. Riempi la griglia con le sei lettere <b>A I L P S T</b>, tirando fuori delle copie dalle sei lettere sotto la griglia.")
     of 1: L("As in sudoku, each letter appears once in every row, every column and every 2×3 box. One of each is highlighted.",
             "Come nel sudoku, ogni lettera compare una volta in ogni riga, in ogni colonna e in ogni riquadro 2×3. Ne vedi evidenziato uno per tipo.")
     of 2: L("The three words above are the clues. Each one starts in the cell ringed in its colour and goes one step at a time: up, down, left or right.",
@@ -1862,8 +1863,8 @@ nbJsFromCode:
         let drag = L(&" Drag {an(s.letter)} <b>{s.letter}</b> there", &" Trascina lì una <b>{s.letter}</b>")
         case s.kind
         of skFix:
-          text.add L(" Or double tap it: it goes back by itself (inside a word, the whole word goes back).",
-                     " Oppure fai doppio tocco sulla lettera: torna giù da sola (se è dentro una parola, torna giù tutta la parola).")
+          text.add L(" Or double tap it: it goes back by itself (inside a word, the letters after it go back too).",
+                     " Oppure fai doppio tocco sulla lettera: torna giù da sola (se è dentro una parola, tornano giù anche le lettere dopo).")
         of skStart:
           if first:
             text.add drag & L(", or double tap the cell: a word's first letter goes in by itself.",
@@ -1957,12 +1958,8 @@ nbJsFromCode:
   applyLang()
 
 # ---------------------------------------------------------------- the daily splash and the first lesson (src/splash.nim)
-block:
-  let p = decode(builtin[0][1])
-  var sol = ""
-  for ch in answerKeys[0]: sol.add ch
-  nbRawHtml: splashHtml(p.letters, sol, p.givens.mapIt(idx(it.pos)), p.clues.mapIt((it.word, it.pos.row, it.pos.col)))
-  gameBlocks.add nb.blk
+nbRawHtml: splashHtml()                # the lesson brings its own example: it spoils no puzzle
+gameBlocks.add nb.blk
 let splashBlock = nb.blk
 nbJsFromCodeGlobal:
   import src/splashrt                  # the splash's behaviour, in Nim: it starts by itself when the page has #splash

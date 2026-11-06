@@ -75,15 +75,20 @@ const splashCss* = """
 .tu-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;min-height:44px}
 .tu-acts.col{flex-direction:column;align-items:stretch}
 .tu-acts.col .sp-btn{text-align:left}
-@media (prefers-reduced-motion:reduce){.tu-t,.tu-path.on,.sp-logo i{transition-duration:.01s!important;animation-duration:.01s!important}}
+/* the finger that shows the gestures: the outer box moves, the inner dot presses (no var() inside the keyframes, for Safari) */
+.tu-f{position:absolute;left:0;top:0;width:calc(var(--c) * .44);height:calc(var(--c) * .44);z-index:4;pointer-events:none;opacity:0;
+  transform:translate(calc((var(--x) + .28) * var(--c)), calc((var(--y) + .28) * var(--c)));transition:transform .55s ease-in-out,opacity .3s}
+.tu-f.on{opacity:1}
+.tu-f i{display:block;width:100%;height:100%;border-radius:50%;background:rgba(40,40,40,.3);box-shadow:0 0 0 2px rgba(255,255,255,.85)}
+.tu-f.tap i{animation:tu-tap .3s ease-out 2}
+@keyframes tu-tap{50%{transform:scale(.6)}}
+@media (prefers-reduced-motion:reduce){.tu-t,.tu-f,.tu-path.on,.sp-logo i{transition-duration:.01s!important;animation-duration:.01s!important}}
 </style>
 """
 
-proc splashHtml*(letters, solution: string, givens: seq[int], clues: seq[(string, int, int)], auto = true): string =
-  ## the overlay and its style; `solution` is the 36 letters row by row. The lesson's puzzle rides in data
-  ## attributes, read by the Nim runtime (src/splashrt.nim) compiled into the game's script.
+proc splashHtml*(auto = true): string =
+  ## the overlay and its style. The lesson brings its own example (src/splashrt.nim), so it spoils no puzzle.
   ## With `auto = false` nothing opens by itself: the page calls `parlokuSplash.splash(first)` or `.lesson()`.
   let manual = if auto: "" else: " data-manual"
-  let cl = clues.mapIt(&"{it[0]}:{it[1]}:{it[2]}").join(",")
-  splashCss & &"""<div class="sp" id="splash"{manual} data-letters="{letters}" data-solution="{solution}" data-givens="{givens.join(",")}" data-clues="{cl}" hidden role="dialog" aria-modal="true" aria-label="Parloku"><div class="sp-card" id="splash-card"></div></div><!-- /splash -->
+  splashCss & &"""<div class="sp" id="splash"{manual} hidden role="dialog" aria-modal="true" aria-label="Parloku"><div class="sp-card" id="splash-card"></div></div><!-- /splash -->
 """

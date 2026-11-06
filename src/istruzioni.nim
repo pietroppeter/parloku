@@ -14,8 +14,8 @@ nb.doc.context["stylesheet"] = %(pageStyle & """
 .howto ol,.howto ul{padding-left:0;list-style:none;margin:0;display:flex;flex-direction:column;gap:10px}
 .howto li{background:var(--card);border:var(--border) solid var(--line);border-radius:14px;padding:10px 14px;line-height:1.45}
 .howto li b{display:block;font-family:var(--font-head);font-size:18px}
-.howto .k{display:inline-block;min-width:1.5em;padding:0 .25em;text-align:center;border-radius:.35em;border:2px solid var(--ink);
-  font-weight:800;line-height:1.35;margin:0 .1em}
+.howto .k{display:inline-grid;place-items:center;width:1.7em;height:1.7em;border-radius:50%;border:1.5px solid var(--ink);
+  font:var(--glyph-weight) 1em/1 var(--font-glyph);vertical-align:-.32em;margin:-.2em .1em 0;padding-bottom:.14em;box-sizing:border-box}   /* a round tile, as in the game */
 .howto .k.g0{background:var(--g0)} .howto .k.g1{background:var(--g1)} .howto .k.g2{background:var(--g2)}
 .howto .k.given{border-width:3.5px}
 .howto .w0{color:var(--w0);font-weight:800} .howto .w1{color:var(--w1);font-weight:800} .howto .w2{color:var(--w2);font-weight:800}
@@ -43,8 +43,9 @@ una volta sola in ogni riga, in ogni colonna e in ogni riquadro.</li>
 <span class="w0">rosso</span>, <span class="w1">verde</span>, <span class="w2">blu</span>.
 Una parola parte dalla casella con il cerchietto del suo colore e si legge una lettera dopo l'altra,
 passando ogni volta a una casella accanto: su, giù, a destra o a sinistra, mai in diagonale.</li>
-<li><b>3 · Lettere fisse</b>Alcune lettere sono già in griglia e hanno il bordo più spesso, come <span class="k g1 given">S</span>.
-Quelle non si toccano.</li>
+<li><b>3 · Lettere fisse</b>Le lettere che metti tu hanno il bordo sottile, come <span class="k" style="background:var(--g0);color:var(--i0)">A</span>.
+Alcune lettere sono già in griglia quando il puzzle parte, e hanno il bordo più spesso, come <span class="k given" style="background:var(--g4);color:var(--i4)">S</span>:
+quelle restano dove sono (se le trascini, ne parte una copia).</li>
 </ol>
 <p class="note">C'è una sola soluzione, e ci si arriva ragionando: non serve tirare a indovinare.
 Quando la griglia è giusta e le tre parole ci sono tutte, hai vinto.</p>
@@ -62,13 +63,20 @@ non si salva niente. <i>↺ da capo</i> la rimette com'era.</p>
 <li><b>Scrivere una parola</b>Trascina l'ultima lettera di una parola sulle caselle vicine: a ogni passo si aggiunge la lettera
 che viene dopo, e tornando indietro la togli. Il contorno colorato cresce con la parola.
 <span class="do">Prova: trascina la I di ITALIA verso destra: arrivano la T e la A. Poi torna indietro.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I" title="Scrivere una parola"></iframe><button class="again" type="button">↺ da capo</button></div></li>
-<li><b>Togliere</b>Doppio tocco su una lettera: torna in basso. Se fa parte di una parola, torna in basso tutta la parola.
-<span class="do">Prova: doppio tocco sulla T da sola, al centro. Poi doppio tocco su una lettera di ITALIA.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I,1T,2A,20T" title="Togliere"></iframe><button class="again" type="button">↺ da capo</button></div></li>
-<li><b>Riempire una casella sicura</b>Doppio tocco su una casella vuota dove può andare una sola lettera: il quadratino di una
-parola, o l'ultima casella libera di una riga, di una colonna o di un riquadro.
+<li><b>Togliere</b>Doppio tocco su una lettera: torna in basso. Se fa parte di una parola, la parola si accorcia lì: tornano in basso
+quella lettera e quelle dopo, le prime restano.
+<span class="do">Prova: doppio tocco sulla T da sola, al centro. Poi doppio tocco sulla T di ITALIA: resta solo la I.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I,1T,2A,20T" title="Togliere"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Riempire una casella sicura</b>Due caselle si riempiono con un doppio tocco: il quadratino dove parte una parola, e
+l'ultima casella libera di una riga, di una colonna o di un riquadro. Sulle altre caselle il doppio tocco non fa niente: lì
+la lettera la trovi tu.
 <span class="do">Prova: doppio tocco sull'ultima casella della prima riga, poi sul quadratino verde.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I,1T,2A,3S" title="Riempire una casella sicura"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Dov'è una parola?</b>Tocca una parola in alto: sulla griglia il suo quadratino o il suo contorno vibra.
 <span class="do">Prova: tocca ALPI.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI" title="Dov'è una parola?"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Due lettere che si scontrano</b>Se la stessa lettera è due volte nella stessa riga, colonna o riquadro, le due lettere
+tremano come biglie inquiete: dondolano a destra e a sinistra, prima piano e poi, per qualche secondo, un po' di più. Niente diventa
+rosso e niente ti blocca. Mentre tieni una lettera col dito, non tremano. Basta spostarne o toglierne una e si fermano.
+Il gioco ti dice solo quando due lettere si scontrano, non se una lettera è giusta: quello lo scopri ragionando.
+<span class="do">Prova: le due A in alto si scontrano. Fai doppio tocco su una delle due.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=2A,5A" title="Due lettere che si scontrano"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Il menu</b>Nel gioco, tocca uno spazio vuoto sopra la griglia: in alto compaiono <i>istruzioni</i>, <i>ancora!</i> per scegliere un altro puzzle
 (quelli già risolti hanno ✓) e <i>rifaccio</i> per ricominciare. Subito dopo, per qualche secondo, puoi ancora
 <i>annullare</i> il rifaccio.</li>
