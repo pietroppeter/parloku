@@ -117,6 +117,8 @@ nbRawHtml: """
     Six different symbols are just what a mini sudoku needs.”</i></li>
   <li><b>Do you know what a mini sudoku is?</b> Three answers: <i>No, what's a sudoku?</i> · <i>I know sudoku, not the mini one</i> ·
     <i>Yes, I know it</i>.</li>
+  <li class="upd"><b>Update, 6 Nov 2026.</b> Pietro dropped this question: everyone now gets the full explanation, since hearing it again
+    does no harm. The lesson embedded on this page is today's, so it has no question; the table below records the first version.</li>
   <li><b>The mini sudoku, at your level.</b> The 6×6 grid appears above the six symbols, and tiles fly up from them into the cells (see the table below).</li>
   <li><b>The words are in the grid.</b> On the solved grid, ITALIA lights up from its start cell, ringed in the word's colour, one step at a time, while the other
     letters fade. <i>“Up, down, left or right. Never diagonally.”</i> Then PASTA and ALPI.</li>

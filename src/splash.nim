@@ -2,7 +2,7 @@
 ## Game mode only: the overlay lives outside the `.game` slice the devlog posts embed, and its script tag
 ## carries an id so `slice(built, "<script>", ...)` keeps picking the game script.
 ## Plain JS for now (it is a prototype of an idea); it reads the page's language from <html lang>
-## and uses the skins' CSS variables, so it follows EN/IT and every skin.
+## and uses the skins' CSS variables. The game sets the language (Italian, or the English draft with ?lang=en).
 ##
 ## URL switches: `?splash=first` shows the first-visit splash again, `?learn` opens the lesson directly,
 ## `?nosplash` skips it (and so does `?tutorial`).
@@ -18,9 +18,7 @@ const splashCss* = """
   border-radius:calc(var(--radius) + 6px);box-shadow:var(--shadow),0 18px 50px rgba(0,0,0,.10);padding:22px 20px 18px;text-align:center}
 .sp-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:-6px -4px 6px}
 .sp-date{font:700 12px "JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.sp-lang{display:flex;gap:4px}
-.sp-lang button,.sp-x{font:700 12px var(--font-body);border:1.5px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:3px 9px;cursor:pointer}
-.sp-lang button.on{border-color:var(--ink);color:var(--ink)}
+.sp-x{font:700 12px var(--font-body);border:1.5px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:3px 9px;cursor:pointer}
 .sp-hello{font:700 clamp(30px,8vw,40px)/1.05 var(--font-head);margin:14px 0 6px;color:var(--ink)}
 .sp-line{font-size:17px;line-height:1.45;color:var(--ink);margin:0 auto 18px;max-width:30ch}
 .sp-logo{display:flex;justify-content:center;gap:5px;margin:4px 0 6px}
@@ -47,15 +45,15 @@ const splashCss* = """
 .tu-stage svg{position:absolute;left:0;top:0;width:100%;overflow:visible;pointer-events:none}
 .tu-grid{opacity:0;transition:opacity .5s}
 .tu-grid.on{opacity:1}
-.tu-grid .ca{fill:var(--ca)} .tu-grid .cb{fill:var(--cb)}
-.tu-grid .thin{stroke:var(--line);stroke-width:.02}
-.tu-grid .thick{stroke:var(--boxline);stroke-width:.05;fill:none}
+.tu-grid .thin{stroke:var(--line);stroke-width:.02;fill:none}
+.tu-grid .thick{stroke:var(--boxline);stroke-width:.06;fill:none}
 .tu-hl{fill:var(--hl);opacity:0;transition:opacity .4s}
 .tu-hl.on{opacity:.9}
-.tu-stage svg.tu-over{z-index:3}
-.tu-path{fill:none;stroke-width:.1;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;opacity:.6}
+/* a word's outline, as in the game: a thin coloured band round its cells (an outer stroke, the card colour inside) */
+.tu-path{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1}
+.tu-path.out{stroke-width:.86} .tu-path.in{stroke-width:.76;stroke:var(--card)}
 .tu-path.on{transition:stroke-dashoffset 1.6s ease-in-out;stroke-dashoffset:0}
-.tu-t{position:absolute;left:0;top:0;width:calc(var(--c) * .86);height:calc(var(--c) * .86);border-radius:22%;
+.tu-t{position:absolute;left:0;top:0;width:calc(var(--c) * .86);height:calc(var(--c) * .86);border-radius:50%;
   display:grid;place-items:center;font:var(--glyph-weight) calc(var(--c) * .5)/1 var(--font-glyph);
   background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line);
   transform:translate(calc(var(--x) * var(--c)), calc(var(--y) * var(--c))) scale(var(--s,1));
@@ -65,8 +63,9 @@ const splashCss* = """
 .tu-t.bump{animation:tu-bump .45s}
 @keyframes tu-bump{40%{transform:translate(calc(var(--x) * var(--c)), calc(var(--y) * var(--c))) scale(1.18)}}
 .tu-t.dim{opacity:.3}
-.tu-n{position:absolute;left:0;top:0;width:var(--c);height:var(--c);border-radius:26%;border:calc(var(--c) * .07) solid;z-index:2;pointer-events:none;
-  transform:translate(calc(var(--x) * var(--c)), calc(var(--y) * var(--c)));opacity:0;transition:opacity .4s}
+.tu-n{position:absolute;left:0;top:0;width:calc(var(--c) * .9);height:calc(var(--c) * .9);box-sizing:border-box;border-radius:24%;
+  border:calc(var(--c) * .05) solid;z-index:2;pointer-events:none;
+  transform:translate(calc((var(--x) + .05) * var(--c)), calc((var(--y) + .05) * var(--c)));opacity:0;transition:opacity .4s}
 .tu-n.on{opacity:1}
 .tu-text{min-height:5.4em;margin:12px 2px 10px;font-size:16.5px;line-height:1.45;text-align:left}
 .tu-text b{font-family:var(--font-glyph);letter-spacing:.04em}
@@ -145,14 +144,6 @@ function logo() {
   return [...'PARLOKU'].map((ch, i) =>
     `<i style="background:var(--g${i % 6});color:var(--i${i % 6});animation-delay:${0.15 + i * 0.07}s">${ch}</i>`).join('');
 }
-function langSwitch() {
-  return `<div class="sp-lang">${['en', 'it'].map(l =>
-    `<button data-lang="${l}" class="${l === lang() ? 'on' : ''}">${l.toUpperCase()}</button>`).join('')}</div>`;
-}
-function setLang(l) {
-  const b = document.querySelector(`#langs [data-lang="${l}"]`);   // the game's own switch, so it re-renders too
-  if (b) b.click(); else document.documentElement.lang = l;
-}
 
 function open() {
   root.hidden = false;
@@ -174,7 +165,7 @@ function splash(first) {
   const date = d.toLocaleDateString(lang() === 'it' ? 'it-IT' : 'en-GB', {weekday: 'long', day: 'numeric', month: 'long'});
   const stay = 3200;
   card.innerHTML = `
-    <div class="sp-top"><span class="sp-date">${date}</span>${langSwitch()}</div>
+    <div class="sp-top"><span class="sp-date">${date}</span></div>
     <div class="sp-hello">${hello(d)}</div>
     <p class="sp-line">${lineOf(d)}</p>
     <div class="sp-logo">${logo()}</div>
@@ -187,8 +178,6 @@ function splash(first) {
          <button class="sp-btn link" data-go="learn">${T('how do I play?', 'come si gioca?')}</button></div>
          <div class="sp-bar"><i style="animation-duration:${stay}ms"></i></div>`}`;
   card.onclick = ev => {
-    const l = ev.target.closest('[data-lang]');
-    if (l) { setLang(l.dataset.lang); splash(true); return }   // after a language change, wait for a choice
     const go = ev.target.closest('[data-go]');
     if (!go) return;
     if (go.dataset.go === 'learn') lesson(); else close();
@@ -255,10 +244,10 @@ function gridSvg() {
   let s = '<g class="tu-grid">';
   for (let c = 0; c < 36; c++) {
     const r = Math.floor(c / 6), k = c % 6;
-    s += `<rect class="${(Math.floor(r / 2) + Math.floor(k / 3)) % 2 ? 'cb' : 'ca'} thin" x="${k}" y="${r}" width="1" height="1"/>`;
+    s += `<rect class="thin" x="${k}" y="${r}" width="1" height="1"/>`;
   }
   s += '<rect class="tu-hl" id="tu-hl" x="0" y="0" width="0" height="0"/>';
-  s += '<path class="thick" d="M0 0H6V6H0Z M3 0V6 M0 2H6 M0 4H6"/></g>';
+  s += '<path class="thick" d="M0 0H6V6H0Z M3 0V6 M0 2H6 M0 4H6"/></g><g id="tu-paths"></g>';   // word outlines: under the tiles
   return s;
 }
 function highlight(x, y, w, h) {
@@ -292,7 +281,7 @@ async function lesson() {
   card.onclick = null;
   card.innerHTML = `<div class="tu-head"><div class="tu-dots">${'<i></i>'.repeat(6)}</div>
     <button class="sp-x" id="tu-skip">${T('skip ✕', 'salta ✕')}</button></div>
-    <div class="tu-stage" id="tu-stage"><svg viewBox="0 0 6 7.35">${gridSvg()}</svg><svg class="tu-over" viewBox="0 0 6 7.35"><g id="tu-paths"></g></svg></div>
+    <div class="tu-stage" id="tu-stage"><svg viewBox="0 0 6 7.35">${gridSvg()}</svg></div>
     <div class="tu-text" id="tu-text"></div><div class="tu-acts" id="tu-acts"></div>`;
   stage = $('tu-stage'); svg = stage.querySelector('svg'); texts = $('tu-text'); acts = $('tu-acts');
   dots = card.querySelector('.tu-dots');
@@ -344,50 +333,30 @@ async function play() {
         'Una copia di ognuna si mette giù: sono i nostri <b>sei simboli</b>.\nSei simboli diversi sono proprio quelli che servono a un <b>mini sudoku</b>.'), 1);
   await next();
 
-  // 3 · do you know the mini sudoku?
-  say(T('Do you know what a mini sudoku is?', 'Sai cos’è un mini sudoku?'), 2);
-  const level = await ask([
-    [T("No, what's a sudoku?", 'No, cos’è un sudoku?'), 'new'],
-    [T('I know sudoku, not the mini one', 'Conosco il sudoku, non il mini'), 'sudoku'],
-    [T('Yes, I know it', 'Sì, lo conosco'), 'mini', true]], true);
+  // 3 · the mini sudoku, for everyone (no question: someone who knows it loses a few seconds, nobody gets lost)
   svg.querySelector('.tu-grid').classList.add('on');
-
-  if (level === 'new') {
-    say(T('A mini sudoku is a 6×6 grid: 36 cells.\nThe game is to fill every cell with one of the six symbols.',
-          'Un mini sudoku è una griglia 6×6: 36 caselle.\nIl gioco è riempire ogni casella con uno dei sei simboli.'), 3);
-    await sleep(600); await next();
-    highlight(0, 0, 6, 1);
-    say(T('<b>Rule 1.</b> Every row has each symbol exactly once.', '<b>Regola 1.</b> In ogni riga c’è ogni simbolo, una volta sola.'), 3);
-    await fly(ROW(0), 170); await next();
-    highlight(0, 0, 1, 6);
-    say(T('<b>Rule 2.</b> Same for every column.', '<b>Regola 2.</b> Lo stesso in ogni colonna.'), 3);
-    await fly(COL(0), 170); await next();
-    highlight(0, 0, 3, 2);
-    say(T('<b>Rule 3.</b> Same for every 2×3 box, the ones with a thick border. There are six of them.',
-          '<b>Regola 3.</b> Lo stesso in ogni riquadro 2×3, quelli con il bordo spesso. Ce ne sono sei.'), 3);
-    await fly(BOX(0), 220); await next();
-    highlight();
-    say(T('No repeats in any row, column or box: that’s a solved mini sudoku.',
-          'Nessun doppione in righe, colonne e riquadri: ecco un mini sudoku risolto.'), 3);
-    await fly(ALL, 45); await sleep(500); await next();
-  } else if (level === 'sudoku') {
-    say(T('It’s a sudoku, only smaller: 6×6 instead of 9×9, boxes of 2×3, and six symbols instead of nine digits.',
-          'È un sudoku, solo più piccolo: 6×6 invece di 9×9, riquadri di 2×3 e sei simboli invece di nove cifre.'), 3);
-    for (const b of [0, 1, 2, 3, 4, 5]) { highlight((b % 2) * 3, Math.floor(b / 2) * 2, 3, 2); await sleep(420) }
-    highlight();
-    await next();
-    say(T('Same rules: each symbol once in every row, column and box.',
-          'Stesse regole: ogni simbolo una volta in ogni riga, colonna e riquadro.'), 3);
-    await fly(ALL, 45); await sleep(500); await next();
-  } else {
-    say(T('Great. Then there is only one new thing.', 'Perfetto. Allora c’è una cosa sola di nuovo.'), 3);
-    await fly(ALL, 35); await sleep(500);
-  }
+  say(T('A mini sudoku is a 6×6 grid: 36 cells.\nThe game is to fill every cell with one of the six symbols.',
+        'Un mini sudoku è una griglia 6×6: 36 caselle.\nIl gioco è riempire ogni casella con uno dei sei simboli.'), 2);
+  await sleep(600); await next();
+  highlight(0, 0, 6, 1);
+  say(T('<b>Rule 1.</b> Every row has each symbol exactly once.', '<b>Regola 1.</b> In ogni riga c’è ogni simbolo, una volta sola.'), 3);
+  await fly(ROW(0), 170); await next();
+  highlight(0, 0, 1, 6);
+  say(T('<b>Rule 2.</b> Same for every column.', '<b>Regola 2.</b> Lo stesso in ogni colonna.'), 3);
+  await fly(COL(0), 170); await next();
+  highlight(0, 0, 3, 2);
+  say(T('<b>Rule 3.</b> Same for every 2×3 box, the ones with a thick border. There are six of them.',
+        '<b>Regola 3.</b> Lo stesso in ogni riquadro 2×3, quelli con il bordo spesso. Ce ne sono sei.'), 3);
+  await fly(BOX(0), 220); await next();
+  highlight();
+  say(T('No repeats in any row, column or box: that’s a solved mini sudoku.',
+        'Nessun doppione in righe, colonne e riquadri: ecco un mini sudoku risolto.'), 3);
+  await fly(ALL, 45); await sleep(500); await next();
 
   // 4 · the words are in the grid
   say(T('Here the symbols are letters, and the three words are <b>hidden in the grid</b>.',
         'Qui i simboli sono lettere, e le tre parole sono <b>nascoste nella griglia</b>.'), 4);
-  await sleep(level === 'mini' ? 900 : 300);
+  await sleep(300);
   const paths = stage.querySelector('#tu-paths');
   const lit = new Set();
   async function trace(i) {
@@ -400,9 +369,9 @@ async function play() {
     nums.push(n);
     await frame(); n.classList.add('on');
     const d = c.path.map((p, k) => `${k ? 'L' : 'M'}${p % 6 + 0.5} ${Math.floor(p / 6) + 0.5}`).join(' ');
-    paths.insertAdjacentHTML('beforeend', `<path class="tu-path" pathLength="1" d="${d}" style="stroke:var(--w${i % 3})"/>`);
-    const el = paths.lastChild;
-    await frame(); el.classList.add('on');
+    paths.insertAdjacentHTML('beforeend', `<path class="tu-path out" pathLength="1" d="${d}" style="stroke:var(--w${i % 3})"/><path class="tu-path in" pathLength="1" d="${d}"/>`);
+    const els = [...paths.children].slice(-2);
+    await frame(); els.forEach(e => e.classList.add('on'));
     for (const p of c.path) { const t = cellT[p]; t.classList.remove('bump'); void t.offsetWidth; t.classList.add('bump'); await sleep(1600 / c.path.length) }
   }
   await trace(0);

@@ -1204,6 +1204,26 @@ nbJsFromCode:
   stage.svg.addEventListener("pointerup", snakeUp)
   stage.svg.addEventListener("pointercancel", snakeUp)
 
+  proc sureLetter(g: Grid, c: int): char =
+    ## the only letter a double tap can put in cell c: a start ring's first letter, or the one missing
+    ## from a row, column or box that already has the other five, all different ('.': none)
+    result = '.'
+    for clue in puz.clues:
+      if idx(clue.pos) == c: return clue.word[0]
+    let (row, col) = (c div 6, c mod 6)
+    var units: seq[seq[int]]
+    units.add toSeq(0 .. 5).mapIt(row * 6 + it)
+    units.add toSeq(0 .. 5).mapIt(it * 6 + col)
+    let (r0, c0) = (row div 2 * 2, col div 3 * 3)
+    units.add toSeq(0 .. 5).mapIt((r0 + it div 3) * 6 + c0 + it mod 3)
+    for u in units:
+      var seen: seq[char]
+      for cc in u:
+        if cc != c and g[cc] != '.' and g[cc] notin seen: seen.add g[cc]
+      if seen.len == 5:
+        for ch in puz.letters:
+          if ch notin seen: return ch
+
   # ---- a double tap on a tile on the board sends it (and the rest of its snake) back to its letter below; on an empty cell with only one possible letter (a start ring, or the last gap of a row, column or box), it fills that letter in
   var tapKey = ""
   var tapAt = 0.0
@@ -1228,26 +1248,7 @@ nbJsFromCode:
         tapKey = ""
         return
       let c = row * 6 + col
-      # the only letter that can go there: a start ring's first letter, or the one missing from a row,
-      # column or box that already has the other five, all different
-      var forced = '.'
-      for clue in puz.clues:
-        if idx(clue.pos) == c: forced = clue.word[0]
-      if forced == '.':
-        let g = stage.state.grid
-        var units: seq[seq[int]]
-        units.add toSeq(0 .. 5).mapIt(row * 6 + it)
-        units.add toSeq(0 .. 5).mapIt(it * 6 + col)
-        let (r0, c0) = (row div 2 * 2, col div 3 * 3)
-        units.add toSeq(0 .. 5).mapIt((r0 + it div 3) * 6 + c0 + it mod 3)
-        for u in units:
-          var seen: seq[char]
-          for cc in u:
-            if cc != c and g[cc] != '.' and g[cc] notin seen: seen.add g[cc]
-          if seen.len == 5:
-            for ch in puz.letters:
-              if ch notin seen: forced = ch
-            break
+      let forced = sureLetter(stage.state.grid, c)
       if forced == '.' or stage.state.cells[c] >= 0:
         tapKey = ""
         return
@@ -1451,6 +1452,7 @@ nbJsFromCode:
   var guided = true                    # false once the player chose to finish the sudoku alone
   var wordsAck = false                 # the "all words are in" page was seen
   var coachStep: Step
+  var taughtAt: array[StepKind, int]   # tutorial: the step where each gesture was first explained (-1: not yet)
   proc showCoach()
   proc refresh() =
     let g = stage.state.grid
@@ -1727,6 +1729,8 @@ nbJsFromCode:
     var must, nice: seq[Box]
     if coachTarget >= 0: must.add svgBox(cellPos(coachTarget), cell / 2)
     for li in coachStacks: must.add svgBox(stackPos(li), 34)
+    if tutorial and intro >= 4 and coachStep.kind == skWord and coachTarget >= 0:
+      must.add svgBox(cellPos(coachStep.path[^2]), cell / 2)   # the word's last letter, to stretch it from
     for c in coachTint: nice.add svgBox(cellPos(c), cell / 2)
     var clues: seq[int]
     if tutorial and intro == 2: clues = toSeq(0 ..< puz.clues.len)
@@ -1790,8 +1794,34 @@ nbJsFromCode:
         coachEl.setHidden(true)
       else:
         text = explain(puz, g, s)
-        if s.kind != skFix:
-          text.add L(&" Drag {an(s.letter)} <b>{s.letter}</b> there.", &" Trascina lì una <b>{s.letter}</b>.")
+        # how to do it: the gestures, taught in full the first time, then only named
+        let first = taughtAt[s.kind] < 0 or taughtAt[s.kind] == s.cell
+        taughtAt[s.kind] = s.cell
+        let drag = L(&" Drag {an(s.letter)} <b>{s.letter}</b> there", &" Trascina lì una <b>{s.letter}</b>")
+        case s.kind
+        of skFix:
+          text.add L(" Or double tap it: it goes back by itself (inside a word, the whole word goes back).",
+                     " Oppure fai doppio tocco sulla lettera: torna giù da sola (se è dentro una parola, torna giù tutta la parola).")
+        of skStart:
+          if first:
+            text.add drag & L(", or double tap the cell: a word's first letter goes in by itself.",
+                              ", oppure fai doppio tocco sulla casella: la prima lettera di una parola si mette da sola.")
+          else: text.add L(" Or double tap the cell.", " Oppure doppio tocco sulla casella.")
+        of skWord:
+          let w = puz.clues[s.clue].word
+          let (a, z) = (rc(s.path[^2]), rc(s.cell))
+          if first:
+            text.add L(&" Stretch <b>{w}</b>: drag its last letter, from {a} to {z}, and the {s.letter} comes by itself.",
+                       &" Allunga <b>{w}</b>: trascina la sua ultima lettera, da {a} a {z}, e la {s.letter} arriva da sola.")
+          else: text.add L(&" Stretch <b>{w}</b> from {a} to {z}.", &" Allunga <b>{w}</b> da {a} a {z}.")
+        else:
+          if sureLetter(g, s.cell) == s.letter:
+            if first:
+              text.add L(&" It's the last free cell of its row, column or box: double tap it and the {s.letter} goes in by itself.",
+                         &" È l'ultima casella libera della sua riga, colonna o riquadro: fai doppio tocco e la {s.letter} si mette da sola.")
+            else: text.add L(" Double tap and it goes in by itself.", " Doppio tocco e si mette da sola.")
+          else: text.add drag & "."
+        if s.kind notin {skFix, skWord}:      # a word grows from its last letter: no letter to pull from below
           coachStacks = @[puz.letters.find(s.letter)]
         coachTarget = s.cell
         case s.kind
@@ -1811,6 +1841,7 @@ nbJsFromCode:
     intro = 0
     guided = true
     wordsAck = false
+    for k in StepKind: taughtAt[k] = -1
     code = games[0][0]
     lsSet(storeKey(), "")
     load(code)
