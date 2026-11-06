@@ -69,7 +69,7 @@ Devlog ([index](https://pietroppeter.github.io/parloku/devlog/), built from the 
 - `src/specs_page.nim` → `specs/index.html`: the living spec page. `src/devlog_openspec.nim` →
   `devlog/openspec/index.html`: the dated post on adopting OpenSpec (it does not follow later spec changes).
 - `src/solver.nim`: the solver the builder uses (counts and lists complete grids, exact pencil marks), moved from puzzlepaw; `tests/test_solver.nim` checks it.
-- `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
+- `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys, `author` and `created` date.
   At build time the solver checks each puzzle has a unique solution that matches its key.
 - `src/deps.sh`, `src/config.nims`, `config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/` and put them on the path (the root one is for the `nim js` compiles nimib runs from the repo root).
 

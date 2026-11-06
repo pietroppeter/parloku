@@ -1,4 +1,4 @@
-## Solver checks: every puzzle in data/ has exactly one solution, equal to its answer key,
+## Solver checks: every puzzle in data/ says who made it and when, has exactly one solution, equal to its answer key,
 ## and the pencil marks of a solved puzzle are its letters. Run: nim r -d:release tests/test_solver.nim
 import std/[json, os, unittest]
 import ../src/solver
@@ -21,6 +21,9 @@ suite "solver":
   for f in walkFiles(currentSourcePath().parentDir.parentDir / "data" / "puzzle*.json"):
     test extractFilename(f):
       let (p, key) = load(f)
+      let meta = parseFile(f)
+      check meta{"author"}.getStr.len > 0            # who made it: a GitHub login, or claude
+      check meta{"created"}.getStr.len == 10         # when: YYYY-MM-DD
       check validate(p).len == 0
       let r = solve(p, defaultOptions(limit = 2, keep = 2))
       check r.count == 1
