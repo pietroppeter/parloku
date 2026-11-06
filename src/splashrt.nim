@@ -156,13 +156,19 @@ proc splash(first: bool) =
   if not first: timer = setTimeout(close, stay)
 
 # ---------- the lesson
-# It explains the rules on an example of its own, not on a puzzle of the game: no spoilers. NERO, ROSA, ORO use six
+# It explains the rules on an example of its own, not on a puzzle of the game: no spoilers. AMARENA, MENTA, MARE use six
 # letters; the grid below holds each of them as a single path from its start cell (made with a small search).
-const exampleLetters = "AENORS"
+const exampleLetters = "AEMNRT"
 # No word turns back on itself in a U, and the three givens leave one solution under the game's rules.
-const exampleSolution = "OASERN" & "ERNAOS" & "NOERSA" & "ASRONE" & "SEONAR" & "RNASEO"
-const exampleWords = [("NERO", 22), ("ROSA", 7), ("ORO", 21)]
-const exampleGivens = @[3, 8, 33]
+# Three flavours of a summer day, each in the colour of its outline: AMARENA red, MENTA green, MARE blue.
+const exampleSolution = "RATMNE" & "MENART" & "AMRTEN" & "TNERAM" & "NRMETA" & "ETANMR"
+const exampleWords = [("AMARENA", 29), ("MENTA", 26), ("MARE", 3)]
+const exampleGivens = @[8, 17, 35]
+# the gestures beat: a letter put by hand, then the bottom row gets one more and has a single free cell left
+# (the row holds that letter, two of AMARENA and a given)
+const putCell = 30
+const rowFill = [31]
+const lastFree = 34
 var letters, solution: string
 var givens: seq[int]
 var clues: seq[Clue]
@@ -302,9 +308,19 @@ proc colOf(k: int): seq[int] = toSeq(0 .. 5).mapIt(it * 6 + k)
 proc boxOf(b: int): seq[int] = toSeq(0 .. 5).mapIt((b div 2 * 2 + it div 3) * 6 + (b mod 2) * 3 + it mod 3)
 let allCells = toSeq(0 ..< 36)
 
+proc showClues(cur = -1) =
+  ## the three words above the grid, as in the game: each in the colour of its start mark and outline
+  let box = card.querySelector("#tu-clues")
+  var h = ""
+  for i, c in clues:
+    h.add &"""<span class="{(if i == cur: "cur" else: "")}" style="color:var(--w{i mod 3})">{c.word}</span>"""
+  box.innerHTML = cstring(h)
+  box.classList.add("on")
+
 proc trace(i: int, lit: var seq[int]) {.async.} =
   ## a word lights up on the solved grid: its start mark, then its outline along its cells
   let c = clues[i]
+  showClues(i)
   for p in c.path:
     if p notin lit: lit.add p
   for p in allCells:
@@ -333,15 +349,17 @@ proc play() {.async.} =
   # 1 · three words
   say(T("Here are three words, just an example.", "Ecco tre parole, per esempio."), 0)
   for w, word in words:
-    let x0 = float(6 - word.len) / 2 + 0.07
+    let step = min(1.0, 6 / word.len)    # a word longer than the grid is wide gets smaller tiles
+    let x0 = (6 - word.len.float * step) / 2 + 0.07 - (1 - step) / 2
     for i, ch in word:
       let t = mk("tu-t ghost", $ch)
       t.setAttr("data-ch", cstring($ch))
-      t.at(x0 + i.float, 0.6 + w.float * 1.3 + 0.4)
+      if step < 1: t.setVar("--s", cstring(&"{step * 0.97:.3f}"))
+      t.at(x0 + i.float * step, 0.6 + w.float * 1.3 + 0.4)
       chips.add t
       await frame()
       t.classList.remove("ghost")
-      t.at(x0 + i.float, 0.6 + w.float * 1.3)
+      t.at(x0 + i.float * step, 0.6 + w.float * 1.3)
       await sleep(70)
     await sleep(380)
   say(T(&"<b>{words.join(\", \")}</b>. Look closely at their letters…", &"<b>{words.join(\", \")}</b>. Guarda bene le loro lettere…"), 0)
@@ -359,6 +377,7 @@ proc play() {.async.} =
     let t = chip
     let ch = ($t.attr("data-ch"))[0]
     let (x, y) = trayXY(li(ch))
+    t.setVar("--s", "1")
     t.at(x, y)
     if ch in kept:
       closureScope:                    # each fading tile keeps its own `t`
@@ -398,8 +417,9 @@ proc play() {.async.} =
   await next()
 
   # 4 · the words are in the grid
-  say(T("Here the symbols are letters, and the three words are <b>hidden in the grid</b>.",
-        "Qui i simboli sono lettere, e le tre parole sono <b>nascoste nella griglia</b>."), 4)
+  showClues()
+  say(T("Here the symbols are letters, and the three words are <b>hidden in the grid</b>. They stay up there, each with its own colour.",
+        "Qui i simboli sono lettere, e le tre parole sono <b>nascoste nella griglia</b>. Restano lassù, ognuna con il suo colore."), 4)
   await sleep(300)
   var lit: seq[int]
   await trace(0, lit)
@@ -412,13 +432,14 @@ proc play() {.async.} =
   await next()
 
   # 5 · how a puzzle starts
+  showClues()
   stage.querySelector("#tu-paths").innerHTML = ""
   for p in allCells:
     cellT[p].classList.remove("dim")
     if p notin givens: cellT[p].home
   await sleep(700)
-  say(T("A puzzle starts almost empty: a few letters, and for each word the coloured cell where it starts.\nThe words are clues: they tell you where letters go.",
-        "Un puzzle parte quasi vuoto: qualche lettera e, per ogni parola, la casella colorata dove inizia.\nLe parole sono indizi: ti dicono dove vanno le lettere."), 5)
+  say(T("A puzzle starts almost empty: a few letters, and the coloured cell where each word starts. The words are your clues.",
+        "Un puzzle parte quasi vuoto: qualche lettera e la casella colorata dove parte ogni parola. Le parole sono i tuoi indizi."), 5)
   await next()
 
   # 6 · the gestures, shown by a finger
@@ -426,16 +447,16 @@ proc play() {.async.} =
   proc point(x, y: float) = finger.at(x, y)
   proc pointCell(c: int) = point(float(c mod 6), float(c div 6))
   proc pointTray(ch: char) = point(float(li(ch)), 6.33)
-  pointTray('R')
+  pointTray(solution[putCell])
   await frame()
   finger.classList.add("on")
   say(T("<b>Put a letter:</b> drag one of the six letters below onto an empty cell.",
         "<b>Mettere una lettera:</b> trascina una delle sei lettere in basso su una casella vuota."), 6)
   await sleep(700)
-  cellT[30].classList.remove("ghost")
-  pointCell(30)
-  let (x30, y30) = cellXY(30)
-  cellT[30].at(x30, y30)
+  cellT[putCell].classList.remove("ghost")
+  pointCell(putCell)
+  let (xp, yp) = cellXY(putCell)
+  cellT[putCell].at(xp, yp)
   await sleep(800)
   await next()
   let w0 = clues[0]
@@ -462,17 +483,16 @@ proc play() {.async.} =
     outline(k + 1)
     await sleep(450)
   await next()
-  # the bottom row: R (put in by hand), a given, the end of the word; two more letters leave one free cell
-  for c in [31, 32]:
+  for c in rowFill:
     cellT[c].place(c)
     await sleep(250)
   say(T("<b>The last free cell</b> of a row, column or box: double tap it and the missing letter comes. On other cells a double tap does nothing.",
         "<b>L'ultima casella libera</b> di una riga, colonna o riquadro: doppio tocco e arriva la lettera che manca. Sulle altre caselle il doppio tocco non fa niente."), 6)
   highlight(0, 5, 6, 1)
-  pointCell(34)
+  pointCell(lastFree)
   await sleep(900)
   await finger.tap
-  cellT[34].place(34)
+  cellT[lastFree].place(lastFree)
   await sleep(700)
   highlight()
   await next()
@@ -488,8 +508,11 @@ proc play() {.async.} =
   await next()
 
   # 7 · over to you, with the options
-  say(T("Now it's your turn. Try the first puzzle on your own, or let the tutorial guide you through it (it shows the solution step by step), or try every gesture on the istruzioni page.",
-        "Ora tocca a te. Prova il primo puzzle da solo, oppure fatti guidare dal tutorial (ti mostra la soluzione passo per passo), oppure prova tutti i gesti nella pagina delle istruzioni."), 6)
+  card.querySelector("#tu-clues").classList.remove("on")
+  resizing = nil                       # the board is done: it folds away, so the three choices fit on any phone
+  stage.classList.add("gone")
+  say(T("Your turn! Play the first puzzle on your own, let the tutorial guide you (it shows the solution), or try the gestures in istruzioni.",
+        "Tocca a te! Gioca da solo il primo puzzle, fatti guidare dal tutorial (ti mostra la soluzione) o prova i gesti nelle istruzioni."), 6)
   let me = run
   let how = await ask(@[(T("▸ Play on my own", "▸ Gioco da solo"), "play", true),
                         (T("🎓 Guide me (spoilers)", "🎓 Guidami (spoiler!)"), "guide", false),
@@ -512,6 +535,7 @@ proc lesson() =
   card.onclick = nil
   card.innerHTML = cstring(&"""<div class="tu-head"><div class="tu-dots">{"<i></i>".repeat(7)}</div>
     <button class="sp-x" id="tu-skip">{T("skip ✕", "salta ✕")}</button></div>
+    <div class="tu-clues" id="tu-clues"></div>
     <div class="tu-stage" id="tu-stage"><svg viewBox="0 0 6 7.35">{gridSvg()}</svg></div>
     <div class="tu-text" id="tu-text"></div><div class="tu-acts" id="tu-acts"></div>""")
   stage = document.getElementById("tu-stage")

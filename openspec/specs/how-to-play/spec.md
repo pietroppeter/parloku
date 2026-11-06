@@ -26,7 +26,9 @@ read on a phone without scrolling much.
 
 ### Requirement: The first lesson
 A first-time player SHALL be offered, in the daily splash, a short animated lesson; `?learn` opens it directly. It
-SHALL explain the rules on its own small example (NERO, ROSA, ORO), never a puzzle of the game, in the game's look.
+SHALL explain the rules on its own small example (AMARENA, MENTA, MARE: each word in the colour of its outline), never
+a puzzle of the game, in the game's look. From the moment the words are found in the grid, they SHALL stay above it
+in their colours, as in the game, so each colour is linked to its word.
 Like a puzzle of the game, the example SHALL have one solution, and no word in it SHALL turn back on itself in a U.
 A finger SHALL then show each gesture on its own: dragging a letter onto a cell, a double tap on a word's start cell,
 stretching a word, a double tap on the last free cell of a row, and a double tap that takes a word back from a
@@ -39,7 +41,11 @@ istruzioni.
 
 #### Scenario: No spoiler
 - **WHEN** the lesson spells its words
-- **THEN** they are NERO, ROSA and ORO, and no puzzle of the game is shown solved
+- **THEN** they are AMARENA, MENTA and MARE, and no puzzle of the game is shown solved
+
+#### Scenario: Words and colours
+- **WHEN** the lesson shows the words in the grid and then the gestures
+- **THEN** AMARENA, MENTA and MARE stay above the grid in red, green and blue, the colours of their start marks and outlines
 
 #### Scenario: Both sure cells
 - **WHEN** the lesson shows the gestures

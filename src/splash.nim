@@ -41,7 +41,13 @@ const splashCss* = """
 .tu-dots{display:flex;gap:5px}
 .tu-dots i{width:7px;height:7px;border-radius:50%;background:var(--line);transition:background .3s}
 .tu-dots i.on{background:var(--ink)}
+.tu-clues{display:flex;justify-content:space-between;font:var(--glyph-weight) 16px/1.2 var(--font-glyph);letter-spacing:.06em;
+  height:0;opacity:0;overflow:hidden;margin:0 2px;transition:height .4s,opacity .4s,margin .4s}
+.tu-clues.on{height:1.3em;opacity:1;margin:-2px 2px 8px}
+.tu-clues span{text-decoration:underline 2.5px transparent;text-underline-offset:4px;transition:text-decoration-color .3s}
+.tu-clues span.cur{text-decoration-color:currentColor}
 .tu-stage{position:relative;width:100%;margin:0 auto;touch-action:manipulation}
+.tu-stage.gone{height:0!important;opacity:0;overflow:hidden;transition:height .5s,opacity .3s}
 .tu-stage svg{position:absolute;left:0;top:0;width:100%;overflow:visible;pointer-events:none}
 .tu-grid{opacity:0;transition:opacity .5s}
 .tu-grid.on{opacity:1}
