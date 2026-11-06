@@ -422,7 +422,7 @@ const styles* = @[
       "dashes and fine lines. With Tara Books he made <i>The London Jungle Book</i> (2004), his visit to London drawn as a " &
       "forest of animals, and with Durga Bai and Ram Singh Urveti <i>The Night Life of Trees</i> (2006), screen-printed by hand. " &
       "He received the Padma Shri in 2018.",
-    took: "Patterns inside shapes. Each round tile is filled with a ring of fine dashes in the letter's ink, and the letters " &
+    took: "Patterns inside shapes. Each round tile is filled with a ring of fine dots in the letter's ink, and the letters " &
       "come from a Devanagari-inspired face.",
     why: "It is the most decorative style here, and it shows how far texture can go before it becomes clutter.",
     links: @[Link(label: "Wikipedia", url: wiki("Bhajju_Shyam"))],

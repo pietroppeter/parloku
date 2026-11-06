@@ -141,7 +141,13 @@ proc tileSvg(st: Style, cx, cy, s: float, i: int, letter: char): string =
       &"""<circle cx="{f1(cx)}" cy="{f1(cy)}" r="{f1(s * 0.72)}" fill="none" stroke="{mix(g, st.ink, 0.3)}" stroke-width="1.4"/>"""
   of shDashed:
     body = shapeSvg(st, cx, cy, s, i, g, ol) &
-      &"""<circle cx="{f1(cx)}" cy="{f1(cy)}" r="{f1(s * 0.8)}" fill="none" stroke="{st.ink}" stroke-width="2.2" stroke-dasharray="0.1 4.2" stroke-linecap="round"/>"""
+      (block:
+        var dots = ""
+        let n = max(8, int(2 * PI * s * 0.8 / 4.3))
+        for k in 0 ..< n:
+          let a = 2 * PI * k.float / n.float
+          dots &= &"""<circle cx="{f1(cx + s * 0.8 * cos(a))}" cy="{f1(cy + s * 0.8 * sin(a))}" r="1.1" fill="{st.ink}"/>"""
+        dots)
   of shOutlined:
     body = shapeSvg(st, cx, cy, s, i, st.outline) &
       &"""<rect x="{f1(cx - s + 3.2)}" y="{f1(cy - s + 3.2)}" width="{f1(2 * s - 6.4)}" height="{f1(2 * s - 6.4)}" rx="2" fill="#ffffff"/>""" &
@@ -458,7 +464,7 @@ code{font:13.5px "JetBrains Mono",monospace;background:#f0ede5;padding:1px 5px;b
 .clue{display:flex;gap:4px;padding:5px 9px;border:3px solid var(--wk);border-radius:999px;background:var(--card)}
 .clue:nth-child(1){align-self:flex-start}.clue:nth-child(2){align-self:center}.clue:nth-child(3){align-self:flex-end}
 .clue .l{width:27px;height:30px;border-radius:8px;display:grid;place-items:center;font:var(--glyph-weight) 18px var(--font-glyph);
-  border:1.5px dashed color-mix(in srgb,var(--wk) 45%,transparent);color:color-mix(in srgb,var(--wk) 60%,transparent)}
+  border:1.5px solid color-mix(in srgb,var(--wk) 30%,transparent);color:color-mix(in srgb,var(--wk) 60%,transparent)}
 .clue .l.on{border:1.5px solid transparent}
 svg.board{display:block;width:100%;height:auto}
 .checks{font:500 11.5px/1.5 "JetBrains Mono",monospace;color:var(--muted);text-align:center;margin:10px 0 0}
@@ -468,6 +474,9 @@ svg.board{display:block;width:100%;height:auto}
 .insp .took{border-left:4px solid var(--w0);padding:2px 0 2px 12px}
 .insp a{color:var(--w2)}
 .links{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px;padding:0;list-style:none}
+.try{text-align:center;margin:12px 0 0}
+.try a{display:inline-block;font:800 14px Nunito,sans-serif;text-decoration:none;color:#fff;background:var(--w0);border-radius:999px;padding:6px 16px}
+.try.off{font:600 12px "JetBrains Mono",monospace;color:var(--muted)}
 .links a{display:inline-block;font:700 13px Nunito,sans-serif;text-decoration:none;color:var(--ink);border:2px solid var(--w1);border-radius:999px;padding:2px 10px;background:var(--card)}
 .gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0 4px}
 @media (min-width:620px){.gallery{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -508,6 +517,8 @@ she is the default for now. Swipe left and right to change
 artist, or tap a name on the strip. Scroll down to read who they are, what I borrowed, and to see their work.</p>
 """
 
+const gameUrl = "https://pietroppeter.github.io/parloku/"   # the game on GitHub Pages; ?skin=<id> picks a skin
+
 const shortNames = {"mari": "Mari", "kusama": "Kusama", "dufy": "Dufy", "albers": "Albers", "morandi": "Morandi",
   "anno": "Anno", "niki": "Saint Phalle", "burlemarx": "Burle Marx", "depero": "Depero", "tanaka": "Tanaka",
   "gree": "Grée", "mahlangu": "Mahlangu", "luzzati": "Luzzati", "afklint": "af Klint", "corita": "Corita",
@@ -530,11 +541,15 @@ for i, st in styles:
   if st.round1 and not styles[i - 1].round1: strip &= """<span class="sep">first round</span>"""
   strip &= &"""<a href="#{st.id}" data-id="{st.id}" style="--c:{st.w[0]};--d0:{st.g[0]};--d1:{st.g[2]};--d2:{st.g[4]}"><i></i>{shortNames[st.id]}</a>"""
   let tag = if i == 0: " · default for now" elif st.round1: " · first round" else: ""
+  let tryIt = if st.round1 or st.id == "niki":
+      &"""<p class="try"><a href="{gameUrl}?skin={st.id}" target="_blank" rel="noopener">try it in the game ↗</a></p>"""
+    else: """<p class="try off">not in the game yet</p>"""
   cols &= &"""
 <section class="st" id="{st.id}" data-skin="{st.id}">
 <h2><span class="n">{i + 1:02} / {styles.len} · {st.flag} {st.place}{tag}</span>{st.name}</h2>
 <p class="sub">{st.role} · {st.life}</p>
 <div class="play">{cluesHtml(st)}{playSvg(st)}</div>
+{tryIt}
 <p class="checks">letters {a.ink:.1f}:1 · tiles ΔE ≥ {int(a.tiles)} · words ΔE ≥ {int(a.words)}, {a.wordsOnCard:.1f}:1 · {st.font}</p>
 <div class="insp">
 <h3>Who</h3><p>{st.who}</p>
@@ -545,45 +560,71 @@ for i, st in styles:
 <details class="css"><summary>this style as game CSS</summary><pre>{skinCss(st)}</pre></details>
 </div></section>"""
 
-const syncScript = """<script>
-(() => {
-  const cols = document.getElementById('cols'), strip = document.querySelector('.strip');
-  const chips = [...strip.querySelectorAll('a')], secs = [...cols.querySelectorAll('.st')];
-  let current = null;
-  function mark(id) {
-    if (id === current) return;
-    current = id;
-    for (const c of chips) {
-      const on = c.dataset.id === id;
-      c.classList.toggle('on', on);
-      if (on) strip.scrollTo({left: c.offsetLeft - (strip.clientWidth - c.offsetWidth) / 2, behavior: 'smooth'});
-    }
-    try { history.replaceState(null, '', '#' + id); } catch (e) {}
-  }
-  function show(id, smooth) {
-    const s = document.getElementById(id);
-    if (!s) return;
-    cols.scrollTo({left: s.offsetLeft - cols.offsetLeft, behavior: smooth ? 'smooth' : 'auto'});
-    const top = cols.getBoundingClientRect().top + scrollY - strip.offsetHeight;
-    if (scrollY > top) scrollTo({top, behavior: smooth ? 'smooth' : 'auto'});
-    mark(id);
-  }
-  chips.forEach(c => c.addEventListener('click', e => { e.preventDefault(); show(c.dataset.id, true); }));
-  let t = 0;
-  cols.addEventListener('scroll', () => {
-    cancelAnimationFrame(t);
-    t = requestAnimationFrame(() => {
-      const x = cols.scrollLeft + cols.clientWidth / 2;
-      const s = secs.find(s => s.offsetLeft - cols.offsetLeft <= x && x < s.offsetLeft - cols.offsetLeft + s.offsetWidth);
-      if (s) mark(s.id);
-    });
-  }, {passive: true});
-  const start = location.hash.slice(1);
-  if (start && document.getElementById(start)) show(start, false); else mark(secs[0].id);
-})();
-</script>"""
+nbRawHtml: "</main>" & strip & "</nav>" & cols & "</div><main>"
 
-nbRawHtml: "</main>" & strip & "</nav>" & cols & "</div>" & syncScript & "<main>"
+# strip and columns stay in step: tap a name to show its column; swipe and the name follows; #id opens one column
+nbJsFromCode:
+  import std/[dom, strutils]
+  proc qsa(e: Element, sel: cstring): seq[Element] {.importjs: "Array.from(#.querySelectorAll(#))".}
+  proc qs(d: Document, sel: cstring): Element {.importjs: "#.querySelector(#)".}
+  proc data(e: Element, k: cstring): cstring {.importjs: "#.dataset[#]".}
+  proc toggle(e: Element, c: cstring, on: bool) {.importjs: "#.classList.toggle(#, #)".}
+  proc scrollToX(e: Element, x: float, smooth: bool) {.importjs: "#.scrollTo({left: #, behavior: # ? 'smooth' : 'auto'})".}
+  proc scrollPageTo(y: float, smooth: bool) {.importjs: "window.scrollTo({top: #, behavior: # ? 'smooth' : 'auto'})".}
+  proc pageY(): float {.importjs: "(window.scrollY)@".}
+  proc topOf(e: Element): float {.importjs: "#.getBoundingClientRect().top".}
+  proc leftOf(e: Element): float {.importjs: "#.offsetLeft".}
+  proc widthOf(e: Element): float {.importjs: "#.offsetWidth".}
+  proc inner(e: Element): float {.importjs: "#.clientWidth".}
+  proc tall(e: Element): float {.importjs: "#.offsetHeight".}
+  proc sl(e: Element): float {.importjs: "#.scrollLeft".}
+  proc replaceHash(h: cstring) {.importjs: "(function(h){try{history.replaceState(null, '', h)}catch(e){}})(#)".}
+  proc raf(f: proc ()) {.importjs: "requestAnimationFrame(#)".}
+  proc hashNow(): cstring {.importjs: "(location.hash)@".}
+  proc prevent(e: Event) {.importjs: "#.preventDefault()".}
+  proc onScroll(e: Element, f: proc ()) {.importjs: "#.addEventListener('scroll', #, {passive: true})".}
+
+  let cols = document.getElementById("cols")
+  let strip = document.qs(".strip")
+  let chips = strip.qsa("a")
+  let secs = cols.qsa(".st")
+  var current = ""
+  proc mark(id: string) =
+    if id == current: return
+    current = id
+    for c in chips:
+      let on = $c.data("id") == id
+      c.toggle("on", on)
+      if on: strip.scrollToX(c.leftOf - (strip.inner - c.widthOf) / 2, true)
+    replaceHash(cstring("#" & id))
+  proc show(id: string, smooth: bool) =
+    let s = document.getElementById(cstring(id))
+    if s.isNil: return
+    cols.scrollToX(s.leftOf - cols.leftOf, smooth)
+    let top = cols.topOf + pageY() - strip.tall
+    if pageY() > top: scrollPageTo(top, smooth)
+    mark(id)
+  proc wire(c: Element) =            # a proc per chip, so each click handler keeps its own id
+    let id = $c.data("id")
+    c.addEventListener("click", proc (e: Event) =
+      e.prevent()
+      show(id, true))
+  for c in chips: wire(c)
+  var queued = false
+  cols.onScroll(proc () =
+    if queued: return
+    queued = true
+    raf(proc () =
+      queued = false
+      let x = cols.sl + cols.inner / 2
+      for s in secs:
+        let l = s.leftOf - cols.leftOf
+        if l <= x and x < l + s.widthOf:
+          mark($s.id)
+          break))
+  let start = ($hashNow()).strip(chars = {'#'})
+  if start.len > 0 and not document.getElementById(cstring(start)).isNil: show(start, false)
+  else: mark($secs[0].id)
 
 if problems.len > 0:
   echo "colour checks:\n  " & problems.join("\n  ")
@@ -610,6 +651,9 @@ things children love. Their look had to survive being reduced to a palette, a sh
 travel: Italy, France and Japan as Pietro asked, then Germany, Sweden, the US, Canada, Mexico, Brazil, South Africa and
 India. Eight of the twenty are women. I borrowed only principles (palettes, shapes, edges, type), never characters or motifs.
 
+**Trying them.** Niki and the ten first-round skins are in the game: "try it in the game" opens it with
+`?skin=<name>` (on GitHub Pages; the game itself shows only Niki). The twenty new ones live only on this page for now.
+
 **About the galleries.** Pictures come from Wikimedia Commons, where every file is freely licensed, and they are
 linked from there, not copied here. The credit under each one names the author and licence. Commons has no free picture
 for many of these works, since most are still under copyright, and claude.ai pages block remote images altogether. Wherever
@@ -620,7 +664,7 @@ image search for the real work, or "about" for its page.
 
 The variables are the ones the game is moving to (`--g0`…`--g5` for the letters, `--w0`…`--w2` for the words, plus the
 ground, card and board tints), so any of the twenty can become a game skin by pasting its CSS block. The tile shapes need
-a few more SVG shapes in the game than the three it draws today: a blob, an arch, a nested square, a ring and a dashed fill.
+a few more SVG shapes in the game than the three it draws today: a blob, an arch, a nested square, a ring and a ring of dots.
 
 If I had to pick five to try in the real game first: **Kusama** (the board really is a white room you fill with dots),
 **Albers** (colour is the information), **Anno** (logic for children), **Mahlangu** (the most readable), and **Morandi**
