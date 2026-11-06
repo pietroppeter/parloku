@@ -84,7 +84,7 @@ nbJsFromCode:
     if parts.len != 3 or parts[0].len != 6:
       outEl.innerHTML = cstring("""<div class="sum stuck">Questo codice non è un puzzle.</div>""")
       return
-    var e = Explained(id: "gal", letters: parts[0])
+    var e = Explained(id: "gal", letters: parts[0], ends: true)
     var pr: Problem
     for i, ch in parts[0]: pr.letters[i] = ch
     var givens: seq[(int, char)]
