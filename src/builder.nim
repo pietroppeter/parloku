@@ -437,6 +437,12 @@ nbJsFromCode:
   proc overlay(b: Board): string =
     let g = b.grid
     let n = puz.clues.len
+    # builder: in the solution shown, a word not on the board yet gets the start square on its first cell, in its colour
+    for i in 0 ..< min(solPaths.len, puz.clues.len):
+      if wpath[i].len == 0 and solPaths[i].len > 0:
+        let p = cellPos(solPaths[i][0])
+        let (t, h) = (4.0, cell / 2 - 3 - 4.0 + 2.0)
+        result.add &"""<rect class="wo w{i mod 3} solstart" x="{p.x - h:.1f}" y="{p.y - h:.1f}" width="{2 * h:.1f}" height="{2 * h:.1f}" rx="{14.0 - t / 2:.1f}" stroke-width="{t}"/>"""
     for i, clue in puz.clues:
       if wpath[i].len == 0: continue      # builder: a word's outline follows its container
       # each word is an outline in its own dark colour: a ring on its start cell that grows around its letters
