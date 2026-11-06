@@ -1510,6 +1510,81 @@ nbJsFromCode:
     discard setTimer(proc () = tellHeight(), 800)   # again once the fonts are in
     window.addEventListener("resize", proc (ev: Event) = tellHeight())
   if inDevlog(): playEl = nil
+  # ---- a little snake tells a new player where the menu is: tap the empty space at the top. It comes on each visit,
+  # and once more after a win (ancora! is in the menu), until the player has opened the menu once
+  proc splashUp(): bool {.importjs: "((e) => !!e && !e.hidden)(document.getElementById('splash'))".}
+  proc reflow(e: Element) {.importjs: "void #.offsetWidth".}
+  proc removeEl(e: Element) {.importjs: "#.remove()".}
+  proc menuFound(): bool = not lsGet("parloku:menu").isNil
+  var snake: Element = nil
+  var snakeRun = 0
+  proc offW(e: Element): float {.importjs: "#.offsetWidth".}
+  proc offH(e: Element): float {.importjs: "#.offsetHeight".}
+  proc place(e: Element, x, y: float) =
+    e.style.left = cstring(&"{x:.0f}px")
+    e.style.top = cstring(&"{y:.0f}px")
+  proc snakeLeave(wait: int) =
+    if snake.isNil: return
+    let s = snake
+    snake = nil
+    inc snakeRun
+    discard setTimer(proc () =
+      s.classList.remove("talk")
+      s.classList.add("away")
+      discard setTimer(proc () = s.removeEl(), 1900), wait)
+  proc snakeFoundMenu() =
+    ## the menu came down: never again, and the snake, if it is out, goes away at once
+    lsSet("parloku:menu", "1")
+    snakeLeave(0)
+  proc snakeCome(afterWin: bool, wait: int) =
+    if demo or tutorial or playEl.isNil or menuFound(): return
+    inc snakeRun
+    let me = snakeRun
+    proc go() =
+      if me != snakeRun or menuFound() or not snake.isNil: return
+      if splashUp() or document.body.classList.contains("chrome"):
+        discard setTimer(go, 1500)           # wait for the splash or the lesson to close
+        return
+      let s = document.createElement("div")
+      s.className = "hint-snake"
+      s.setAttr("aria-hidden", "true")
+      let long = if afterWin: L("psst! tap here<br>for another puzzle", "psst! tocca qui<br>per un altro puzzle")
+                 else: L("psst! tap here:<br>the menu is here", "psst! tocca qui:<br>c’è il menu")
+      let short = if afterWin: L("tap here:<br>more puzzles", "tocca qui:<br>altri puzzle")
+                  else: L("tap here:<br>the menu", "tocca qui:<br>c’è il menu")
+      s.innerHTML = cstring("<div class=\"hs-body\"><i>M</i><i>E</i><i>N</i><i>U</i></div><div class=\"hs-say\">" & long & "</div>")
+      document.body.appendChild(s)
+      snake = s
+      let body = s.querySelector(".hs-body")
+      let say = s.querySelector(".hs-say")
+      let cards = document.querySelectorAll("#clues .clue")
+      let (cl, ct, cw, _) = rectOf(document.getElementById("clues"))
+      let right = cl + cw
+      let (w0l, w0t, w0w, w0h) = rectOf(cards[0])
+      let (_, w1t, _, w1h) = rectOf(cards[1])
+      discard w0l
+      if ct >= 76:
+        # room above the words: the snake crawls in from the left, its bubble beside it
+        let y = ct / 2
+        let x = max(18.0, cl + 2)
+        body.place(x, y - 17)
+        say.place(x + body.offW + 13, y - say.offH / 2)
+      else:
+        # a short screen: no room above the words, so it pops up in the free corner right of the first word,
+        # its bubble right of the second word
+        s.classList.add("corner")
+        body.place(right - body.offW, w0t + w0h / 2 - 17)
+        say.innerHTML = cstring(short)
+        say.place(right - say.offW, w1t + w1h / 2 - say.offH / 2)
+      reflow(s)
+      s.classList.add("in")
+      discard setTimer(proc () =
+        if snake == s: s.classList.add("rest"); s.classList.add("talk"),
+        (if s.classList.contains("corner"): 700 else: 2500))
+      discard setTimer(proc () =
+        if snake == s: snakeLeave(0), 11000)
+    discard setTimer(go, wait)
+
   if not playEl.isNil:
     setMode("focus")
     # one menu bar, at the top only: the puzzles and restart
@@ -1534,12 +1609,16 @@ nbJsFromCode:
         # the menu's zone: anywhere above the grid that is not a word (a word wiggles instead)
         if onClue(ev) or inStage(ev): return
         let (_, gridTop, _, _) = rectOf(host)
-        if clientXY(ev).y < gridTop and not demo: setMode("chrome")
+        if clientXY(ev).y < gridTop and not demo:
+          setMode("chrome")
+          snakeFoundMenu()
         return
       if interactive(ev): return
       if inPlay(ev):
         setMode("focus")
         scrollTop())
+
+  snakeCome(false, 4000)
 
   let banner = document.createElement("div")
   banner.className = "banner"
@@ -1744,6 +1823,7 @@ nbJsFromCode:
       celebrated = true
       banner.innerHTML = bannerHtml(movesMade(stage.state))
       celebrate()
+      snakeCome(true, 4000)              # after the party
     if won: host.classList.add("won")
     else:
       host.classList.remove("won")
