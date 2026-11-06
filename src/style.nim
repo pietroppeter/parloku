@@ -66,7 +66,7 @@ p code, li code{font:14.5px "JetBrains Mono",monospace;background:var(--soft);pa
 pre{margin:14px 0;overflow-x:auto;border-radius:10px}
 pre code{display:block;padding:14px 16px;font:13.2px/1.55 "JetBrains Mono",monospace;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--ink)}
 pre.nb-output, pre samp{display:block;padding:12px 16px;font:13px/1.5 "JetBrains Mono",monospace;background:#2b2b2b;color:#f3f1ea;border-radius:10px;white-space:pre;overflow-x:auto}
-details{margin:14px 0;border:1px dashed var(--line);border-radius:10px;padding:4px 12px;background:var(--card)}
+details{margin:14px 0;border:1px solid var(--line);border-radius:10px;padding:4px 12px;background:var(--card)}
 details summary{cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:13px;color:var(--muted);padding:6px 0}
 /* skin switcher */
 .skins{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 8px;margin:0 -16px;padding-left:16px;scrollbar-width:none}
@@ -144,7 +144,7 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 
 .lbl{fill:var(--muted);display:none} .tutoring .lbl{display:inline}
 .glow{fill:var(--hl);stroke:var(--c0);stroke-width:3}
-.empty{fill:none;stroke:var(--line);stroke-width:2;stroke-dasharray:5 5} .done{fill:var(--c4)}
+.empty{fill:none;stroke:var(--line);stroke-width:2} .done{fill:var(--c4)}
 .casing{fill:none;stroke:var(--card);stroke-linecap:round;stroke-linejoin:round;opacity:.85}
 .wp{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .wp.c0{stroke:var(--c0)} .wp.c1{stroke:var(--c1)} .wp.c2{stroke:var(--c2)} .wp.c3{stroke:var(--c3)} .wp.c4{stroke:var(--c4)}
@@ -152,9 +152,9 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .mk.c0{fill:var(--c0)} .mk.c1{fill:var(--c1)} .mk.c2{fill:var(--c2)} .mk.c3{fill:var(--c3)} .mk.c4{fill:var(--c4)}
 .aim{fill:none;stroke:var(--c0);stroke-width:5}
 .ghosts,.overlay{pointer-events:none}
-.ghosts .target{fill:none;stroke:var(--ink);stroke-width:3;stroke-dasharray:6 5;opacity:.45}
+.ghosts .target{fill:none;stroke:var(--ink);stroke-width:2;opacity:.35}
 .ghosts .land{fill:var(--c0);opacity:.5}
-.ghosts .tether{stroke:var(--c0);stroke-width:2;stroke-dasharray:4 4}
+.ghosts .tether{stroke:var(--c0);stroke-width:2;opacity:.6}
 .ghost-toggle{position:absolute;right:12px;bottom:6px;font:12px "JetBrains Mono",monospace;color:var(--muted);cursor:pointer;user-select:none}
 .ghost-toggle input{accent-color:var(--c0);vertical-align:-2px}
 .status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin:12px 0}

@@ -30,7 +30,7 @@ The game is a [nimib](https://github.com/pietroppeter/nimib) notebook written in
 The notebook itself, prose and code, is the devlog post [How it works](devlog/how-it-works/); the game page keeps only the game.
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
-Devlog:
+Devlog ([index](devlog/), built from the posts):
 - [How it works](devlog/how-it-works/): the game's own notebook. The model, the rules as code, a logical solver, the drag spec and the browser runtime.
 - [Built in CI](devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
 - [A daily hello and a first lesson](devlog/splash/): the daily splash screen and the animated lesson for first-time players.
@@ -45,8 +45,11 @@ Devlog:
 - `src/all.nim`: builds every page in one program (any `src/*.nim` that calls `nbInit`, the game first).
 - `src/parloku.nim`: the notebook. Model, rules, solver and drag spec run natively at build time and in the browser.
   It writes two pages: `devlog/how-it-works/index.html` (the whole notebook) and `index.html` (only the game).
-- `src/istruzioni.nim` → `istruzioni.html`: how to play (rules, then gestures), linked from the game menu.
-- `src/splash.nim`: the daily splash screen and the animated first lesson (game page only; `?splash=first`, `?learn`, `?nosplash`).
+- `src/istruzioni.nim` → `istruzioni.html`: how to play (rules, then gestures), linked from the game menu. Each gesture has a practice
+  board: the game in `?demo` mode in a frame (starts from the letters in `&g=`, saves nothing, no menu).
+- `src/splash.nim`: the daily splash screen and the animated first lesson, markup and style (game page only; `?splash=first`, `?learn`, `?nosplash`, `?day=`).
+- `src/splashrt.nim`: the splash's behaviour, in Nim, compiled into the game's script.
+- `src/devlog_index.nim` → `devlog/index.html`: every devlog post, newest first, read from the posts' sources.
 - `src/devlog_splash.nim` → `devlog/splash/index.html`: devlog post on the splash and the lesson.
 - `src/style.nim`: the page CSS (ten skins plus the original maiolica), inlined in place of nimib's default theme.
 - `src/devlog_pastel_skins.nim` → `devlog/pastel-skins/index.html`: devlog post on how the skins were picked, built and

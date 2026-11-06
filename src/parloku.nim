@@ -16,6 +16,14 @@ nb.backend.partials["header"] = pageHeader
 
 var gameBlocks: seq[NbBlock]           # the blocks index.html keeps; the rest is the devlog post (see the end)
 nbRawHtml: """
+<style>.kicker{font:700 .72rem/1.2 var(--font-body,sans-serif);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:1.6rem 0 .3rem}</style>
+<p class="kicker">DEVLOG · HOW IT WORKS</p>
+<h1>How it works</h1>
+<p class="lede">The game's own notebook: the model, the rules as code, a solver that thinks like a person, the drag spec
+and the browser runtime. Every block runs twice, while the page is built and in your browser.</p>
+<p>Below is the game itself, then the Nim source that makes it, one piece at a time.</p>
+"""
+nbRawHtml: """
 <div class="play" id="play">
 <h1><span class="tile">P</span>arloku</h1>
 <p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste.">A mini sudoku spelled in letters, with words hidden in it.</p>
@@ -486,7 +494,7 @@ nbText: """
 The drag engine is the one from [Declarative Dragging, in Nim](https://pietroppeter.github.io/claude-artifacts/declarative-dragging-nim/):
 a view is a pure function from model to keyed, positioned items, and a *behaviour* turns a list of reachable
 models into a picker that chooses the one landing the held item closest to the pointer.
-Tick the box and drag a tile on the board above: the dashed squares are every board this drag can reach.
+Tick the box and drag a tile on the board above: the faint squares are every board this drag can reach.
 """
 nbRawHtml: """<p class="machinery-slot" id="machinery-slot"></p>"""
 
@@ -1974,7 +1982,7 @@ Built with [nimib](https://github.com/pietroppeter/nimib). Hit *show source* bel
 nb.nbCollectAllNbJs()
 let allBlocks = nb.doc.blocks
 func postHeader(blk: JsonNode, nb: Nb): string =
-  """<header><span><a href="../../">parloku</a> · devlog</span><span>how it works</span></header>"""
+  """<header><span><a href="../../">parloku</a> · <a href="../">devlog</a></span><span>06 Nov 2026</span></header>"""
 nb.backend.partials["header"] = postHeader
 nb.doc.context["title"] = %"Parloku: how it works"
 nb.doc.filename = root / "devlog" / "how-it-works" / "index.html"
