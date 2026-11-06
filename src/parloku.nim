@@ -83,7 +83,7 @@ row, column, word, both 0-based and separated by dots.
 """
 
 nbCodeAnd(nbJsFromCode):
-  import std/[math, strformat, strutils, sequtils]
+  import std/[math, strformat, strutils, sequtils, algorithm]
 
   type
     Coord = tuple[row, col: int]
@@ -207,15 +207,15 @@ nbCodeAnd(nbJsFromCode):
     for c in 0 ..< 36:
       if g[c] != '.' and peersOf[c].anyIt(g[it] == g[c]): result.add c
 
-  proc trace(g: Grid, clue: Clue, wild = false, revisit = false): seq[int] =
-    ## longest prefix of the word that can be walked from its start cell.
-    ## The rules let a path come back to a cell it already used (`revisit`, for the solver); the board's
-    ## outlines don't, or G-I-O-C would read as GIOCO by stepping back onto the O
+  proc trace(g: Grid, clue: Clue, wild = false, revisit = false, avoid: seq[int] = @[]): seq[int] =
+    ## longest prefix of the word that can be walked from its start cell, never through a cell in `avoid`.
+    ## A path never comes back to a cell it already used, or G-I-O-C would read as GIOCO by stepping back
+    ## onto the O. (`revisit` lets it, and is kept only to compare the two rules.)
     if not revisit:
       var best, path: seq[int]
       let word = clue.word
       proc walk(cell, i: int) =
-        if best.len == word.len or cell in path: return
+        if best.len == word.len or cell in path or cell in avoid: return
         let ok = g[cell] == word[i] or (wild and g[cell] == '.')
         if not ok: return
         path.add cell
@@ -247,8 +247,29 @@ nbCodeAnd(nbJsFromCode):
     walk(idx(clue.pos), 0)
     best
 
+  proc othersStarts(clues: seq[Clue], i: int): seq[int] =
+    for j, c in clues:
+      if j != i: result.add idx(c.pos)
+
+  proc outlines(g: Grid, clues: seq[Clue]): seq[seq[int]] =
+    ## the outline of every word on the board. Two words never share a cell: an outline never enters another
+    ## word's start cell, and where two outlines could take the same letters, the longer one keeps them
+    ## (on a tie, the word listed first) and the other is traced again around them.
+    result = newSeq[seq[int]](clues.len)
+    var order = toSeq(0 ..< clues.len)
+    let first = order.mapIt(g.trace(clues[it], avoid = othersStarts(clues, it)).len)
+    order.sort(proc (a, b: int): int = (if first[a] != first[b]: first[b] - first[a] else: a - b))
+    var claimed: seq[int]
+    for i in order:
+      result[i] = g.trace(clues[i], avoid = othersStarts(clues, i) & claimed)
+      claimed.add result[i]
+
   proc solved(p: Puzzle, g: Grid): bool =
-    '.' notin g and g.clashes.len == 0 and p.clues.allIt(g.trace(it, revisit = true).len == it.word.len)
+    if '.' in g or g.clashes.len > 0: return false
+    let ls = g.outlines(p.clues)
+    for i, clue in p.clues:
+      if ls[i].len != clue.word.len: return false
+    true
 
   proc solve(p: Puzzle, limit = 2): seq[Grid] =
     ## backtracking with "fewest candidates first", pruning on the clues;
@@ -256,7 +277,8 @@ nbCodeAnd(nbJsFromCode):
     var g = startGrid(p)
     var sols: seq[Grid]
     proc fits(g: Grid, cell: int, ch: char): bool = peersOf[cell].allIt(g[it] != ch)
-    proc cluesOk(g: Grid): bool = p.clues.allIt(g.trace(it, wild = true, revisit = true).len == it.word.len)
+    proc cluesOk(g: Grid): bool =
+      toSeq(0 ..< p.clues.len).allIt(g.trace(p.clues[it], wild = true, avoid = othersStarts(p.clues, it)).len == p.clues[it].word.len)
     proc go(g: var Grid) =
       if sols.len >= limit: return
       var best = -1
@@ -285,8 +307,9 @@ nbCode:
     let verdict = if sols.len == 1: " (unique)" else: "s found, stopped"
     let key = if sols[0] == answerKeys[i]: "matches" else: "DIFFERS FROM"
     echo title, ": ", sols.len, " solution", verdict, ", ", key, " the answer key in data/"
-    for clue in p.clues:
-      let path = sols[0].trace(clue).mapIt(&"r{it div 6 + 1}c{it mod 6 + 1}")
+    let ls = sols[0].outlines(p.clues)
+    for i, clue in p.clues:
+      let path = ls[i].mapIt(&"r{it div 6 + 1}c{it mod 6 + 1}")
       echo &"  {clue.word:<7}", path.join(" → ")
 
 nbText: """
@@ -646,8 +669,9 @@ nbCodeAnd(nbJsFromCode):
   proc isHead(b: Board, at: int): bool =
     ## the letter on `at` is the last one spelled so far of some word: the head of its snake
     let g = b.grid
-    for clue in puz.clues:
-      let path = g.trace(clue)
+    let ls = g.outlines(puz.clues)
+    for i, clue in puz.clues:
+      let path = ls[i]
       if path.len > 0 and path[^1] == at: return true
     false
 
@@ -725,9 +749,10 @@ nbCodeAnd(nbJsFromCode):
   proc overlay(b: Board): string =
     let g = b.grid
     let n = puz.clues.len
+    let ls = g.outlines(puz.clues)
     for i, clue in puz.clues:
       # each word is an outline in its own dark colour: a ring on its start cell that grows around its letters
-      let path = g.trace(clue)
+      let path = ls[i]
       let ink = &"w{i mod 3}"
       var t = 4.0
       if focusClue == i: t = 6.0
@@ -1162,8 +1187,9 @@ nbJsFromCode:
     let at = stage.state.cells.find(id)
     if at < 0: return
     let g = stage.state.grid
+    let ls = g.outlines(puz.clues)
     for i, clue in puz.clues:            # an unfinished word first: its head is the one to grow
-      let path = g.trace(clue)
+      let path = ls[i]
       if path.len > 0 and path[^1] == at and (snakeWord < 0 or path.len < clue.word.len):
         snakeWord = i
         snakePath = path
@@ -1184,6 +1210,7 @@ nbJsFromCode:
       snakeStepped = true
       stage.setState(b)
     elif c >= 0 and b.cells[c] < 0 and not isGiven(c) and snakePath.len < word.len and
+        c notin othersStarts(puz.clues, snakeWord) and   # a word never runs over another word's start cell
         abs(c div 6 - head div 6) + abs(c mod 6 - head mod 6) == 1:
       let li = puz.letters.find(word[snakePath.len])
       for j in 0 .. 5:
@@ -1282,8 +1309,9 @@ nbJsFromCode:
     # the letters before it stay (and so do givens)
     var gone: seq[int]
     let g = stage.state.grid
-    for clue in puz.clues:
-      let path = g.trace(clue)
+    let ls = g.outlines(puz.clues)
+    for i, clue in puz.clues:
+      let path = ls[i]
       let k = path.find(at)
       if path.len >= 2 and k >= 0:
         for c in path[k .. ^1]:
@@ -1431,8 +1459,9 @@ nbJsFromCode:
   proc showClues() =
     let g = stage.state.grid
     var html = ""
+    let ls = g.outlines(puz.clues)
     for i, clue in puz.clues:
-      let path = g.trace(clue)
+      let path = ls[i]
       let full = path.len == clue.word.len
       let cls = if full: " done" else: ""
       let foc = if focusClue == i: " focus" else: ""

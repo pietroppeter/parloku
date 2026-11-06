@@ -6,8 +6,8 @@
 ## Rules:
 ## - 6x6 grid, six distinct letters, each exactly once per row, column and 2x3 box.
 ## - Letter hints are givens.
-## - Each word hint is spelled starting at its cell, moving to a side neighbour at each step. By the rules a
-##   path may come back to a cell it used and two words may share cells; `SolveOptions` can forbid both.
+## - Each word hint is spelled starting at its cell, moving to a side neighbour at each step. A path never
+##   comes back to a cell it used and two words never share a cell (`defaultOptions`); `SolveOptions` can allow both.
 ##
 ## It uses no os or jsony, so it compiles with the JS backend for the builder page.
 ## Entry points: `solve` (how many grids, and some of them), `candidates` (for each cell, the letters it
@@ -66,7 +66,8 @@ type
     res: SolveResult
 
 proc defaultOptions*(limit = 1000, keep = 10): SolveOptions =
-  SolveOptions(allowRevisit: true, allowShared: true, limit: limit, keep: keep)
+  ## the rules of the game: a word never uses a cell twice, and two words never share a cell
+  SolveOptions(allowRevisit: false, allowShared: false, limit: limit, keep: keep)
 
 # ---------------------------------------------------------------------------
 # Geometry
