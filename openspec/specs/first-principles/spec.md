@@ -8,7 +8,7 @@ Norman, Nielsen, Fitts and Gestalt. A change to a screen SHALL say which of them
 
 ### Requirement: Write the loop
 Every screen SHALL have its loop written in one sentence, and every piece on it SHALL help a step of that loop, its
-start or its end. For the game: look at the clues and the board, pick a letter from a stack, drop it on a cell, see
+start or its end. For the game: look at the clues and the board, pull a copy of a letter from below, drop it on a cell, see
 if it fits; before: choose a puzzle; after: Bravo!.
 
 #### Scenario: A new button
@@ -20,24 +20,24 @@ Every piece SHALL have one job, and no two pieces the same job. Pieces needed al
 middle; pieces needed once SHALL be out of the way; pieces never needed while playing SHALL leave the play area.
 
 #### Scenario: A stats line
-- **WHEN** a piece repeats what the stacks already show
+- **WHEN** a piece repeats what the letters below already show
 - **THEN** it is cut
 
 ### Requirement: The whole loop on one screen
-On a phone (an iPhone 13 shows 664 px of page) the clues, the board and the stacks SHALL be visible together, so the
+On a phone (an iPhone 13 shows 664 px of page) the clues, the board and the six letters SHALL be visible together, so the
 player never scrolls while dragging.
 
 #### Scenario: The game on an iPhone 13
 - **WHEN** the game page is open on an iPhone 13
-- **THEN** the stacks end above 664 px
+- **THEN** the six letters end above 664 px
 
 ### Requirement: Things that work together sit together
-Each piece SHALL sit next to what it works with: clues right above the board, stacks right below, actions under the
-stacks, the before-you-play choices in one row.
+Each piece SHALL sit next to what it works with: clues right above the board, the letters right below it, and
+everything that is not the loop (istruzioni, the puzzle choice, restart) together in the one menu at the top.
 
-#### Scenario: The language switch
-- **WHEN** the screen is laid out
-- **THEN** the language switch sits in the row with the tutorial and the puzzle choice
+#### Scenario: The menu
+- **WHEN** the player opens the menu
+- **THEN** istruzioni, ancora! and rifaccio are in one bar at the top, away from the board
 
 ### Requirement: One signal, one meaning
 A colour, shape or mark SHALL mean one thing everywhere (see `theming`), and important meanings SHOULD have a second

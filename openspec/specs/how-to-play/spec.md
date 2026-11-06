@@ -1,19 +1,20 @@
 # how-to-play Specification
 
 ## Purpose
-How Parloku tells a new player what to do: the three rules cards, the animated first lesson in the daily splash, and
-the 🎓 tutorial on the first puzzle.
+How Parloku tells a new player what to do: the istruzioni page, the animated first lesson in the daily splash, and the
+🎓 tutorial on the first puzzle.
 
 ## Requirements
 
 ### Requirement: The rules in three cards
-The game page SHALL show the rules in three short cards below the game: 01 sudoku (each letter once per row, column
-and 2×3 box), 02 words (each word starts in its ringed cell and is spelled one step at a time, up, down, left or
-right), 03 tiles (pull a tile from below, bring it back to merge).
+The rules SHALL fit in three short cards: 01 sudoku (each letter once per row, column and 2×3 box), 02 words (each
+word starts in its marked cell and is spelled one step at a time, up, down, left or right), 03 tiles (one tile per
+letter below the board: pull it and it divides, bring the copy back and they merge). Since the menu rework (#13) the
+cards are not shown on the game page; the istruzioni page tells the same rules.
 
 #### Scenario: Reading the rules
-- **WHEN** a player scrolls below the game
-- **THEN** the three cards are there, in the page's language
+- **WHEN** a player wants the rules while playing
+- **THEN** the menu's istruzioni opens them, rules first
 
 ### Requirement: Rules first, then gestures
 Anything that teaches the game SHALL say the rules of the puzzle before the gestures, and SHALL be short enough to
@@ -33,7 +34,8 @@ onto the board and a word being spelled; `?learn` opens it directly.
 
 ### Requirement: The tutorial
 The 🎓 tutorial SHALL walk the first puzzle along the logical path (see `logical-path`), asking for the next step
-after every drop and explaining it.
+after every drop and explaining it. Since #13 it has no button on the game page: it opens with `?tutorial`, and the
+first lesson hands over to it.
 
 #### Scenario: Starting the tutorial
 - **WHEN** the player opens `?tutorial`

@@ -6,8 +6,9 @@ Parloku speaks English and Italian: how the language is chosen and what must exi
 ## Requirements
 
 ### Requirement: Choosing the language
-The pages SHALL speak English and Italian, chosen with the EN / IT switch or `?lang=`, then the last choice, then the
-browser's language.
+The pages SHALL speak English and Italian, chosen by `?lang=`, then the last choice, then the browser's language. The
+EN / IT switch is in the page but SHALL NOT show while playing (since #13), so a player gets the browser's language
+unless a link says otherwise.
 
 #### Scenario: An Italian browser
 - **WHEN** a browser set to Italian opens the game for the first time

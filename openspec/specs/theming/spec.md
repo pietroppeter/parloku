@@ -1,7 +1,8 @@
 # theming Specification
 
 ## Purpose
-How Parloku looks: CSS skins after artists and illustrators, swapped without touching the game code.
+How Parloku looks: the Niki skin (after Niki de Saint Phalle), as CSS that can be swapped without touching the game
+code.
 
 ## Requirements
 
@@ -24,7 +25,7 @@ stay available.
 - **THEN** it shows the Tullet skin
 
 ### Requirement: Colour means letter
-In every skin each letter SHALL have its own colour, used for its tiles, its stack and its spelled letters on the
+In every skin each letter SHALL have its own colour, used for its tiles and its spelled letters on the
 clue cards, and nowhere else; each word SHALL have its own colour for its card, start mark and outline. A broken rule
 SHALL be shown by motion (the clashing letters roll), not by a colour.
 

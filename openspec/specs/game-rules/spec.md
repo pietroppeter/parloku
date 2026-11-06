@@ -39,7 +39,7 @@ moved or removed by the player.
 - **THEN** its solution has I at r5c2
 
 ### Requirement: One solution
-A puzzle that is published (in `data/`, or on the daily splash) SHALL have exactly one solution, and it SHALL be
+A puzzle that is published (in `data/`) SHALL have exactly one solution, and it SHALL be
 the answer key stored with it.
 
 #### Scenario: A puzzle with two solutions

@@ -1,19 +1,19 @@
 # play-screen Specification
 
 ## Purpose
-The game screen itself, piece by piece, as the "Back to basics" devlog left it: what is on it, where, and what each
-piece tells the player.
+The game screen itself, piece by piece: what is on it, where, and what each piece tells the player.
 
 ## Requirements
 
 ### Requirement: The pieces in order
-While playing, the screen SHALL show only the clue cards, the board and the six letter stacks, top to bottom; the menu
-(istruzioni, ancora!, rifaccio) SHALL slide down from the top on a tap above the grid. The rules cards, the skin
-switch and the notebook explaining the code SHALL come below the play area.
+The game page SHALL show only the clue cards, the board and the six letters below it, top to bottom, on one screen
+with nothing to scroll to; the menu (istruzioni, ancora!, rifaccio) SHALL slide down from the top on a tap above the
+grid. The rules are told on the istruzioni page. The rules cards, the language switch and the notebook explaining the
+code are still in the page's HTML but SHALL NOT show while playing.
 
 #### Scenario: Opening the page
 - **WHEN** the page is opened on a phone
-- **THEN** the clues, the board and the stacks fill the screen, with no buttons above them
+- **THEN** the clues, the board and the six letters fill the screen, with no buttons above them and nothing below
 
 ### Requirement: Clue cards
 Each word SHALL have a card in its colour above the board. Its letters SHALL colour in as they are spelled from the

@@ -90,7 +90,7 @@ The specs follow the topics we went through together, grouped the way they are u
 |---|---|---|
 | The puzzle | `game-rules`, `puzzle-format` | sudoku in six letters, words step by step, givens, one solution, word sets; JSON files and `?p=` codes |
 | Looking | `first-principles`, `play-screen`, `theming` | the ten design steps from "Back to basics"; the screen piece by piece; skins |
-| Playing | `tiles-and-dragging`, `word-snakes`, `player` | stacks that divide, drops, copies and moves, double taps; outlines and the head gestures; the menu and the page around the board |
+| Playing | `tiles-and-dragging`, `word-snakes`, `player` | tiles that divide, drops, copies and moves, double taps; outlines and the head gestures; the menu and the page around the board |
 | Telling | `how-to-play`, `languages`, `logical-path` | rules cards, istruzioni, first lesson and tutorial; English and Italian; the tutorial's method |
 | Crafting | `solver`, `builder` | build-time checks and counting; the builder page |
 | Working | `way-of-working` | explainers, devlog and garden, previews first, specs and scenarios |
@@ -125,7 +125,7 @@ block:   # the example, read from the spec itself so it can't drift
   nbRawHtml: "<pre><code>" & lines[a .. b].join("\n").multiReplace(("&", "&amp;"), ("<", "&lt;")) & "</code></pre>"
 
 nbText: """
-`drag:` pulls straight away, `hold:` holds first (to move a letter), and a waypoint is a cell, `stack A` or `off`.
+`drag:` pulls straight away, `hold:` holds first (to move a letter), and a waypoint is a cell, `below A` (the letter's tile under the board) or `off`.
 `outline` checks the cells a word's outline covers, and `grab: refused` says nothing may be picked up.
 
 `nim r tools/specdrag.nim` plays every scenario on the built game page, in headless Chromium on an iPhone 13, the
@@ -157,8 +157,8 @@ whole loop has already run once: going on with a snake without lifting the finge
 the change `drag-a-snake-in-one-go` with failing scenarios. PR #8 made them pass, and `openspec archive` merged them
 into `word-snakes`. The builder went the same way (`add-builder`, archived when PR #6 merged), and the double tap that
 sends a whole snake back (PR #10) went straight into the specs. The player menu and the new board look of PR #13
-were the change `rework-player-menu`, archived when #13 merged. The builder's alignment with the player (PR #14) is
-an open change now.
+were the change `rework-player-menu`, archived when #13 merged. The builder's alignment with the player (PRs #14 and #16)
+is archived too. The open changes are `settle-word-overlaps` and `keep-one-look` (PR #15).
 
 **Where zogyn fits.** The game still carries its own copy of the drag engine that [zogyn](https://github.com/pietroppeter/zogyn)
 packages. The day the game imports zogyn, each scenario in the viewer can become a small zogyn stage you drag
@@ -167,7 +167,39 @@ zogyn's `dragTo`, in milliseconds instead of a browser run. I left that for a la
 the game.
 """
 
-nbRawHtml: """<h2><span class="num">04 · WHAT WRITING THEM TURNED UP</span>Six things to look at</h2>"""
+nbRawHtml: """<h2><span class="num">04 · CHECKED AGAINST THE GAME</span>A second pass, on 6 November</h2>"""
+
+nbText: """
+You were right that the first draft lagged behind the game. I went through every spec again, against the code on
+`main` (after #13, #14 and #16), the open PRs (#15, #17, #18) and the page itself in a phone-sized browser. These were
+wrong and are fixed now:
+
+- **Tiles.** The specs still had six-tile *stacks*. The game has one tile per letter that divides: pulling it stretches
+  a neck until the copy splits off, the letter ripples, a copy brought back merges, and an empty ring with ✓ shows when
+  all six copies are down. `tiles-and-dragging` now says that, and the scenarios write `below A` instead of `stack A`.
+- **Maiolica.** It is retired, not "kept available": `keep-one-look` now says so, with a task to take its CSS out.
+- **Nothing below the game.** The specs said the rules cards, the skin switch and the code notebook sit below the play
+  area. Since #13 the page shows only the game, and none of them is ever visible. `play-screen`, `player`,
+  `how-to-play` and `first-principles` are corrected.
+- **EN / IT and 🎓.** Neither has a button any more: the language comes from `?lang=`, the last choice or the
+  browser, and the tutorial opens with `?tutorial` or from the first lesson. `languages` and `how-to-play` say so.
+- **Builder.** #14 and #16 are merged, so `align-builder-with-player` is archived. The builder spec had a "count up to
+  10+" and called one circle "ready". In fact the circles explore the grids with every placed letter (up to 100), and
+  whether the puzzle itself has one solution is said when you tap 💾. It also gained word sets, unpinning, the no-U and
+  one-way rules.
+- **Smaller ones.** The solver stops at 100 in the builder, the daily splash shows no puzzle, the clue cells are
+  marked (not numbered), and the README still described stacks.
+
+New things the check turned up, for you to decide:
+
+- **The tutorial doesn't fit the screen.** With the coach box on top, the letters end at 806 px on an iPhone 13, past
+  the 664 px that `first-principles` asks for.
+- **The code notebook is invisible.** The game page is still the nimib explainer underneath, but nothing shows it
+  now. You said the first explainer would move: to a devlog post, or to the garden?
+- **No way to switch language while playing.** An Italian player with an English browser has to use `?lang=it`.
+"""
+
+nbRawHtml: """<h2><span class="num">05 · WHAT WRITING THEM TURNED UP</span>Six things you decided</h2>"""
 
 nbRawHtml: """<div class="found">
 <h4>1 · Words and their own cells: decided</h4>
@@ -195,7 +227,7 @@ are now drag scenarios that pass or fail on their own, and they pass on main aft
 <code>tests/gestures</code> for now and retire it once you trust the specs.</p>
 </div>"""
 
-nbRawHtml: """<h2><span class="num">05 · HOW WE WORK FROM NOW</span>Five habits</h2>"""
+nbRawHtml: """<h2><span class="num">06 · HOW WE WORK FROM NOW</span>Five habits</h2>"""
 
 nbText: """
 1. **A playtest finding becomes a scenario first.** It fails, then the fix makes it pass. That is how the four snake
@@ -212,12 +244,15 @@ nbText: """
 """
 
 nbRawHtml: """<div class="ask"><b>For Pietro to check</b><ul>
+<li>The tutorial is taller than one phone screen: fine for a tutorial, or trim it?</li>
+<li>The code notebook under the game is never shown now: move it to a devlog post or to the garden?</li>
+<li>A way to switch language while playing (in the menu?), or links only?</li>
 <li>Retiring <code>tests/gestures</code> once you trust the drag scenarios.</li>
 </ul></div>"""
 
-nbRawHtml: """<h2><span class="num">06 · THE SPECS</span>All of them, as they are</h2>""" & summary(report)
+nbRawHtml: """<h2><span class="num">07 · THE SPECS</span>All of them, as they are</h2>""" & summary(report)
 nbRawHtml: renderSpecs(report)
-nbRawHtml: """<h2><span class="num">07 · OPEN CHANGES</span>What's next</h2>""" & renderChanges(report)
+nbRawHtml: """<h2><span class="num">08 · OPEN CHANGES</span>What's next</h2>""" & renderChanges(report)
 nbRawHtml: "<details class=\"spoiler\"><summary>the scenario run, as printed by tools/specdrag.nim</summary><pre>" &
   run.multiReplace(("&", "&amp;"), ("<", "&lt;")) & "</pre></details>" & playerJs(report)
 nbSave

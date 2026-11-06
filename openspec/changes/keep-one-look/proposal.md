@@ -9,7 +9,7 @@ player never has to pick one.
 
 - The switch below the game goes away.
 - Niki is the only skin a player sees.
-- The ten pastel skins and the original maiolica stay reachable with `?skin=<name>`, for testing only.
+- The ten pastel skins stay reachable with `?skin=<name>`, for testing only. The original maiolica skin is retired.
 - The rounded grid and `?grid=rounded` go away; the board is only the classic mini sudoku grid.
 
 ## Capabilities

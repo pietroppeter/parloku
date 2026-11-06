@@ -148,13 +148,13 @@ outline MAGIA: r1c6 r2c6 r3c6 r4c6 r4c5
 ```
 
 ### Requirement: Shrinking a word
-Dragging the head of a word back onto the cell before it SHALL take the head's letter off the board (back to its
-stack), and going on backwards SHALL keep taking letters off, down to the word's first letter. Moving forward again
+Dragging the head of a word back onto the cell before it SHALL take the head's letter off the board (back
+below), and going on backwards SHALL keep taking letters off, down to the word's first letter. Moving forward again
 in the same drag SHALL grow the word as usual, so a wrong turn is fixed in one gesture.
 
 #### Scenario: Back up two letters
 - **WHEN** AMICA went down the first column as A M I C A and the player drags the last A up two cells
-- **THEN** the A and the C go back to their stacks and AMI is left
+- **THEN** the A and the C go back below and AMI is left
 
 ```drag
 puzzle: 2
@@ -202,7 +202,7 @@ outline AMICA: r1c1 r2c1 r3c1 r3c2 r3c3
 
 ### Requirement: Sending a snake back
 A double tap on any letter of a word's outline SHALL send the whole word (every letter its outline covers that is not
-a given) back to the stacks. A letter outside every outline goes back alone.
+a given) back below. A letter outside every outline goes back alone.
 
 #### Scenario: Double tap inside MAGIA
 - **WHEN** MAGIA is spelled down the last column and the player double taps its G

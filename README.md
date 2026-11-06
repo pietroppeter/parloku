@@ -8,10 +8,10 @@ After you have played a few handcrafted puzzles, challenge yourself to create yo
 
 Parloku is a mini sudoku spelled in letters (a *wordoku*) with words hidden in it.
 Fill the 6×6 grid so each of six letters appears once per row, column and 2×3 box, and
-so every clue word can be spelled from its numbered cell, one step at a time up, down, left or right.
+so every clue word can be spelled from its marked cell, one step at a time up, down, left or right.
 
-Here you play by dragging: every letter has a stack of six coloured tiles below the board,
-and you drag them up into the cells. The dragging is a small port of
+Here you play by dragging: below the board each letter is one coloured tile, and pulling it
+divides it, so the copy goes up into a cell. The dragging is a small port of
 [Declarative Dragging](https://declarative-dragging.github.io/) (Horowitz, Blinn & Heer, UIST 2026):
 the code never handles a drop, it only lists the boards a drag can reach.
 

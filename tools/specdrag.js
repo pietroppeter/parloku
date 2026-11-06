@@ -63,7 +63,8 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
     const pointOf = w => {
       const c = cellOf(w)
       if (c >= 0) return cellPos(c)
-      if (w.startsWith('stack ')) return stackPos(puz.letters.indexOf(w.slice(6).trim()))
+      const m = /^(below|stack) (\w)$/.exec(w)   // a letter's tile below the board
+      if (m) return stackPos(puz.letters.indexOf(m[2]))
       if (w === 'off') return [560, 650]
       throw new Error('unknown waypoint ' + w)
     }

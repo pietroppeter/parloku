@@ -13,7 +13,7 @@
 ##   outline MAGIA: r1c6 r2c6 r3c6 r4c6 r4c5   # cells the word's outline covers
 ##   grab: refused                  # nothing may be picked up there
 ##   ```
-## Waypoints are cells (`r2c6`), a letter's stack below the board (`stack A`) or `off`; `double-tap: r3c6` taps
+## Waypoints are cells (`r2c6`), a letter's tile below the board (`below A`) or `off`; `double-tap: r3c6` taps
 ## a cell twice.
 ##
 ## This tool collects the scenarios; `tools/specdrag.js` plays them on the built page (`index.html`, so build

@@ -1,8 +1,8 @@
 # solver Specification
 
 ## Purpose
-Counting solutions: the backtracking solver that checks puzzles at build time and powers 💡, and its larger sibling
-in puzzlepaw (`parloku/solver`) that the builder uses.
+Counting solutions: the backtracking solver that checks puzzles at build time and powers 💡 (hidden
+since #13), and its larger sibling in puzzlepaw (`parloku/solver`) that the builder uses.
 
 ## Requirements
 
@@ -15,8 +15,8 @@ solution matches the stored answer key.
 - **THEN** each puzzle prints "1 solution (unique), matches the answer key in data/" and the path of each word
 
 ### Requirement: Stop early
-The solver SHALL stop after a given number of solutions (2 in the game, enough to tell unique from not; 10 in the
-builder, shown as 10+), and it SHALL prune with the word clues, where an empty cell can stand for any letter.
+The solver SHALL stop after a given number of solutions (2 in the game, enough to tell unique from not; 100 in the
+builder, shown as numbered circles), and it SHALL prune with the word clues, where an empty cell can stand for any letter.
 
 #### Scenario: Two solutions found
 - **WHEN** a setup has many solutions

@@ -1,9 +1,9 @@
 ## MODIFIED Requirements
 
 ### Requirement: Choosing a skin
-The game SHALL show Niki (after Niki de Saint Phalle) and SHALL offer the player no skin switch. The ten pastel skins
-and the original maiolica SHALL stay in the code and be reachable only with `?skin=<name>`, for testing and for the
-styles devlog.
+The game SHALL show Niki (after Niki de Saint Phalle) and SHALL offer the player no skin switch, and it SHALL NOT
+remember a skin picked earlier. The ten pastel skins SHALL stay in the code, reachable only with `?skin=<name>`, for
+testing and for the styles devlog. The original maiolica skin is retired.
 
 #### Scenario: A link with a skin
 - **WHEN** the page is opened with `?skin=tullet`

@@ -25,12 +25,20 @@ A double tap on a cell with one pencil mark SHALL fill it in.
 
 ### Requirement: Counting solutions
 The builder SHALL find the complete grids that keep every placed letter and contain all the words, trying every start
-for the words not yet placed, and show one numbered circle per solution under the board, up to 100. A grid SHALL count
-only if each word reads one way from its start. Tapping a circle SHALL show that solution in the pencil marks.
+for the words not yet placed, and show one numbered circle per solution under the board, up to 100 (with … when the search stopped early, and
+"0 soluzioni" when the words don't fit). A grid SHALL count only if each word reads one way from its start, no word
+uses a cell twice or shares one with another word, and no word makes a U-turn. Tapping a circle SHALL show that
+solution in the pencil marks: the word letters in their word's colour, the other letters in black. The circles are
+for exploring with every placed letter; whether the puzzle itself (word starts plus pins) has one solution is told
+when it is saved (see Save and share).
 
 #### Scenario: Ready
-- **WHEN** there is one circle
-- **THEN** the puzzle made of the word starts and the pinned letters is ready, and 🔗 gives its play link
+- **WHEN** the word starts and the pinned letters leave one solution and the author taps 💾
+- **THEN** the note says the puzzle can be added to the game, and 🔗 gives its play link
+
+#### Scenario: Looking at a solution
+- **WHEN** the author taps circle 2
+- **THEN** the pencil marks show the second solution and circle 2 is filled
 
 #### Scenario: A word that reads two ways
 - **WHEN** in a grid a word could be spelled along two different paths from its start

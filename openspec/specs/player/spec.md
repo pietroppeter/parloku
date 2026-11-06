@@ -6,8 +6,8 @@ The game page (`index.html`): what a player can do around the board, from choosi
 ## Requirements
 
 ### Requirement: The page opens on the game
-The page SHALL open straight on a playable puzzle, with the game's explanation (the notebook) below it. On a day's
-first visit it SHALL show the daily splash, which can be skipped (`?nosplash`) or shown again (`?splash=first`).
+The page SHALL open straight on a playable puzzle, and show only the game (see `play-screen`). On a day's first visit
+it SHALL show the daily splash, which can be skipped (`?nosplash`) or shown again (`?splash=first`).
 
 #### Scenario: First visit of the day
 - **WHEN** a player opens the page for the first time today
@@ -38,7 +38,7 @@ offer it.
 
 #### Scenario: No undo while playing
 - **WHEN** the player drops a tile on the wrong cell
-- **THEN** no ↶, 💡 or 🔗 button is on the screen, and a double tap sends the tile back to its stack
+- **THEN** no ↶, 💡 or 🔗 button is on the screen, and a double tap sends the tile back below
 
 #### Scenario: Reset by mistake
 - **WHEN** the player taps rifaccio with ten tiles placed, then taps "annullo rifaccio" within 8 seconds
