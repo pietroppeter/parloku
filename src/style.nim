@@ -234,12 +234,12 @@ body.focus .picker.listing #picker,body.chrome .picker.listing #picker{display:c
   .langs .btn{min-height:40px;padding:6px 12px}
   .skins button{min-height:40px}
 }
-.banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;
+.banner{position:absolute;left:50%;top:87%;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;
   background:var(--card);color:var(--ink);border-radius:var(--radius);padding:14px 28px;text-align:center;border:3px solid var(--ink);
   transition:all .45s cubic-bezier(.2,1.4,.4,1);white-space:nowrap}
 .banner b{display:block;font:700 42px var(--font-head)}
 .banner span{font:600 13px "JetBrains Mono",monospace;color:var(--muted)}
-.stage.won .banner{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.stage.won.cheer .banner{opacity:1;transform:translate(-50%,-50%) scale(1)}
 .confetti{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .confetti i{position:absolute;left:var(--x);top:-30px;width:20px;height:20px;border-radius:50%;
   font:700 11px/20px var(--font-glyph);text-align:center;font-style:normal;
