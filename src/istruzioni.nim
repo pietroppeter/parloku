@@ -68,7 +68,8 @@ non si salva niente. <i>↺ da capo</i> la rimette com'era.</p>
 <li><b>Spostare una lettera</b>Tienila premuta finché si solleva, poi portala dove vuoi.
 <span class="do">Prova: la T in alto è nel posto sbagliato. Tienila premuta e spostala una casella a sinistra.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=2T" title="Spostare una lettera"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Scrivere una parola</b>Trascina l'ultima lettera di una parola sulle caselle vicine: a ogni passo si aggiunge la lettera
-che viene dopo, e tornando indietro la togli. Il contorno colorato cresce con la parola.
+che viene dopo, e tornando indietro la togli. Il contorno colorato cresce con la parola: la prima casella resta velata
+del suo colore, e l'ultima lettera, la testa, ha due occhietti che guardano dove va la parola.
 <span class="do">Prova: trascina la I di ITALIA verso destra: arrivano la T e la A. Poi torna indietro.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I" title="Scrivere una parola"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Togliere</b>Doppio tocco su una lettera: torna in basso. Se fa parte di una parola, la parola si accorcia lì: tornano in basso
 quella lettera e quelle dopo, le prime restano.
