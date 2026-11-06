@@ -74,6 +74,8 @@ let living: seq[Living] = @[
    "when the builder changes"),
   ("../builder-howto.html", "Builder how-to", "How the builder works, tool by tool.",
    "when the builder changes"),
+  ("../spiega.html", "Spiega", "Any puzzle explained step by step, with moves a person can check (?p=<code>).",
+   "when the step solver changes"),
 ]
 var docs = ""
 for d in living:

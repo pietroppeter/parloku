@@ -6,6 +6,8 @@ After you have played a few handcrafted puzzles, challenge yourself to create yo
 
 **Build it:** https://pietroppeter.github.io/parloku/builder.html
 
+**See it explained:** https://pietroppeter.github.io/parloku/spiega.html (any puzzle, step by step: `spiega.html?p=<code>`)
+
 **Specs:** https://pietroppeter.github.io/parloku/specs/ (how Parloku behaves today, kept current by CI)
 
 Parloku is a mini sudoku spelled in letters (a *wordoku*) with words hidden in it.
@@ -43,8 +45,10 @@ Living documents, kept up to date as the game changes (a new one gets a row in `
 - [Istruzioni](https://pietroppeter.github.io/parloku/istruzioni.html): how to play, with a practice board for each gesture.
 - [Le feste](https://pietroppeter.github.io/parloku/garden/feste/): the dances the letters do when a puzzle is solved, each on a board to finish (a garden page).
 - [Builder](https://pietroppeter.github.io/parloku/builder.html) and its [how-to](https://pietroppeter.github.io/parloku/builder-howto.html).
+- [Spiega](https://pietroppeter.github.io/parloku/spiega.html): any puzzle explained step by step (`spiega.html?p=<code>`).
 
 Posts, dated and not updated afterwards (the index reads them from their sources, newest first):
+- [A puzzle, step by step](https://pietroppeter.github.io/parloku/devlog/steps/): the first automatic step-by-step explanation of a whole puzzle (PAROLE · PERLE · OPERA), as a gallery of boards, and what the moves say about seven puzzles.
 - [Tiles that divide like cells](https://pietroppeter.github.io/parloku/devlog/cells/): an experiment, a round tile that buds a copy and coalesces back, and how the animation is drawn.
 - [Built in CI](https://pietroppeter.github.io/parloku/devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
 - [Specs that play](https://pietroppeter.github.io/parloku/devlog/openspec/): adopting OpenSpec, and drag scenarios that are animations and tests at once.
@@ -77,7 +81,8 @@ Posts, dated and not updated afterwards (the index reads them from their sources
 - `src/specs_page.nim` → `specs/index.html`: the living spec page. `src/devlog_openspec.nim` →
   `devlog/openspec/index.html`: the dated post on adopting OpenSpec (it does not follow later spec changes).
 - `src/solver.nim`: the solver the builder uses (counts and lists complete grids, exact pencil marks), moved from puzzlepaw; `tests/test_solver.nim` checks it.
-- `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
+- `src/spiega.nim` → `spiega.html`: explains any puzzle (`?p=<code>`) step by step in the browser, with the step solver `src/stepsolver.nim` and the gallery `src/stepsview.nim` (shared with the devlog post `src/devlog_steps.nim`).
+- `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys, `author` and `created` date.
   At build time the solver checks each puzzle has a unique solution that matches its key.
 - `src/deps.sh`, `src/config.nims`, `config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/` and put them on the path (the root one is for the `nim js` compiles nimib runs from the repo root).
 

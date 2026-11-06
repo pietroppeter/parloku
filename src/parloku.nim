@@ -160,7 +160,8 @@ nbCode:
   var builtin: seq[(string, string)]   # (title, code)
   var answerKeys: seq[Grid]            # the solutions stored in the JSON files
   var files = toSeq(walkFiles(currentSourcePath().parentDir.parentDir / "data" / "puzzle*.json"))
-  files.sort()
+  files.sort(proc (a, b: string): int = cmp(a.extractFilename.strip(chars = Letters).split('-')[0].parseInt,
+    b.extractFilename.strip(chars = Letters).split('-')[0].parseInt))   # by number: puzzle10 after puzzle9
   for f in files:
     let all = parseFile(f)
     let j = all["problem"]
