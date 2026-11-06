@@ -6,12 +6,14 @@ After you have played a few handcrafted puzzles, challenge yourself to create yo
 
 **Build it:** https://pietroppeter.github.io/parloku/builder.html
 
+**Specs:** https://pietroppeter.github.io/parloku/specs/ (how Parloku behaves today, kept current by CI)
+
 Parloku is a mini sudoku spelled in letters (a *wordoku*) with words hidden in it.
 Fill the 6×6 grid so each of six letters appears once per row, column and 2×3 box, and
-so every clue word can be spelled from its numbered cell, one step at a time up, down, left or right.
+so every clue word can be spelled from its marked cell, one step at a time up, down, left or right.
 
-Here you play by dragging: every letter has a stack of six coloured tiles below the board,
-and you drag them up into the cells. The dragging is a small port of
+Here you play by dragging: below the board each letter is one coloured tile, and pulling it
+divides it, so the copy goes up into a cell. The dragging is a small port of
 [Declarative Dragging](https://declarative-dragging.github.io/) (Horowitz, Blinn & Heer, UIST 2026):
 the code never handles a drop, it only lists the boards a drag can reach.
 
@@ -27,21 +29,27 @@ palette, fonts and tile shape.
 The game is in Italian. English is a draft, reachable only with `?lang=en`.
 
 The game is a [nimib](https://github.com/pietroppeter/nimib) notebook written in Nim and compiled to JavaScript.
-The notebook itself, prose and code, is the devlog post [How it works](devlog/how-it-works/); the game page keeps only the game.
+The notebook itself, prose and code, is the devlog post [How it works](https://pietroppeter.github.io/parloku/devlog/how-it-works/); the game page keeps only the game.
 Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 
-Devlog ([index](devlog/), built from the posts):
-- [How it works](devlog/how-it-works/): the game's own notebook. The model, the rules as code, a logical solver, the drag spec and the browser runtime.
-- [Built in CI](devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
-- [A daily hello and a first lesson](devlog/splash/): the daily splash screen and the animated lesson for first-time players.
-- [Back to basics](devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
-- [Ten skins for a letter game](devlog/pastel-skins/): how the skins were chosen and checked.
+Specs: [how Parloku behaves](https://pietroppeter.github.io/parloku/specs/), written down with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in
+`openspec/`. The gameplay scenarios are played on the built game and shown as small animations.
+
+Devlog ([index](https://pietroppeter.github.io/parloku/devlog/), built from the posts):
+- [How it works](https://pietroppeter.github.io/parloku/devlog/how-it-works/): the game's own notebook. The model, the rules as code, a logical solver, the drag spec and the browser runtime.
+- [Tiles that divide like cells](https://pietroppeter.github.io/parloku/devlog/cells/): an experiment, a round tile that buds a copy and coalesces back, and how the animation is drawn.
+- [Built in CI](https://pietroppeter.github.io/parloku/devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
+- [Specs that play](https://pietroppeter.github.io/parloku/devlog/openspec/): adopting OpenSpec, and drag scenarios that are animations and tests at once.
+- [A daily hello and a first lesson](https://pietroppeter.github.io/parloku/devlog/splash/): the daily splash screen and the animated lesson for first-time players.
+- [Back to basics](https://pietroppeter.github.io/parloku/devlog/basics/): the game screen taken apart piece by piece, UI design from first principles, and the changes it led to.
+- [Ten skins for a letter game](https://pietroppeter.github.io/parloku/devlog/pastel-skins/): how the skins were chosen and checked.
 
 ## Files
 
 - The HTML pages (`index.html`, `builder.html`, `devlog/*/index.html`, ...) are not committed: CI builds them on every
   push and pull request and deploys them to GitHub Pages from `main` (`.github/workflows/pages.yml`).
 - `src/devlog_ci.nim` → `devlog/ci/index.html`: devlog post on building the pages in CI.
+- `src/devlog_cells.nim` → `devlog/cells/index.html`: devlog post on the cell-division drag experiment (dragging with [zogyn](https://github.com/pietroppeter/zogyn), pinned in `deps.sh`).
 - `src/all.nim`: builds every page in one program (any `src/*.nim` that calls `nbInit`, the game first).
 - `src/parloku.nim`: the notebook. Model, rules, solver and drag spec run natively at build time and in the browser.
   It writes two pages: `devlog/how-it-works/index.html` (the whole notebook) and `index.html` (only the game).
@@ -54,6 +62,13 @@ Devlog ([index](devlog/), built from the posts):
 - `src/style.nim`: the page CSS (ten skins plus the original maiolica), inlined in place of nimib's default theme.
 - `src/devlog_pastel_skins.nim` → `devlog/pastel-skins/index.html`: devlog post on how the skins were picked, built and
   audited (contrast and colour distance computed at build time). Build `src/parloku.nim` first, the post embeds its game.
+- `openspec/`: the specs (`specs/`) and the open changes (`changes/`); `openspec/config.yaml` has the project's rules.
+  `AGENTS.md` has the working rules.
+- `tools/specdrag.nim`: collects the ```` ```drag ```` scenarios of the specs and `tools/specdrag.js` plays
+  them on the built `index.html` in headless Chromium (`nim r tools/specdrag.nim`, needs Node and Playwright); `tools/specview.nim` draws specs and changes for the pages below.
+- `src/specs_page.nim` → `specs/index.html`: the living spec page. `src/devlog_openspec.nim` →
+  `devlog/openspec/index.html`: the dated post on adopting OpenSpec (it does not follow later spec changes).
+- `src/solver.nim`: the solver the builder uses (counts and lists complete grids, exact pencil marks), moved from puzzlepaw; `tests/test_solver.nim` checks it.
 - `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
   At build time the solver checks each puzzle has a unique solution that matches its key.
 - `src/deps.sh`, `src/config.nims`, `config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/` and put them on the path (the root one is for the `nim js` compiles nimib runs from the repo root).
@@ -66,6 +81,7 @@ Needs Nim 2.x (built with 2.2.4) and libpcre (PCRE1). From the repo root:
 sh src/deps.sh
 nim c -r -d:release src/all.nim       # every page, in one program (about 20 s, 3 s once Nim's cache is warm)
 nim c -r -d:release src/parloku.nim   # or one page: writes index.html (devlog posts embed it, so build it first)
+nim r tools/specdrag.nim              # runs the drag scenarios in openspec/ (needs Node and Playwright)
 ```
 
 The pages are written next to the sources (`index.html`, `devlog/<post>/index.html`, ...) and ignored by git.
@@ -87,13 +103,13 @@ Every empty cell shows in pencil the letters some complete grid can still put th
 A double tap on an empty cell with a single pencil mark puts that letter there. Holding a letter below makes the six
 letters wiggle so they can be reordered by dragging one onto another; a double tap on a letter ends it. Four round tools sit next to the
 words: 📌 drag the pin onto a placed letter to fix it as a clue (hold a pinned letter to unpin it), ↺ restart,
-💾 copy a link that reopens the builder in this exact state (`builder.html?s=...`), and 🔗 copy the link to play. Next to undo, a solver looks for up to 10 complete grids that keep every letter on the board and fit all three
-words, trying every start for the words not placed yet: it shows 0 when the words no longer fit, the exact number
-up to 9, or 10+. For now it only looks for solutions where no word overlaps another or itself. In the pencil marks, the letters of the three
-words in one of them take their word's colour; 🎲 shows another. A panel counts the solutions of
-the puzzle a player would get (word starts and pinned letters only), with a link to play it.
+💾 copy the puzzle as JSON, with its solution and a link that reopens the builder in this exact state (`builder.html?s=...`), and 🔗 copy the link to play. Under the board, one numbered circle per solution (up to 100, in two rows that scroll sideways): complete grids
+that keep every letter on the board and fit all three words, trying every start for the words not placed yet. For now
+a word never overlaps another or itself, never turns back in a U, and must read one way only from its start. Tapping a
+circle shows that solution in the pencil marks: the letters of the three words in their word's colour, the rest in black.
 The builder page is kept to one screen so pieces can be dragged without scrolling; its explanations are in
 `builder-howto.html` ([src/builder_howto.nim](src/builder_howto.nim)), linked from the ? button.
-The solver is [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)'s `parloku/solver`, fetched by `deps.sh`
-and compiled to JavaScript. Build with `nim c -r -d:release src/builder.nim`.
+The solver is [src/solver.nim](src/solver.nim), moved here from [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)
+with only what the builder needs, and compiled to JavaScript ([tests/test_solver.nim](tests/test_solver.nim) checks it on
+the puzzles in `data/`). Build with `nim c -r -d:release src/builder.nim`.
 

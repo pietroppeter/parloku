@@ -68,6 +68,24 @@ jobs:
           key: nimcache-2.2.4-${{ hashFiles('src/**/*.nim', '*.nims', 'src/*.nims', 'src/deps.sh') }}
           restore-keys: nimcache-2.2.4-
 
+      # the solver: every puzzle in data/ has one solution, its answer key
+      - name: Solver tests
+        run: nim r -d:release tests/test_solver.nim
+
+      # the specs page plays the drag scenarios of openspec/ on the built game in headless Chromium
+      # (tools/specdrag.js); a failing scenario in the specs turns the build red
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.63-ubuntu-24.04
+      - name: Playwright and Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63
+          npx playwright install --with-deps chromium
+
       # every page in one program: one compile, one link (src/all.nim)
       - name: Build the pages
         run: nim c -r -d:release -o:"$RUNNER_TEMP/allpages" src/all.nim
@@ -77,7 +95,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir _site
-          { git ls-files ':!:.github' ':!:.gitignore'; find . -name '*.html' -not -path './src/*' -not -path './.*' -not -path './_site/*'; } |
+          { git ls-files ':!:.github' ':!:.gitignore'; find . -name '*.html' -not -path './src/*' -not -path './.*' -not -path './_site/*' -not -path './node_modules/*'; } |
             tar -c -T - | tar -x -C _site
           find _site -name '*.html' | sort
           du -sh _site
