@@ -1,6 +1,6 @@
 ## The Parloku builder: the game's board, tiles and gestures, used to make a puzzle.
 ## Pick three words, drag each word's ring onto the board and lengthen it letter by letter, play on, and pin some letters as clues. The pencil marks and the solution count come from
-## puzzlepaw's `parloku/solver`, compiled to JS with the page.
+## `solver.nim` (moved here from puzzlepaw), compiled to JS with the page.
 ##
 ## The explanations live in builder_howto.nim (builder-howto.html), so this page stays compact.
 ## The model, rules, drag engine, view and runtime blocks are copied from `parloku.nim` (the game), so the
@@ -8,7 +8,7 @@
 import std/[algorithm, json, os, strformat, strutils]
 import nimib
 import style, builder_style
-import parloku/[types, solver]
+import solver
 
 nbInit
 nb.doc.filename = currentSourcePath().parentDir.parentDir / "builder.html"
@@ -695,8 +695,7 @@ nbJsFromCode:
 
   # ================================================================ builder wiring (new)
   import std/algorithm
-  from parloku/types as pt import nil
-  from parloku/solver as ps import nil
+  from solver as ps import nil       # src/solver.nim
 
   proc now(): float {.importjs: "Date.now()".}
   proc copyText(s: cstring) {.importjs: """(s => { const old = () => { const t = document.createElement('textarea'); t.value = s; document.body.appendChild(t); t.select(); try { document.execCommand('copy') } catch (e) {} t.remove() }; try { navigator.clipboard.writeText(s).catch(old) } catch (e) { old() } })(#)""".}
@@ -752,16 +751,16 @@ nbJsFromCode:
 
   proc emptyBoard(): Board = puz.boardOf(puz.startGrid)
 
-  proc toProblem(g: Grid, allTiles: bool): pt.Problem =
+  proc toProblem(g: Grid, allTiles: bool): ps.Problem =
     ## the solver's problem: the word starts found, plus every tile (allTiles) or only the pinned clues
     for i in 0 .. 5: result.letters[i] = puz.letters[i]
     if allTiles:
       for c in 0 ..< 36:
-        if g[c] != '.': result.letterHints.add pt.HintLetter(pos: (row: c div 6, col: c mod 6), letter: g[c])
+        if g[c] != '.': result.letterHints.add ps.HintLetter(pos: (row: c div 6, col: c mod 6), letter: g[c])
     else:
-      for gv in puz.givens: result.letterHints.add pt.HintLetter(pos: gv.pos, letter: gv.letter)
+      for gv in puz.givens: result.letterHints.add ps.HintLetter(pos: gv.pos, letter: gv.letter)
     for i, clue in puz.clues:
-      if wpath[i].len > 0: result.wordHints.add pt.HintWord(pos: clue.pos, word: clue.word)
+      if wpath[i].len > 0: result.wordHints.add ps.HintWord(pos: clue.pos, word: clue.word)
 
   proc orderedLetters(): string =
     ## the six letters in the order they sit below the board
@@ -778,7 +777,7 @@ nbJsFromCode:
   # The words are laid out cell by cell (a word never revisits a cell, two words never share one, and with
   # "niente U" no word turns back in a U); each layout's letters then go to the sudoku solver.
   type Fit = object
-    grid: pt.Grid
+    grid: ps.Grid
     paths: seq[seq[int]]       # each word's cells
   var fitList: seq[Fit]        # up to 10 different grids
   var fitCut = false           # the search hit its budget before deciding
@@ -793,10 +792,10 @@ nbJsFromCode:
     for k in 0 .. path.len - 4:
       let (a, b) = (path[k], path[k + 3])
       if abs(a div 6 - b div 6) + abs(a mod 6 - b mod 6) == 1: return true
-  proc lettersProblem(g: array[36, char]): pt.Problem =
+  proc lettersProblem(g: array[36, char]): ps.Problem =
     for i in 0 .. 5: result.letters[i] = puz.letters[i]
     for c in 0 ..< 36:
-      if g[c] != '.': result.letterHints.add pt.HintLetter(pos: (row: c div 6, col: c mod 6), letter: g[c])
+      if g[c] != '.': result.letterHints.add ps.HintLetter(pos: (row: c div 6, col: c mod 6), letter: g[c])
   proc fits(g: array[36, char], c: int, ch: char): bool =
     if g[c] == ch: return true
     g[c] == '.' and peersOf[c].allIt(g[it] != ch)
@@ -819,7 +818,7 @@ nbJsFromCode:
       seen[c] = false
     walk(path[0], 0)
     ways
-  proc unambiguous(sg: pt.Grid, path: seq[int]): bool =
+  proc unambiguous(sg: ps.Grid, path: seq[int]): bool =
     if path.len == 0: return true
     var word = ""
     for c in path: word.add sg[c div 6][c mod 6]
@@ -1810,11 +1809,11 @@ nbJsFromCode:
     ## the puzzle as puzzlepaw JSON (letters in the order below the board, pins, word starts), with its
     ## solution and, under "builder", the link that reopens this exact state; also how many solutions it has
     let lets = orderedLetters()
-    var p: pt.Problem
+    var p: ps.Problem
     for i in 0 .. 5: p.letters[i] = lets[i]
-    for gv in puz.givens: p.letterHints.add pt.HintLetter(pos: gv.pos, letter: gv.letter)
+    for gv in puz.givens: p.letterHints.add ps.HintLetter(pos: gv.pos, letter: gv.letter)
     for i, clue in puz.clues:
-      if wpath[i].len > 0: p.wordHints.add pt.HintWord(pos: clue.pos, word: clue.word)
+      if wpath[i].len > 0: p.wordHints.add ps.HintWord(pos: clue.pos, word: clue.word)
     let r = ps.solve(p, ps.defaultOptions(limit = 2, keep = 1))
     proc sep(k: int): string =
       if k > 0: result = ","

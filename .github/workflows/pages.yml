@@ -68,6 +68,10 @@ jobs:
           key: nimcache-2.2.4-${{ hashFiles('src/**/*.nim', '*.nims', 'src/*.nims', 'src/deps.sh') }}
           restore-keys: nimcache-2.2.4-
 
+      # the solver: every puzzle in data/ has one solution, its answer key
+      - name: Solver tests
+        run: nim r -d:release tests/test_solver.nim
+
       # every page in one program: one compile, one link (src/all.nim)
       - name: Build the pages
         run: nim c -r -d:release -o:"$RUNNER_TEMP/allpages" src/all.nim

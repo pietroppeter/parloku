@@ -46,6 +46,7 @@ Devlog:
 - `src/style.nim`: the page CSS (ten skins plus the original maiolica), inlined in place of nimib's default theme.
 - `src/devlog_pastel_skins.nim` → `devlog/pastel-skins/index.html`: devlog post on how the skins were picked, built and
   audited (contrast and colour distance computed at build time). Build `src/parloku.nim` first, the post embeds its game.
+- `src/solver.nim`: the solver the builder uses (counts and lists complete grids, exact pencil marks), moved from puzzlepaw; `tests/test_solver.nim` checks it.
 - `data/`: puzzles as puzzlepaw JSON (`puzzleN-WORD1-WORD2-WORD3.json`), with their answer keys.
   At build time the solver checks each puzzle has a unique solution that matches its key.
 - `src/deps.sh`, `src/config.nims`, `config.nims`: fetch nimib and its dependencies at pinned commits into `src/deps/` and put them on the path (the root one is for the `nim js` compiles nimib runs from the repo root).
@@ -79,13 +80,13 @@ Every empty cell shows in pencil the letters some complete grid can still put th
 A double tap on an empty cell with a single pencil mark puts that letter there. Holding a letter below makes the six
 letters wiggle so they can be reordered by dragging one onto another; a double tap on a letter ends it. Four round tools sit next to the
 words: 📌 drag the pin onto a placed letter to fix it as a clue (hold a pinned letter to unpin it), ↺ restart,
-💾 copy a link that reopens the builder in this exact state (`builder.html?s=...`), and 🔗 copy the link to play. Next to undo, a solver looks for up to 10 complete grids that keep every letter on the board and fit all three
-words, trying every start for the words not placed yet: it shows 0 when the words no longer fit, the exact number
-up to 9, or 10+. For now it only looks for solutions where no word overlaps another or itself. In the pencil marks, the letters of the three
-words in one of them take their word's colour; 🎲 shows another. A panel counts the solutions of
-the puzzle a player would get (word starts and pinned letters only), with a link to play it.
+💾 copy the puzzle as JSON, with its solution and a link that reopens the builder in this exact state (`builder.html?s=...`), and 🔗 copy the link to play. Under the board, one numbered circle per solution (up to 100, in two rows that scroll sideways): complete grids
+that keep every letter on the board and fit all three words, trying every start for the words not placed yet. For now
+a word never overlaps another or itself, never turns back in a U, and must read one way only from its start. Tapping a
+circle shows that solution in the pencil marks: the letters of the three words in their word's colour, the rest in black.
 The builder page is kept to one screen so pieces can be dragged without scrolling; its explanations are in
 `builder-howto.html` ([src/builder_howto.nim](src/builder_howto.nim)), linked from the ? button.
-The solver is [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)'s `parloku/solver`, fetched by `deps.sh`
-and compiled to JavaScript. Build with `nim c -r -d:release src/builder.nim`.
+The solver is [src/solver.nim](src/solver.nim), moved here from [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)
+with only what the builder needs, and compiled to JavaScript ([tests/test_solver.nim](tests/test_solver.nim) checks it on
+the puzzles in `data/`). Build with `nim c -r -d:release src/builder.nim`.
 

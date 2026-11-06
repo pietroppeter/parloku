@@ -3,7 +3,7 @@
 import std/[json, os, strformat, strutils]
 import nimib
 import style, builder_style
-import parloku/[types, solver]
+import solver
 
 nbInit
 nb.doc.filename = currentSourcePath().parentDir.parentDir / "builder-howto.html"
@@ -40,8 +40,8 @@ nbText: """
 
 nbText: """
 The builder is a [nimib](https://github.com/pietroppeter/nimib) notebook. Board, tiles and gestures are the game's;
-the pencil marks and the solution count come from [puzzlepaw](https://github.com/pietroppeter/puzzlepaw)'s
-`parloku/solver`, compiled to JavaScript with the page. The word sets are checked natively while the page is built:
+the pencil marks and the solutions come from `src/solver.nim` (moved here from
+[puzzlepaw](https://github.com/pietroppeter/puzzlepaw)), compiled to JavaScript with the page. The word sets are checked natively while the page is built:
 """
 
 nbCode:
