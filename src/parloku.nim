@@ -28,7 +28,7 @@ nbRawHtml: """
 <h1><span class="tile">P</span>arloku</h1>
 <p class="lede" data-it="Un mini sudoku fatto di lettere, con delle parole nascoste.">A mini sudoku spelled in letters, with words hidden in it.</p>
 <div class="game">
-  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><a class="btn menu-only" id="howto" href="istruzioni.html" data-it="istruzioni">how to play</a><button class="btn menu-only" id="again" aria-haspopup="true" aria-expanded="false" data-it="ancora!">again!</button><span id="picker"></span>
+  <div class="picker"><button class="btn tut" id="tutorial" data-it="🎓<span class='tx'> tutorial</span>" aria-label="tutorial">🎓<span class="tx"> tutorial</span></button><a class="btn menu-only" id="howto" href="istruzioni.html" data-it="istruzioni">how to play</a><button class="btn menu-only" id="again" aria-haspopup="true" aria-expanded="false" data-it="ancora!">again!</button>
   </div>
   <div class="coach" id="coach" hidden>
     <div class="hd" id="coach-hd"></div>
@@ -1063,7 +1063,12 @@ nbJsFromCode:
 
   let host = document.getElementById("board")
   let cluesEl = document.getElementById("clues")
-  let pickerEl = document.getElementById("picker")
+  # the list of puzzles: a panel that rises from the bottom when ancora! is tapped (see "Changing puzzle" in the specs)
+  let pickerEl = document.createElement("div")
+  pickerEl.className = "games"
+  pickerEl.id = "games"
+  pickerEl.setHidden(true)
+  document.body.appendChild(pickerEl)
   var games: seq[(string, string)]
   for o in options(): games.add ($o.attr("value"), $o.innerHTML)
   var code = games[0][0]
@@ -1504,7 +1509,9 @@ nbJsFromCode:
       if gc in done: cls.add " done"
       let name = if title == "": L("from the link", "dal link") else: title
       let tick = if gc in done: "✓" else: ""
-      html.add &"""<button class="btn num{cls}" data-i="{i}" aria-label="{L("puzzle", "puzzle")} {i + 1}: {name}"><span class="ck">{tick}</span>{name}</button>"""   # named by its three words
+      let state = if gc in done: L(", solved", ", risolto") else: ""
+      # in order, numbered from 1, with a box that is ticked once the puzzle is solved
+      html.add &"""<button class="row{cls}" data-i="{i}" aria-label="{L("puzzle", "puzzle")} {i + 1}: {name}{state}"><span class="n">{i + 1}</span><span class="nm">{name}</span><span class="box">{tick}</span></button>"""
     pickerEl.innerHTML = cstring(html)
 
   proc clock(): string =
@@ -1768,72 +1775,84 @@ nbJsFromCode:
 
   proc dataI(ev: Event): cstring {.importjs: "(#.target.closest('[data-i]')?.dataset.i ?? null)".}
   let againBtn = document.getElementById("again")
-  againBtn.addEventListener("click", proc (ev: Event) =
-    document.querySelector(".picker").classList.add("listing")   # the three buttons give way to the puzzles
-    armHide())
 
-  # ---- changing puzzle: words, grid and letters leave to the left one at a time, and the new ones come in from the right
-  proc slideOutSvg(e: Element, dx: float, delay: int) {.importjs:
-    "#.animate([{transform: 'translateX(0px)'}, {transform: 'translateX(' + # + 'px)'}], {duration: 260, delay: #, easing: 'ease-in', fill: 'both'})".}
-  proc slideInSvg(e: Element, dx: float, delay: int) {.importjs:
-    "#.animate([{transform: 'translateX(' + # + 'px)'}, {transform: 'translateX(0px)'}], {duration: 300, delay: #, easing: 'ease-out', fill: 'both'})".}
-  proc slideOut(e: Element, dx: float, delay: int) {.importjs:
-    "#.animate([{transform: 'translateX(0px)', opacity: 1}, {transform: 'translateX(' + # + 'px)', opacity: 0}], {duration: 260, delay: #, easing: 'ease-in', fill: 'both'})".}
-  proc slideIn(e: Element, dx: float, delay: int) {.importjs:
-    "#.animate([{transform: 'translateX(' + # + 'px)', opacity: 0}, {transform: 'translateX(0px)', opacity: 1}], {duration: 300, delay: #, easing: 'ease-out', fill: 'both'})".}
+  # ---- changing puzzle
   proc stopAnims(e: Element) {.importjs: "#.getAnimations().forEach(a => a.cancel())".}
   proc clueEls(): seq[Element] {.importjs: "Array.from(document.querySelectorAll('.clues .clue'))".}
   proc viewW(): float {.importjs: "(window.innerWidth)".}
   proc lessMotion2(): bool {.importjs: "matchMedia('(prefers-reduced-motion: reduce)').matches".}
-  const step = 90                      # ms between one piece and the next
-  proc pieces(): seq[(seq[Element], bool)] =
-    ## in order: each word, then the grid (with the letters on it), then each of the six letters below; true for SVG parts
-    for c in clueEls(): result.add (@[c], false)
-    var grid = @[stage.bg, stage.top]
-    var below: array[6, seq[Element]]
-    for id in 0 ..< 36:
-      let n = stage.nodes.getOrDefault(&"t{id}")
-      if n.isNil: continue                 # move a tile's insides: the tile itself is placed by its own transform
-      if stage.state.cells.find(id) >= 0: grid.add n.kids
-      else: below[id div 6].add n.kids
-    result.add (grid, true)
-    for row in below: result.add (row, true)
   var switching = false
-  proc switchTo(c: string) =
-    proc go() =
+  # ---- ancora!: the words run off to the sides, the grid too, and the list of puzzles rises from the bottom
+  proc rows(up: bool): seq[Element] {.importjs: "(up => { const r = Array.from(document.getElementById('games').querySelectorAll('.row')); return up ? r : r.reverse() })(#)".}
+  proc slideY(e: Element, up: bool, ms, delay: int) {.importjs:
+    "((e, up, ms, d) => e.animate(up ? [{transform: 'translateY(60vh)', opacity: 0}, {transform: 'translateY(0)', opacity: 1}] : [{transform: 'translateY(0)', opacity: 1}, {transform: 'translateY(60vh)', opacity: 0}], {duration: ms, delay: d, easing: up ? 'ease-out' : 'ease-in', fill: 'both'}))(#, #, #, #)".}
+  proc slideX(e: Element, x0, x1: float, delay: int, easing: cstring) {.importjs:
+    "#.animate([{transform: 'translateX(' + # + 'px)'}, {transform: 'translateX(' + # + 'px)'}], {duration: 280, delay: #, easing: #, fill: 'both'})".}
+  var listing = false
+  proc runners(): seq[(Element, float)] =
+    ## the words, one by one, to the left and right in turn, then the grid with the letters below
+    let w = viewW()
+    for k, c in clueEls(): result.add (c, (if k mod 2 == 0: -w else: w))
+    result.add (host, w)
+  proc piecesOff() =
+    for j, (e, dx) in runners(): e.slideX(0, dx, j * 70, "ease-in")
+  proc piecesBack() =
+    for j, (e, dx) in runners(): e.slideX(dx, 0, j * 70, "ease-out")
+    discard setTimer(proc () =
+      for (e, _) in runners(): e.stopAnims()
+      document.documentElement.classList.remove("listing")
+      switching = false, 3 * 70 + 320)
+  proc openList() =
+    if listing or switching: return
+    listing = true
+    renderPicker()
+    setMode("focus")
+    document.body.classList.add("listing")
+    document.documentElement.classList.add("listing")   # the pieces off to the sides must not widen the page
+    againBtn.setAttribute("aria-expanded", "true")
+    pickerEl.setHidden(false)
+    if lessMotion2(): return
+    piecesOff()
+    for k, row in rows(true): row.slideY(true, 320, 400 + k * 35)
+  proc closeList(then: proc ()) =
+    ## the list goes back down, then the pieces come back (those of the new puzzle, if one was picked)
+    if not listing: return
+    listing = false
+    switching = true
+    againBtn.setAttribute("aria-expanded", "false")
+    proc back() =
+      pickerEl.setHidden(true)
+      document.body.classList.remove("listing")
+      for row in rows(true): row.stopAnims()
+      then()
+      if lessMotion2():
+        document.documentElement.classList.remove("listing")
+        switching = false
+        return
+      piecesBack()
+    if lessMotion2():
+      back()
+      return
+    let rs = rows(false)                # the last row first, so the list folds down from the bottom
+    for k, row in rs: row.slideY(false, 220, k * 15)
+    discard setTimer(back, 220 + rs.len * 15)
+  againBtn.addEventListener("click", proc (ev: Event) = openList())
+  pickerEl.addEventListener("click", proc (ev: Event) =
+    ev.stopPropagation()                # a tap in the list is not a tap in the game
+    let i = dataI(ev)
+    if i.isNil:                         # a tap beside the rows closes the list and keeps the puzzle
+      closeList(proc () = discard)
+      return
+    let c = games[parseInt($i)][0]
+    if c == code and not tutorial:      # the puzzle already in play: just close the list
+      closeList(proc () = discard)
+      return
+    endUndoCb()
+    closeList(proc () =
       tutorial = false
       lsSet(cstring("parloku:" & c), "")   # picking a puzzle always starts it afresh
       load(c)
-      pushQuery(cstring("p=" & code))
-    if lessMotion2():
-      go()
-      return
-    switching = true
-    let gone = pieces()
-    for j, (els, svg) in gone:
-      for e in els:
-        if svg: e.slideOutSvg(-640, j * step)
-        else: e.slideOut(-viewW(), j * step)
-    discard setTimer(proc () =
-      go()
-      let inn = pieces()
-      for j, (els, svg) in inn:
-        for e in els:
-          if svg: e.slideInSvg(640, j * step)
-          else: e.slideIn(viewW(), j * step)
-      discard setTimer(proc () =
-        for (els, _) in pieces():
-          for e in els: e.stopAnims()
-        switching = false, inn.len * step + 320), gone.len * step + 280)
-
-  pickerEl.addEventListener("click", proc (ev: Event) =
-    let i = dataI(ev)
-    if i.isNil or switching: return
-    let c = games[parseInt($i)][0]
-    if not playEl.isNil: setMode("focus")
-    if c == code and not tutorial: return          # the puzzle already in play: just close the menu
-    endUndoCb()
-    switchTo(c))
+      pushQuery(cstring("p=" & code))))
 
   # ---- restart right away, no "sure?": for a few seconds, until the next move, the button offers to undo it
   let resetBtn = document.getElementById("reset")
