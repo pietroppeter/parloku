@@ -17,7 +17,7 @@ guess: when no move works it SHALL stop and say so. It SHALL also say when the p
 
 ### Requirement: The gallery
 Each move SHALL be a slide: the board after the move, the letter just placed with a thick edge, the reason shaded (a
-row, column or box, or the word's path so far), every word's container as the game draws it, the words above the board
+row, column or box, or the word's path so far), every word's container as the game draws it (on the spiega page also its tinted start cell and the eyes on its head; the dated devlog post keeps its first look), the words above the board
 with round letters lit as they are spelled, the pencil marks of the empty cells, and the reason in words. The slides
 SHALL scroll sideways; a tap SHALL go to the next slide, a tap on the left third to the previous one.
 

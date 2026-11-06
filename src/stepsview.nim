@@ -30,6 +30,8 @@ type Explained* = object
   letters*: string
   words*: seq[string]
   starts*, givens*: seq[int]
+  ends*: bool               ## mark where each word starts and where its head is, as the game does since PR #30
+                             ## (off in the dated devlog post, which keeps its look)
   steps*: seq[Step]
   solution*: string          ## the 36 letters of the solved board (to know where each word goes), or ""
 
@@ -118,11 +120,17 @@ proc board*(e: Explained, n: int): string =
       result.add &"""<rect x="{(c mod 6) * cs}" y="{(c div 6) * cs}" width="{cs}" height="{cs}" fill="{fill}" shape-rendering="crispEdges"/>"""
   for c in elims:
     result.add &"""<rect x="{(c mod 6) * cs}" y="{(c div 6) * cs}" width="{cs}" height="{cs}" fill="#ff000018" shape-rendering="crispEdges"/>"""
+  # each word's start cell holds a soft tint of its colour, as in the game (64 px at cell 78)
+  let sc = cs / 78
+  for k in 0 ..< (if e.ends: e.words.len else: 0):
+    let (x, y) = (float((starts[k] mod 6) * cs + cs div 2), float((starts[k] div 6) * cs + cs div 2))
+    result.add &"""<rect x="{x - 32 * sc:.1f}" y="{y - 32 * sc:.1f}" width="{64 * sc:.1f}" height="{64 * sc:.1f}" rx="{10 * sc:.1f}" fill="{wordCol[k]}" opacity=".2"/>"""
   for i in 0 .. 6:
     let wx = if i mod 3 == 0: 2.5 else: 0.6
     let wy = if i mod 2 == 0: 2.5 else: 0.6
     result.add &"""<line x1="{i*cs}" y1="0" x2="{i*cs}" y2="{6*cs}" stroke="#1e1e1e" stroke-width="{wx}"/>"""
     result.add &"""<line x1="0" y1="{i*cs}" x2="{6*cs}" y2="{i*cs}" stroke="#1e1e1e" stroke-width="{wy}"/>"""
+  var eyes = ""   # drawn last, over the letters
   for k in 0 ..< e.words.len:
     # the word's container over the letters it has so far, as the game shows it
     var sofar: seq[int]
@@ -131,6 +139,16 @@ proc board*(e: Explained, n: int): string =
       sofar.add c
     if sofar.len == 0: sofar = @[starts[k]]
     result.add outline(sofar, k, &"{e.id}o{n}w{k}")
+    if e.ends and sofar.len >= 2:   # the head has two eyes on its front edge, looking the way the word goes, as in the game
+      let (hx, hy) = (float((sofar[^1] mod 6) * cs + cs div 2), float((sofar[^1] div 6) * cs + cs div 2))
+      let (ux, uy) = (float((sofar[^1] mod 6) - (sofar[^2] mod 6)), float((sofar[^1] div 6) - (sofar[^2] div 6)))
+      let (nx, ny) = (-uy, ux)
+      let ed = cs / 2 - 1.5 - 1.0          # the middle of the outline band (rr + t/2 in outline)
+      for sgn in [-1.0, 1.0]:
+        let (ex, ey) = (hx + ux * ed + nx * 13 * sc * sgn, hy + uy * ed + ny * 13 * sc * sgn)
+        eyes.add &"""<circle cx="{ex:.1f}" cy="{ey:.1f}" r="{8.5 * sc:.1f}" fill="{wordCol[k]}"/>""" &
+          &"""<circle cx="{ex:.1f}" cy="{ey:.1f}" r="{6 * sc:.1f}" fill="#fff"/>""" &
+          &"""<circle cx="{ex + ux * 2.2 * sc:.1f}" cy="{ey + uy * 2.2 * sc:.1f}" r="{3 * sc:.1f}" fill="#222"/>"""
   if kind in ["follow", "wordpaths"] and unit.len > 1:
     let pts = unit.mapIt(&"{(it mod 6) * cs + cs div 2},{(it div 6) * cs + cs div 2}").join(" ")
     result.add &"""<polyline points="{pts}" fill="none" stroke="{wordCol[w]}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".45"/>"""
@@ -147,7 +165,7 @@ proc board*(e: Explained, n: int): string =
       for li, l in letters:
         if l in cands[c]:
           result.add &"""<text x="{x + 8 + (li mod 3) * 12}" y="{y + 13 + (li div 3) * 16}" text-anchor="middle" font-size="9" fill="#8a8378">{l}</text>"""
-  result.add "</svg>"
+  result.add eyes & "</svg>"
 
 const moveName = [("givens", "lettere date"), ("start", "inizio parola"), ("follow", "segui la parola"),
   ("wordpaths", "segui la parola"), ("hidden", "unico posto"), ("naked", "unica lettera"),

@@ -9,3 +9,4 @@
 - [x] 2.3 `src/spiega.nim` → `spiega.html`
 - [x] 2.4 Devlog post "A puzzle, step by step" with frozen runs (`src/devlog_steps/`)
 - [x] 2.5 Run `nim r tools/specdrag.nim` and rebuild specs/ (`src/specs_page.nim`)
+- [x] 2.6 Spiega: the start tint and the head's eyes, as the game draws them since PR #30 (`ends` in `src/stepsview.nim`)
