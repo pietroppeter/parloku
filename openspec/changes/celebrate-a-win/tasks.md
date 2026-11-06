@@ -9,4 +9,5 @@
 - [x] 2.2 The letters on the board dance before the banner (an SVG transform per frame, like the marbles)
 - [x] 2.3 The banner over the empty trays; no dance on a reload; still letters with reduced motion
 - [x] 2.4 A random dance on every win (ripples, snakes, letters); Evviva! 🥳
-- [x] 2.5 Run `nim r tools/specdrag.nim` and rebuild specs/ (src/specs_page.nim)
+- [x] 2.5 A garden page, garden/feste/, plays each dance (`?party=wave|snakes|letters` forces one), listed with the living documents
+- [x] 2.6 Run `nim r tools/specdrag.nim` and rebuild specs/ (src/specs_page.nim)

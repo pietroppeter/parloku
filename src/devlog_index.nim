@@ -68,6 +68,8 @@ let living: seq[Living] = @[
    "with every change to the game"),
   ("../istruzioni.html", "Istruzioni", "How to play, in Italian: the rules, then each gesture with a board to try it on.",
    "when a rule or a gesture changes"),
+  ("../garden/feste/", "Le feste", "The dances the letters do when a puzzle is solved, each one on a board to finish.",
+   "when a dance is added or changed"),
   ("../builder.html", "Builder", "Make a new puzzle with the game's board and gestures.",
    "when the builder changes"),
   ("../builder-howto.html", "Builder how-to", "How the builder works, tool by tool.",

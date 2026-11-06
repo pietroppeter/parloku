@@ -1567,6 +1567,8 @@ nbJsFromCode:
         wordOf[c] = i
         letterAt[c] = k
     party = Party(int(rnd() * 3) mod 3)
+    for (k, name) in [(pWave, "wave"), (pSnakes, "snakes"), (pLetters, "letters")]:   # ?party=wave: always that one
+      if fromUrl.contains("party=" & name): party = k
     inc partyRun
     let me = partyRun
     partyT0 = -1

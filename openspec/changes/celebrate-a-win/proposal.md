@@ -13,6 +13,8 @@ more festive: the letters on the board could do something.
 - The banner sits over the empty letter trays at the bottom, so the solved board stays in view.
 - A board that was already solved (a reload) shows the banner at once, with no dance and no confetti.
 - With reduced motion, the letters stay still.
+- A living garden page, `garden/feste/` (Pietro asked for a living page, not a dated post), explains each dance and
+  plays it on a board with one letter left. `?party=wave|snakes|letters` makes the game always do that dance.
 
 ## Capabilities
 
@@ -30,3 +32,4 @@ more festive: the letters on the board could do something.
 - `src/parloku.nim`: `celebrate` (the dance), the banner text; tutorial texts.
 - `src/splashrt.nim`: the "play on my own" button.
 - `src/style.nim`: the banner's place and when it shows (`.won.cheer`).
+- `src/garden_feste.nim` (new page), `src/devlog_index.nim` and README: the living list.
