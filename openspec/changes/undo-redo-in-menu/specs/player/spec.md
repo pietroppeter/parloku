@@ -24,6 +24,10 @@ bring back the board, its undo and redo history, and the clock. A reset of an un
 - **WHEN** the player taps ↶ and then makes a move
 - **THEN** ↷ is faded
 
+#### Scenario: No undo while playing
+- **WHEN** the player drops a tile on the wrong cell while the menu is up
+- **THEN** no ↶, ↷, 💡 or 🔗 button is on the screen, and a double tap sends the tile back below
+
 #### Scenario: Reset by mistake
 - **WHEN** the player taps rifaccio with ten tiles placed, then taps "annullo rifaccio" within 8 seconds
 - **THEN** the ten tiles, the undo history and the clock are back
