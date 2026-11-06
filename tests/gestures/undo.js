@@ -37,6 +37,15 @@ const os = require('os');
   console.log('a new move (taking back the P) forgets the redo:', await filled(), 'tiles |', await state());
   await p.waitForTimeout(4600);
   console.log('4.6 s later the menu and the buttons are gone:', await state());
+  // two quick taps on ↶ with a finger: two moves back, never a zoom (iPhone Safari zooms on a double tap
+  // unless the page says touch-action: manipulation)
+  await menu(); const before = await filled();
+  const u = await p.$eval('#undo', e => { const b = e.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; });
+  await p.touchscreen.tap(...u); await p.waitForTimeout(150); const mid = await filled();
+  await p.touchscreen.tap(...u); await p.waitForTimeout(400);
+  // the last move took the P back, so the first undo brings it back (5) and the second takes the third letter away (4)
+  console.log('two quick finger taps on undo:', before, '->', mid, '->', await filled(), 'tiles |', await state(), '| touch-action on the page and on undo:',
+    await p.evaluate(() => [getComputedStyle(document.documentElement).touchAction, getComputedStyle(document.getElementById('undo')).touchAction].join(', ')));
   console.log('errors', errs);
   await b.close();
 })();
