@@ -2008,7 +2008,7 @@ Built with [nimib](https://github.com/pietroppeter/nimib). Hit *show source* bel
 nb.nbCollectAllNbJs()
 let allBlocks = nb.doc.blocks
 func postHeader(blk: JsonNode, nb: Nb): string =
-  """<header><span><a href="../../">parloku</a> · <a href="../">devlog</a></span><span>06 Nov 2026</span></header>"""
+  """<header><span><a href="../../">parloku</a> · <a href="../">devlog</a></span><span>living page</span></header>"""
 nb.backend.partials["header"] = postHeader
 nb.doc.context["title"] = %"Parloku: how it works"
 nb.doc.filename = root / "devlog" / "how-it-works" / "index.html"
