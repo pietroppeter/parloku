@@ -13,6 +13,8 @@ with a static page and URL parameters, documented for people and agents.
 - The same parameters work after `#` (`specs/#change=<name>`), for places that drop the query string.
 - A filtered page says what it shows, names any name it did not find, links to the whole page, and opens what it
   shows. A spec delta link to a spec that is hidden shows that spec.
+- A link to a part of the page, clicked on the page itself, filters it in place, without a reload. So the filter also
+  works where the page sits in a frame that drops query strings and `#key=value` hashes (a claude.ai artifact).
 - The filter runs in the browser, in Nim compiled to JavaScript. A tool that fetches the page without running
   JavaScript gets the whole page, so the page and `AGENTS.md` tell agents where the plain markdown sources are.
 

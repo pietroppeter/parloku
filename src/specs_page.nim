@@ -79,7 +79,6 @@ nbJsFromCode:
 
   proc search(): cstring {.importjs: "(location.search)@".}
   proc hash(): cstring {.importjs: "(location.hash)@".}
-  proc pathname(): cstring {.importjs: "(location.pathname)@".}
   proc decodeUri(s: cstring): cstring {.importjs: "decodeURIComponent(#)".}
   proc nextEl(e: Element): Element {.importjs: "#.nextElementSibling".}
   proc closestA(ev: Event): Element {.importjs: "#.target.closest('a')".}
@@ -100,12 +99,15 @@ nbJsFromCode:
       if n == "all": p.all = true
       elif n notin p.names: (p.names.add n; p.found.add false)
 
-  proc readPicks(): (Pick, Pick) =
-    ## the `change` and `spec` parameters of the query string and of the hash, as lists of names
-    var change, spec: Pick
-    var query = $search()
+  proc locationQuery(): string =
+    ## the query string of the page's address, and the hash when it holds parameters (`#change=...`)
+    result = $search()
     let h = $hash()
-    if '=' in h: query.add "&" & h.strip(leading = true, trailing = false, chars = {'#', '?'})
+    if '=' in h: result.add "&" & h.strip(leading = true, trailing = false, chars = {'#', '?'})
+
+  proc readPicks(query: string): (Pick, Pick) =
+    ## the `change` and `spec` parameters of a query string, as lists of names
+    var change, spec: Pick
     for part in query.strip(chars = {'?'}).split('&'):
       let eq = part.find('=')
       if eq < 0: continue
@@ -150,8 +152,8 @@ nbJsFromCode:
     let label = if shown.len == 1: kind else: kinds
     "the " & label & " " & shown.join(", ")
 
-  proc applyFilter() =
-    var (change, spec) = readPicks()
+  proc applyFilter(query: string) =
+    var (change, spec) = readPicks(query)
     let filtered = change.named or spec.named
     let bar = document.getElementById("filterbar")
     for e in document.querySelectorAll(".lede, .stats, .about, details.links, details.spoiler"): e.show(not filtered)
@@ -177,7 +179,7 @@ nbJsFromCode:
     let showing = if change.all or spec.all: "Showing " else: "Showing only "
     var html = if parts.len > 0: showing & parts.join(" and ") & "." else: "Nothing to show."
     if missing.len > 0: html.add " Not found: " & missing.join(", ") & "."
-    html.add " <a href=\"" & $pathname() & "\">Show everything</a> · <a href=\"" & $pathname() & "#links\">how these links work</a>"
+    html.add " <a href=\"?\">Show everything</a> · <a href=\"?#links\">how these links work</a>"
     bar.innerHTML = html.cstring
     bar.show(true)
 
@@ -189,19 +191,40 @@ nbJsFromCode:
     t.setAttribute("open", "")
     tidyHeads()
 
-  applyFilter()
+  proc openCard(id: string) =
+    let t = document.getElementById(id.cstring)
+    if t != nil and t.nodeName == "DETAILS": t.setAttribute("open", "")
+
+  proc pushUrl(url: cstring) {.importjs: "try { history.pushState(null, '', #) } catch (e) {}".}
+  proc preventDefault(ev: Event) {.importjs: "#.preventDefault()".}
+  proc scrollToId(id: cstring) {.importjs: "document.getElementById(#)?.scrollIntoView()".}
+  proc scrollTop() {.importjs: "window.scrollTo(0, 0)@".}
+
+  applyFilter(locationQuery())
   block:   # a link to one card (#spec-builder, #links) opens it
     let h = $hash()
     if h.len > 1 and '=' notin h:
-      let t = document.getElementById(h[1 .. ^1].cstring)
-      if t != nil and t.nodeName == "DETAILS": t.setAttribute("open", "")
+      openCard(h[1 .. ^1])
   document.addEventListener("click", proc (ev: Event) =
     let a = ev.closestA
     if a != nil:
       let href = $a.hrefOf
-      if href.startsWith("#spec-") or href.startsWith("#change-"): reveal(href[1 .. ^1]))
+      if href.startsWith("#spec-") or href.startsWith("#change-"): reveal(href[1 .. ^1])
+      elif href.startsWith("?"):
+        # a link to a part of this page filters it in place: no reload, and it works where the page sits in a
+        # frame that drops query strings (a claude.ai artifact)
+        ev.preventDefault
+        let at = href.find('#')
+        let query = if at >= 0: href[0 ..< at] else: href
+        pushUrl(href.cstring)
+        applyFilter(query)
+        if at >= 0:
+          openCard(href[at + 1 .. ^1])
+          scrollToId(href[at + 1 .. ^1].cstring)
+        else: scrollTop())
+  window.addEventListener("popstate", proc (ev: Event) = applyFilter(locationQuery()))
   window.addEventListener("hashchange", proc (ev: Event) =
     let h = $hash()
-    if '=' in h: applyFilter()
+    if '=' in h: applyFilter(locationQuery())
     elif h.len > 1: reveal(h[1 .. ^1]))
 nbSave

@@ -7,7 +7,7 @@ are comma-separated, a parameter MAY be repeated, `all` SHALL choose every one o
 SHALL match by prefix. The parameters SHALL work in the query string (`specs/?change=<name>`) and after `#`
 (`specs/#change=<name>`). When one kind is chosen and the other is not named, only the chosen kind SHALL show. A
 filtered page SHALL say what it shows, name any name it did not find, link to the whole page, and open what it shows.
-With no parameter the page SHALL show everything. The filter runs in the browser; the page and `AGENTS.md` SHALL say so,
+With no parameter the page SHALL show everything. A link to a part, clicked on the page, SHALL filter it in place. The filter runs in the browser; the page and `AGENTS.md` SHALL say so,
 and SHALL point agents that fetch pages without running JavaScript to the markdown sources in `openspec/`.
 
 #### Scenario: One change
