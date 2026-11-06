@@ -312,7 +312,7 @@ nbJsFromCode:
     ## all three shapes are drawn; the page's skin (CSS) shows one, and sets the colours
     var cls = "tile"
     if given: cls = "tile given"
-    result = shapes(li, cls) & """<rect class="sh" x="-25" y="-26" width="50" height="20" rx="8"/>""" &
+    result = shapes(li, cls) &
       &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{letter}</text>"""
     if given: result.add """<g class="pinmark" transform="translate(22,-23) rotate(30)"><line x1="0" y1="0" x2="0" y2="13"/><circle cx="0" cy="-4" r="7"/></g>"""
 
