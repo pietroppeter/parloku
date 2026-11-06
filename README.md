@@ -35,8 +35,15 @@ Puzzles are crafted with [puzzlepaw](https://github.com/pietroppeter/puzzlepaw).
 Specs: [how Parloku behaves](https://pietroppeter.github.io/parloku/specs/), written down with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in
 `openspec/`. The gameplay scenarios are played on the built game and shown as small animations.
 
-Devlog ([index](https://pietroppeter.github.io/parloku/devlog/), built from the posts):
+Devlog ([index](https://pietroppeter.github.io/parloku/devlog/)). It lists the living documents first, then the dated posts.
+
+Living documents, kept up to date as the game changes (a new one gets a row in `src/devlog_index.nim`):
+- [Specs](https://pietroppeter.github.io/parloku/specs/): how Parloku behaves today, rebuilt from `openspec/` on every push.
 - [How it works](https://pietroppeter.github.io/parloku/devlog/how-it-works/): the game's own notebook. The model, the rules as code, a logical solver, the drag spec and the browser runtime.
+- [Istruzioni](https://pietroppeter.github.io/parloku/istruzioni.html): how to play, with a practice board for each gesture.
+- [Builder](https://pietroppeter.github.io/parloku/builder.html) and its [how-to](https://pietroppeter.github.io/parloku/builder-howto.html).
+
+Posts, dated and not updated afterwards (the index reads them from their sources, newest first):
 - [Tiles that divide like cells](https://pietroppeter.github.io/parloku/devlog/cells/): an experiment, a round tile that buds a copy and coalesces back, and how the animation is drawn.
 - [Built in CI](https://pietroppeter.github.io/parloku/devlog/ci/): why the pages are no longer committed, one program for every page, the caches, and how the CI grows.
 - [Specs that play](https://pietroppeter.github.io/parloku/devlog/openspec/): adopting OpenSpec, and drag scenarios that are animations and tests at once.
@@ -57,7 +64,7 @@ Devlog ([index](https://pietroppeter.github.io/parloku/devlog/), built from the 
   board: the game in `?demo` mode in a frame (starts from the letters in `&g=`, saves nothing, no menu).
 - `src/splash.nim`: the daily splash screen and the animated first lesson, markup and style (game page only; `?splash=first`, `?learn`, `?nosplash`, `?day=`).
 - `src/splashrt.nim`: the splash's behaviour, in Nim, compiled into the game's script.
-- `src/devlog_index.nim` → `devlog/index.html`: every devlog post, newest first, read from the posts' sources.
+- `src/devlog_index.nim` → `devlog/index.html`: the living documents (a table in the source), then every devlog post, newest first, read from the posts' sources.
 - `src/devlog_splash.nim` → `devlog/splash/index.html`: devlog post on the splash and the lesson.
 - `src/style.nim`: the page CSS (ten skins plus the original maiolica), inlined in place of nimib's default theme.
 - `src/devlog_pastel_skins.nim` → `devlog/pastel-skins/index.html`: devlog post on how the skins were picked, built and

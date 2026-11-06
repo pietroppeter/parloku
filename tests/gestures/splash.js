@@ -18,7 +18,7 @@ const { chromium, devices } = require('playwright');
   await p.waitForTimeout(3300);
   console.log('3.2 s later:', await shown());
   await p.goto(url + '?day=2026-12-25'); await p.waitForTimeout(700);
-  console.log('Christmas:', await p.textContent('.sp-line'));
+  console.log('Christmas:', await p.textContent('.sp-date'), '|', await p.textContent('.sp-line'));  // a Friday: venerdì, not venerd%ec
   await p.goto(url + '?learn'); await p.waitForTimeout(700);
   await p.click('#tu-skip'); await p.waitForTimeout(500);
   console.log('lesson skipped:', !(await shown()));
