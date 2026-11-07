@@ -315,7 +315,13 @@ proc playerJs*(r: Report): string =
     let i = 0, timer = null, shownB = -1, heldKey = ''
     const show = (f) => {
       const b = sc.boards[f.b]
-      if (f.b !== shownB) { bg.innerHTML = S[b.bg]; top.innerHTML = S[b.top]; shownB = f.b }
+      if (f.b !== shownB) {
+        bg.innerHTML = S[b.bg]; top.innerHTML = S[b.top]; shownB = f.b
+        for (const key in nodes) {   // a tile drawn differently on this board (a pin)
+          const look = (b.lk && key in b.lk) ? b.lk[key] : sc.tiles[key]
+          if (nodes[key].dataset.look !== String(look)) { nodes[key].innerHTML = S[look]; nodes[key].dataset.look = look }
+        }
+      }
       if (f.k !== heldKey) {
         if (heldKey) nodes[heldKey].setAttribute('class', 'item')
         if (f.k) { nodes[f.k].setAttribute('class', 'item lifted'); fg.appendChild(nodes[f.k]) }
