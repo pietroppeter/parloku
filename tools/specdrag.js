@@ -53,7 +53,7 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
     for (const g of puz.givens) if (s.start[g.r * 6 + g.c] !== g.v) problems.push(`start board misses the given ${g.v} at ${cellName(g.r * 6 + g.c)}`)
     const ctx = await browser.newContext({ ...devices['iPhone 13'] })
     await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); localStorage.setItem('parloku:look', 'niki') } catch (e) {} },
-      ['parloku:' + code, cells.join(',') + ';0;0;0'])
+      ['parloku:' + code, cells.join(',') + ';0;0;0;;0;' + (s.startPins || []).map(w => cells[cellOf(w)]).join(',')])
     const p = await ctx.newPage()
     const errs = []; p.on('pageerror', e => errs.push(e.message))
     await p.goto(pageUrl + '?nosplash&lang=en&p=' + code)
@@ -89,8 +89,11 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
       if (st.held) everLifted = true
       for (const k in st.look) if (!(k in tiles)) tiles[k] = str(st.look[k])
       const top = st.top.replace(/id="wm/g, `id="${tag}`).replace(/url\(#wm/g, `url(#${tag}`)
-      const key = JSON.stringify(st.pos) + st.bg + top
-      if (key !== lastBoard) { boards.push({ pos: st.pos, bg: str(st.bg), top: str(top) }); lastBoard = key }
+      // tiles whose drawing changed since the first frame (a pin put on): their looks, per board
+      const lk = {}
+      for (const k in st.look) if (str(st.look[k]) !== tiles[k]) lk[k] = str(st.look[k])
+      const key = JSON.stringify(st.pos) + st.bg + top + JSON.stringify(lk)
+      if (key !== lastBoard) { boards.push({ pos: st.pos, bg: str(st.bg), top: str(top), lk }); lastBoard = key }
       const held = st.held
       frames.push({ b: boards.length - 1, p: at ? at.map(v => +v.toFixed(1)) : [-100, -100], k: held })
       return st
@@ -99,7 +102,7 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
     if ((s.gesture === 'drag' || s.gesture === 'hold') && s.points.length >= 2) {
       let at = pointOf(s.points[0])
       await p.mouse.move(...toScreen(at)); await p.mouse.down()
-      if (s.gesture === 'hold') { await p.waitForTimeout(450); await grab(at) }
+      if (s.gesture === 'hold') { await p.waitForTimeout(700); await grab(at) }
       for (const w of s.points.slice(1)) {
         const to = pointOf(w), from = at
         for (let k = 1; k <= 10; k++) {
@@ -111,6 +114,12 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
       }
       await p.mouse.up()
       for (let k = 0; k < 6; k++) { await p.waitForTimeout(60); await grab(null) }
+    } else if (s.gesture === 'long-press') {
+      const at = pointOf(s.points[0])
+      await p.mouse.move(...toScreen(at)); await p.mouse.down()
+      for (let k = 0; k < 12; k++) { await p.waitForTimeout(60); await grab(at) }
+      await p.mouse.up()
+      for (let k = 0; k < 4; k++) { await p.waitForTimeout(60); await grab(null) }
     } else if (s.gesture === 'double-tap') {
       const at = pointOf(s.points[0])
       await p.mouse.click(...toScreen(at)); await p.waitForTimeout(90); await p.mouse.click(...toScreen(at))
@@ -127,6 +136,17 @@ const show = g => [0, 1, 2, 3, 4, 5].map(r => '      ' + g.slice(r * 6, r * 6 + 
       if (col >= 0 && col < 6 && row >= 0 && row < 6) grid[row * 6 + col] = puz.letters[Math.floor(+k.slice(1) / 6)]
     }
     const endGrid = grid.join('')
+    // pinned letters: the tiles drawn with a pin mark, by the cell they sit in
+    const pinsGot = []
+    for (const k in end.pos) {
+      const [x, y] = end.pos[k], col = Math.floor((x - 66) / 78), row = Math.floor((y - 16) / 78)
+      if (col >= 0 && col < 6 && row >= 0 && row < 6 && /class="pinmark/.test(end.look[k])) pinsGot.push(row * 6 + col)
+    }
+    pinsGot.sort((a, b) => a - b)
+    if (s.checkPins) {
+      const want = s.endPins.map(cellOf).sort((a, b) => a - b).map(cellName).join(' ')
+      if (pinsGot.map(cellName).join(' ') !== want) problems.push(`pins: expected ${want || 'none'}, got ${pinsGot.map(cellName).join(' ') || 'none'}`)
+    }
     if (s.refused && everLifted) problems.push(`the tile at ${s.points[0]} can be picked up`)
     if (s.finish && s.finish.length !== 36) problems.push(`the end board needs 36 cells, it has ${s.finish.length}`)
     else if (s.finish && endGrid !== s.finish) problems.push(`end board differs. Expected:\n${show(s.finish)}\n    got:\n${show(endGrid)}`)

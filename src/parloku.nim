@@ -51,7 +51,7 @@ nbRawHtml: """
 <div class="rules">
   <div data-it="<b>01 · SUDOKU</b>Ognuna delle sei lettere compare una volta in ogni riga, in ogni colonna e in ogni riquadro 2×3."><b>01 · SUDOKU</b>Each of the six letters appears once in every row, every column and every 2×3 box.</div>
   <div data-it="<b>02 · PAROLE</b>Ogni parola parte dalla casella velata del suo colore e si scrive un passo alla volta: in su, in giù, a destra o a sinistra. Il contorno cresce con le lettere, e la testa ha due occhietti che guardano dove va."><b>02 · WORDS</b>Each word starts in the cell tinted in its colour and is spelled one step at a time, up, down, left or right. Its outline grows with the letters, and its head has two eyes looking the way it goes.</div>
-  <div data-it="<b>03 · TESSERE</b>Sotto la griglia c'è una tessera per lettera. Tirala e si divide: la copia va su una casella. Riporta una tessera alla sua lettera e si riuniscono."><b>03 · TILES</b>Below the board is one tile per letter. Pull it and it divides: the copy goes on a cell. Bring a tile back to its letter and they merge.</div>
+  <div data-it="<b>03 · TESSERE</b>Sotto la griglia c'è una tessera per lettera. Tirala e si divide: la copia va su una casella. Sulla griglia una tessera si sposta; tienila premuta e prende una puntina 📌: da lì escono copie."><b>03 · TILES</b>Below the board is one tile per letter. Pull it and it divides: the copy goes on a cell. On the board a tile moves; hold it and it gets a pin 📌: copies come from there.</div>
 </div>
 <div class="skins" id="skins" hidden></div>
 </div>
@@ -102,6 +102,7 @@ nbCodeAnd(nbJsFromCode):
     Board = object
       cells: array[36, int]  # tile id in each cell, -1 when empty
       moves: int
+      pins: seq[int]         # tiles pinned on the board (📌): they stay, and copies come from them
 
   func idx(r, c: int): int = r * 6 + c
   func idx(p: Coord): int = idx(p.row, p.col)
@@ -624,13 +625,15 @@ nbCodeAnd(nbJsFromCode):
       &"""<path class="bl" d="{blobPath(31.5, li * 7 + 3, 0.09)}"/>""" &
       """<circle class="ring" r="21"/></g>"""
 
-  proc tileSvg(li: int, given: bool): string =
+  proc tileSvg(li: int, given: bool, pinned = false): string =
     let letter = puz.letters[li]
     ## all three shapes are drawn; the page's skin (CSS) shows one, and sets the colours
     var cls = "tile"
     if given: cls = "tile given"
     result = shapes(li, cls) &
       &"""<text y="13" text-anchor="middle" font-size="36" class="glyph i{li}">{letter}</text>"""
+    if pinned:                           # the builder's pin, on the top right corner
+      result.add """<g class="pinmark" transform="translate(22,-23) rotate(30)"><line x1="0" y1="0" x2="0" y2="13"/><circle cx="0" cy="-4" r="7"/><circle class="hi" cx="-2" cy="-6" r="2"/></g>"""
 
   proc renderBoard(b: Board): seq[Item] =
     var at: array[36, int]
@@ -641,7 +644,7 @@ nbCodeAnd(nbJsFromCode):
     for id in 0 ..< 36:
       let c = at[id]
       let pos = if c >= 0: cellPos(c) else: stackPos(id div 6)
-      var svg = tileSvg(id div 6, c >= 0 and isGiven(c))
+      var svg = tileSvg(id div 6, c >= 0 and isGiven(c), c >= 0 and id in b.pins)
       if c >= 0 and c in bad: svg = """<g class="shake">""" & svg & "</g>"
       result.add Item(key: &"t{id}", pos: pos, svg: svg)
 
@@ -659,6 +662,7 @@ nbCodeAnd(nbJsFromCode):
     inc result.moves
     if src >= 0: result.cells[src] = -1
     result.cells[cell] = id
+    result.pins = result.pins.filterIt(it != id)   # a pin stays with its cell: a letter that leaves loses it
     if other >= 0 and src >= 0: result.cells[src] = other   # swap
 
   proc home(b: Board, id: int): Board =
@@ -667,6 +671,7 @@ nbCodeAnd(nbJsFromCode):
     if src >= 0:
       result.cells[src] = -1
       inc result.moves
+    result.pins = result.pins.filterIt(it != id)
 
   proc isHead(b: Board, at: int): bool =
     ## the letter on `at` is the last one spelled so far of some word: the head of its snake
@@ -677,6 +682,44 @@ nbCodeAnd(nbJsFromCode):
       if path.len > 0 and path[^1] == at: return true
     false
 
+  proc isOpenHead(b: Board, at: int): bool =
+    ## the letter on `at` is the head of a word not finished yet
+    let ls = b.grid.outlines(puz.clues)
+    for i, clue in puz.clues:
+      if ls[i].len > 0 and ls[i].len < clue.word.len and ls[i][^1] == at: return true
+    false
+
+  proc inFinished(b: Board, at: int): bool =
+    ## the letter on `at` belongs to a finished word (its outline covers all its letters): copies come from it
+    let ls = b.grid.outlines(puz.clues)
+    for i, clue in puz.clues:
+      if ls[i].len == clue.word.len and at in ls[i]: return true
+    false
+
+  proc isCopySource(b: Board, at: int): bool =
+    ## dragging the letter on `at` pulls out a copy: a given, a pinned letter, a letter of a finished word
+    ## (Pietro, 7 November 2026); any other letter on the board moves
+    isGiven(at) or b.cells[at] in b.pins or b.inFinished(at)
+
+  proc canPin(b: Board, at: int): bool =
+    ## a long press pins (or unpins) a letter that is not a copy source by itself
+    at >= 0 and b.cells[at] >= 0 and not isGiven(at) and not b.inFinished(at)
+
+  proc togglePin(b: Board, at: int): Board =
+    result = b
+    let id = b.cells[at]
+    if id in b.pins: result.pins = b.pins.filterIt(it != id)
+    else: result.pins.add id
+
+  proc aboveOrBelow[S](above, below: Behavior[S], y: float): Behavior[S] =
+    ## `above` while the finger is above the line y, `below` under it
+    result = proc (render: Render[S], key: string): Picker[S] =
+      let pa = above(render, key)
+      let pb = below(render, key)
+      result.lands = pa.lands & pb.lands
+      result.pick = proc (p: Vec): Choice[S] =
+        if p.y < y: pa.pick(p) else: pb.pick(p)
+
   proc tileSpec(b: Board, key: string): Behavior[Board] =
     let id = parseInt(key[1 .. ^1])
     let src = b.cells.find(id)
@@ -684,9 +727,11 @@ nbCodeAnd(nbJsFromCode):
     var futures: seq[Board]
     for c in 0 ..< 36:                     # only empty cells: a tile never pushes out a letter already placed
       if not isGiven(c) and (b.cells[c] < 0 or c == src): futures.add b.place(id, c)
-    var fallback = b.home(id)              # a tile from below goes back to its letter
-    if src >= 0: fallback = b              # a tile lifted off the board stays in its cell
-    closest(futures).within(cell * 0.6).orElse(closest(@[fallback]))
+    let back = closest(@[b.home(id)])      # a tile from below goes back to its letter
+    if src < 0: return closest(futures).within(cell * 0.6).orElse(back)
+    # a tile moved off the board: let go on the board away from every empty cell, it stays in its cell;
+    # below the board, it goes back to its letter
+    closest(futures).within(cell * 0.6).orElse(aboveOrBelow(closest(@[b]), back, by + 6 * cell + 4))
 
 nbText: "Driving it by hand at build time: grab the first letter's tile and hover between two cells of the top row."
 
@@ -824,7 +869,11 @@ nbCodeAnd(nbJsFromCode):
         for sgn in [-1.0, 1.0]:
           let (ex, ey) = (h.x + ux * e + nx * 13 * sgn, h.y + uy * e + ny * 13 * sgn)
           result.add &"""<g class="eye"><circle class="wf {ink}" cx="{ex:.1f}" cy="{ey:.1f}" r="8.5"/>""" &
-            &"""<circle class="white" cx="{ex:.1f}" cy="{ey:.1f}" r="6"/><circle class="pupil" cx="{ex + ux * 2.2:.1f}" cy="{ey + uy * 2.2:.1f}" r="3"/></g>"""
+            &"""<circle class="white" cx="{ex:.1f}" cy="{ey:.1f}" r="6"/>"""
+          if path.len == clue.word.len:    # a finished word: happy eyes, two little arcs (^ ^)
+            result.add &"""<path class="happy" d="M{ex - 3.4:.1f},{ey + 1.6:.1f}Q{ex:.1f},{ey - 4.2:.1f} {ex + 3.4:.1f},{ey + 1.6:.1f}"/></g>"""
+          else:
+            result.add &"""<circle class="pupil" cx="{ex + ux * 2.2:.1f}" cy="{ey + uy * 2.2:.1f}" r="3"/></g>"""
       if wiggleClue == i: result.add "</g>"
     if coachTarget >= 0:
       let p = cellPos(coachTarget)
@@ -887,7 +936,9 @@ nbCodeDisplay(nbJsFromCode):
     redirect: proc (s: S, key: string): string   # grabbing `key` may lift another item instead ("" = nothing)
     origin: Vec                   # where the held item was grabbed
     redirected: bool
-    holdMs: int                   # how long a press on a redirected item waits before lifting the item itself
+    holdMs: int                   # how long a press held still waits before it counts as a hold
+    canHold: proc (s: S, key: string): bool   # a press on `key` held still does something (nil: never)
+    onHold: proc (key: string)    # what it does (the game: pin or unpin the letter)
     targetAt: proc (p: Vec): bool # whether a landing spot gets the drop-target outline (nil: always)
 
   proc tr(p: Vec): cstring = cstring(&"translate({p.x:.2f}px, {p.y:.2f}px)")
@@ -978,7 +1029,7 @@ nbCodeDisplay(nbJsFromCode):
     host.innerHTML = cstring(&"""<svg class="d2" viewBox="{x0} 0 {w} {h}"><defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="5"/></filter><filter id="cutout"><feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="1" seed="3"/><feDisplacementMap in="SourceGraphic" scale="9"/></filter></defs><g class="bg"></g>""" &
       """<g class="fg"></g><g class="overlay"></g><g class="ghosts"></g></svg>""" &
       """<label class="ghost-toggle"><input type="checkbox"> <span data-it="mostra il meccanismo">show machinery</span></label>""")
-    let st = Stage[S](state: init, render: render, spec: spec, backdrop: backdrop, overlay: overlay, holdMs: 320)
+    let st = Stage[S](state: init, render: render, spec: spec, backdrop: backdrop, overlay: overlay, holdMs: 450)
     st.svg = host.querySelector("svg")
     st.bg = host.querySelector(".bg")
     st.fg = host.querySelector(".fg")
@@ -988,8 +1039,9 @@ nbCodeDisplay(nbJsFromCode):
       let (l, t, rw, rh) = rectOf(st.svg)
       let c = clientXY(ev)
       vec(x0 + (c.x - l) * w / rw, (c.y - t) * h / rh)
-    # an item that a grab redirects (a letter on the board) waits a moment: moving at once pulls the redirected one
-    # (a copy); holding still lifts the item itself, to move it
+    # an item that can be held (a letter on the board) waits until the finger moves: then it is dragged (the item, or
+    # what the grab redirects to, a copy). Held still for a moment first, onHold runs (a pin) and the finger can
+    # still go on to drag, from the new state
     var pendKey = ""
     var pendAt = vec(0, 0)
     var pendTimer = 0
@@ -1002,28 +1054,29 @@ nbCodeDisplay(nbJsFromCode):
       var r = $k
       if not st.redirect.isNil: r = st.redirect(st.state, $k)
       if r.len == 0: return                # "": the page handles this grab itself
-      if r == $k or st.spec(st.state, $k).isNil:
+      if st.canHold.isNil or not st.canHold(st.state, $k):
         st.start($k, p)
         return
       pendKey = $k
       pendAt = p
       pendTimer = setTimer(proc () =
+        pendTimer = 0
         if pendKey.len > 0:
-          let key = pendKey
-          pendKey = ""
           buzz()
-          st.start(key, pendAt, redirect = false), st.holdMs))
+          st.onHold(pendKey), st.holdMs))
     st.svg.addEventListener("pointermove", proc (ev: Event) =
       let p = toLocal(ev)
       if pendKey.len > 0 and norm(p - pendAt) > 6:
-        clearTimer(pendTimer)
+        if pendTimer != 0: clearTimer(pendTimer)
+        pendTimer = 0
         let key = pendKey
         pendKey = ""
         st.start(key, pendAt)
       if st.dragKey.len > 0: st.move(p))
     let up = proc (ev: Event) =
       if pendKey.len > 0:
-        clearTimer(pendTimer)
+        if pendTimer != 0: clearTimer(pendTimer)
+        pendTimer = 0
         pendKey = ""
       st.finish()
     st.svg.addEventListener("pointerup", up)
@@ -1097,14 +1150,20 @@ nbJsFromCode:
   proc emptyBoard(): Board = puz.boardOf(puz.startGrid)
   puz = decode(code)
   let stage = mount(host, 500, 664, emptyBoard(), renderBoard, tileSpec, backdrop, overlay, 50)   # cropped to the board: bigger on a phone
-  # letters on the board stay put: grabbing one pulls out a copy of it (a double tap sends it back)
+  # a letter on the board moves, unless it is a copy source (a given, a pinned letter, a finished word): then grabbing it
+  # pulls out a copy. Held still, a letter is pinned or unpinned (stage.onHold)
   stage.targetAt = proc (p: Vec): bool = p.y < by + 6 * cell   # only cells are targets: a letter going back below is not
+  stage.canHold = proc (b: Board, key: string): bool = b.canPin(b.cells.find(parseInt(key[1 .. ^1])))
+  stage.onHold = proc (key: string) =
+    let at = stage.state.cells.find(parseInt(key[1 .. ^1]))
+    if stage.state.canPin(at): stage.setState(stage.state.togglePin(at))
   stage.redirect = proc (b: Board, key: string): string =
     let id = parseInt(key[1 .. ^1])
     let at = b.cells.find(id)
     if at < 0: return key
-    if b.isHead(at): return ""             # a snake's head is drawn by hand (below): no copy
-    for k in 0 .. 5:
+    if b.isHead(at): return ""             # a snake's head is drawn by hand (below)
+    if not b.isCopySource(at): return key  # a letter on the board moves
+    for k in 0 .. 5:                       # a given, a pinned letter, a finished word: a copy comes out
       if b.cells.find((id div 6) * 6 + k) < 0: return &"t{(id div 6) * 6 + k}"
     ""
   block:
@@ -1200,6 +1259,7 @@ nbJsFromCode:
   var snakeDownAt = 0.0
   var snakeCopy = ""                     # a quick drag of the head off the word pulls out this copy ("": the head moves)
   var snakeLoose = false                 # the head (or its copy) left the word and follows the finger
+  var snakePinTimer = 0                  # a press on the head held still pins it
   proc toBoard(ev: Event): Vec =
     let (l, t0, rw, rh) = rectOf(stage.svg)
     let c = clientXY(ev)
@@ -1248,7 +1308,13 @@ nbJsFromCode:
     snakeLoose = false
     snakeCopy = ""
     snakeDownAt = now()
-    snakeDown = toBoard(ev))
+    snakeDown = toBoard(ev)
+    if stage.state.canPin(at):           # held still, the head is pinned or unpinned, like any letter
+      snakePinTimer = setTimer(proc () =
+        snakePinTimer = 0
+        if snakeWord >= 0 and not snakeStepped and not snakeLoose and snakePath.len > 0 and snakePath[^1] == at:
+          buzz()
+          stage.setState(stage.state.togglePin(at)), stage.holdMs))
   proc backStep() =
     ## take the head's letter back below: the word is one letter shorter
     let head = snakePath[^1]
@@ -1304,19 +1370,22 @@ nbJsFromCode:
           snakeStepped = true
           stage.setState(b.place(li * 6 + j, c))
           break
+    if norm(p - snakeDown) > 6 and snakePinTimer != 0:
+      clearTimer(snakePinTimer)
+      snakePinTimer = 0
     if not snakeStepped and norm(p - snakeDown) > 6:
       if not snakeLoose:
-        # no step yet: off the word the head behaves like any placed letter (Pietro, 6 November 2026): a quick drag
-        # pulls out a copy and leaves the head; held still for a moment first, the head itself moves
+        # no step yet: off the word the head behaves like any placed letter (Pietro, 7 November 2026): it moves,
+        # unless it is a copy source (pinned, a given, the end of a finished word): then a copy comes out
         snakeLoose = true
         snakeCopy = ""
-        if now() - snakeDownAt < stage.holdMs.float or isGiven(head):
+        if stage.state.isCopySource(head):
           let li = parseInt(snakeKey[1 .. ^1]) div 6
           for j in 0 .. 5:
             if stage.state.cells.find(li * 6 + j) < 0:
               snakeCopy = &"t{li * 6 + j}"
               break
-          if snakeCopy.len == 0 and isGiven(head): snakeLoose = false   # no copy left: a given stays put
+          if snakeCopy.len == 0: snakeLoose = false   # no copy left: a copy source stays put
       if snakeLoose:
         let n = stage.nodes[if snakeCopy.len > 0: snakeCopy else: snakeKey]
         n.setAttribute("class", "item grab lifted")
@@ -1324,6 +1393,9 @@ nbJsFromCode:
     elif snakeStepped:
       stage.draw(stage.state))
   let snakeUp = proc (ev: Event) =
+    if snakePinTimer != 0:
+      clearTimer(snakePinTimer)
+      snakePinTimer = 0
     if snakeWord < 0: return
     if snakePath.len == 0:               # pressed on an empty start cell and let go without moving: a tap
       snakeWord = -1
@@ -1624,7 +1696,7 @@ nbJsFromCode:
   proc save() =
     if demo: return
     lsSet(storeKey(), cstring(stage.state.cells.join(",") & ";" & $stage.state.moves & ";" & $started & ";" & $wonAt &
-      ";" & encodeLog() & ";" & $ord(party)))
+      ";" & encodeLog() & ";" & $ord(party) & ";" & stage.state.pins.join(",")))
 
   # ---- the party when a puzzle is solved: the letters on the board dance, then the banner pops up. Like the marbles,
   # an SVG transform set every frame on each tile's drawing, so it looks the same in every browser
@@ -1733,9 +1805,41 @@ nbJsFromCode:
   var coachMoved = false               # tutorial: the player dragged the blob, so it stays where they put it
   var taughtAt: array[StepKind, int]   # tutorial: the step where each gesture was first explained (-1: not yet)
   proc showCoach()
+  # ---- a finished word celebrates: its letters hop one after the other, from its start to its head (Pietro,
+  # 7 November 2026). An SVG transform set every frame, like the party
+  var doneWords: seq[int]              # the words finished on the board, to spot the one just finished
+  proc finishedWords(b: Board): seq[int] =
+    let ls = b.grid.outlines(puz.clues)
+    for i, clue in puz.clues:
+      if ls[i].len == clue.word.len: result.add i
+  proc wordHop(path: seq[int]) =
+    var hoppers: seq[Element]
+    for c in path:
+      let n = host.querySelector(cstring(&"""[data-key="t{stage.state.cells[c]}"]"""))
+      hoppers.add n
+    var t0 = -1.0
+    let total = float(path.len) * 90 + 380
+    proc step(t: float) =
+      if t0 < 0: t0 = t
+      let e = t - t0
+      let done = e > total or lessMotion()
+      for k, n in hoppers:
+        if n.isNil: continue
+        let h = hop(e, float(k) * 90, 380)
+        for kid in n.kids:
+          if done or h == 0: kid.unset("transform")
+          else: kid.setAttr("transform", cstring(&"translate(0 {-18 * h:.1f}) scale({1 + 0.14 * h:.3f})"))
+      if not done: nextFrame(step)
+    nextFrame(step)
   proc refresh() =
     let g = stage.state.grid
     let won = solved(puz, g)
+    let nowDone = finishedWords(stage.state)
+    if not won:
+      let ls = g.outlines(puz.clues)
+      for i in nowDone:
+        if i notin doneWords: wordHop(ls[i])
+    doneWords = nowDone
     if won and wonAt == 0: wonAt = now()
     if won and not tutorial and code notin solvedCodes():
       markSolved(code)
@@ -1773,6 +1877,10 @@ nbJsFromCode:
       for c in 0 ..< 36:
         if stage.state.cells[c] >= 0 and last.cells[c] < 0: winCell = c
       if not quiet: logMoves(last, stage.state)
+      history.add last
+      future = @[]
+      last = stage.state
+    elif stage.state.pins != last.pins:   # a pin put on or taken off: ↶ undoes it, but it is not a move
       history.add last
       future = @[]
       last = stage.state
@@ -1815,9 +1923,12 @@ nbJsFromCode:
     moveLog = @[]
     if not saved.isNil:
       let parts = ($saved).split(';')
-      if parts.len == 6:
+      if parts.len >= 6:
         moveLog = decodeLog(parts[4])
         party = Party(parseInt(parts[5]) mod 3)
+      if parts.len >= 7:                 # the pins (tile ids), on letters still on the board
+        for t in parts[6].split(','):
+          if t.len > 0 and t.allCharsInSet(Digits) and parseInt(t) in b.cells: b.pins.add parseInt(t)
     celebrated = solved(puz, b.grid)     # don't throw confetti again on reload
     confetti.innerHTML = ""
     banner.innerHTML = bannerHtml(movesMade(b))
@@ -1826,6 +1937,7 @@ nbJsFromCode:
     history = @[]
     future = @[]
     last = b
+    doneWords = finishedWords(b)         # words finished before: no hop on load
     stage.setState(b)
     undoBtn.setDisabled(true)
     redoBtn.setDisabled(true)

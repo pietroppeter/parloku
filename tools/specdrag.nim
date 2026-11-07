@@ -7,14 +7,16 @@
 ##   start:                         # the board before the gesture, '.' for an empty cell
 ##     . . . . . M
 ##     ...
+##   start pins: r5c6               # letters pinned before the gesture (optional)
 ##   drag: r5c6 -> r4c5             # or hold: (long press first), or none (just look)
 ##   end:                           # the board after release
 ##     ...
 ##   outline MAGIA: r1c6 r2c6 r3c6 r4c6 r4c5   # cells the word's outline covers
 ##   grab: refused                  # nothing may be picked up there
+##   end pins: r5c6                 # exactly the letters pinned after release (empty: none)
 ##   ```
 ## Waypoints are cells (`r2c6`), a letter's tile below the board (`below A`) or `off`; `double-tap: r3c6` taps
-## a cell twice.
+## a cell twice, and `long-press: r3c6` holds a cell still and lets go.
 ##
 ## This tool collects the scenarios; `tools/specdrag.js` plays them on the built page (`index.html`, so build
 ## `src/parloku.nim` first) in headless Chromium on an iPhone 13, with real pointer events, the way
@@ -48,6 +50,8 @@ type
     start*, finish*: string       ## 36 chars each ('.' empty); finish "" when not given
     outlines*: seq[Outline]
     refused*: bool                ## `grab: refused`: nothing may be picked up at the first waypoint
+    startPins*, endPins*: seq[string]   ## cells pinned before the gesture, and after it (when checkPins)
+    checkPins*: bool
 
 proc gridOf(rows: seq[string]): string =
   for r in rows:
@@ -69,6 +73,13 @@ proc parseDragBlock*(body: seq[string]): DragScenario =
     if content.startsWith("puzzle:"): result.puzzle = content[7 .. ^1].strip
     elif content == "start:": result.start = readGrid()
     elif content == "end:": result.finish = readGrid()
+    elif content.startsWith("start pins:"): result.startPins = content[11 .. ^1].splitWhitespace
+    elif content.startsWith("end pins:"):
+      result.endPins = content[9 .. ^1].splitWhitespace
+      result.checkPins = true
+    elif content.startsWith("long-press:"):
+      result.gesture = "long-press"
+      result.points = @[content[11 .. ^1].strip]
     elif content.startsWith("double-tap:"):
       result.gesture = "double-tap"
       result.points = @[content[11 .. ^1].strip]

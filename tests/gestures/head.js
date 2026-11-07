@@ -21,7 +21,7 @@ const { chromium, devices } = require('playwright');
   await p.mouse.move(x0, y0); await p.mouse.down();
   for (let i = 1; i <= 20; i++) { await p.mouse.move(x0 + (x1 - x0) * i / 20 + (process.argv[2] ? 0 : 0), y0 + (y1 - y0) * i / 20); await p.waitForTimeout(16); }
   await p.mouse.up(); await p.waitForTimeout(600);
-  console.log('after dragging the A from r5c5 over the T to r2c6 (the A moves):\n' + await board());
+  console.log('after dragging the A from r5c5 over the T to r2c6 (SERATA is finished: a copy of the A goes there):\n' + await board());
   const drag = async (cs) => { const xy = []; for (const c of cs) xy.push(await cellXY(c));
     await p.mouse.move(...xy[0]); await p.mouse.down();
     for (let k = 1; k < xy.length; k++) for (let i = 1; i <= 10; i++) { await p.mouse.move(xy[k-1][0] + (xy[k][0] - xy[k-1][0]) * i / 10, xy[k-1][1] + (xy[k][1] - xy[k-1][1]) * i / 10); await p.waitForTimeout(16); }

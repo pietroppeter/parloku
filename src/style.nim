@@ -189,6 +189,9 @@ svg .mono{font-family:"JetBrains Mono",monospace}
 .wf.w0{fill:var(--w0)} .wf.w1{fill:var(--w1)} .wf.w2{fill:var(--w2)} .wo.w0,.wl.w0{stroke:var(--w0)} .wo.w1,.wl.w1{stroke:var(--w1)} .wo.w2,.wl.w2{stroke:var(--w2)}
 .wo,.wl{transition:stroke-width .2s}
 .wbase{opacity:.2} .eye .white{fill:#fff} .eye .pupil{fill:#222}
+.eye .happy{fill:none;stroke:#222;stroke-width:2.2px;stroke-linecap:round}
+.pinmark line{stroke:#222;stroke-width:2.5px;stroke-linecap:round}
+.pinmark circle{fill:#e8402f;stroke:#222;stroke-width:2px} .pinmark circle.hi{fill:rgba(255,255,255,.7);stroke:none}
 /* tiles that divide */
 .neck{stroke:var(--tstroke);stroke-width:var(--tsw)}
 .necks,.fx{pointer-events:none}

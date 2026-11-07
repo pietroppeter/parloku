@@ -76,13 +76,14 @@ non si salva niente. <i>↺ da capo</i> la rimette com'era.</p>
 <ul class="gallery">
 <li><b>Mettere una lettera</b>Trascina una delle sei lettere in basso su una casella vuota. Le lettere già in griglia non vengono mai coperte.
 <span class="do">Prova: porta la I sulla casella con il quadratino rosso, in alto a sinistra.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI" title="Mettere una lettera"></iframe><button class="again" type="button">↺ da capo</button></div></li>
-<li><b>Copiare una lettera</b>Trascina una lettera della griglia: ne parte una copia, che puoi mettere su un'altra casella.
-<span class="do">Prova: trascina la P già in griglia, in alto a destra, e lasciala più in basso.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI" title="Copiare una lettera"></iframe><button class="again" type="button">↺ da capo</button></div></li>
-<li><b>Spostare una lettera</b>Tienila premuta finché si solleva, poi portala dove vuoi.
-<span class="do">Prova: la T in alto è nel posto sbagliato. Tienila premuta e spostala una casella a sinistra.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=2T" title="Spostare una lettera"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Spostare una lettera</b>Trascina una lettera che hai messo tu: si sposta su un'altra casella vuota. Lasciata sotto la griglia, torna alla sua lettera.
+<span class="do">Prova: la T in alto è nel posto sbagliato. Spostala una casella a sinistra.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=2T" title="Spostare una lettera"></iframe><button class="again" type="button">↺ da capo</button></div></li>
+<li><b>Fissare e copiare</b>Tieni premuta una lettera per mezzo secondo: spunta una puntina 📌 e la lettera resta lì. Trascinandola, ne parte una copia. Tienila premuta di nuovo per togliere la puntina. Anche le lettere fisse e quelle di una parola finita danno copie.
+<span class="do">Prova: tieni premuta la T al centro finché spunta la puntina, poi trascinala: ne parte una copia.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=20T" title="Fissare e copiare"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Scrivere una parola</b>Trascina l'ultima lettera di una parola sulle caselle vicine: a ogni passo si aggiunge la lettera
 che viene dopo, e tornando indietro la togli. Il contorno colorato cresce con la parola: la prima casella resta velata
 del suo colore, e l'ultima lettera, la testa, ha due occhietti che guardano dove va la parola.
+Quando la parola è finita fa un saltello e la testa sorride: da ogni sua lettera puoi trascinare una copia.
 <span class="do">Prova: trascina la I di ITALIA verso destra: arrivano la T e la A. Poi torna indietro.</span><div class="try"><iframe loading="lazy" src="index.html?nosplash&amp;demo&amp;p=AILPST_51S.23L.04P_00ITALIA.20PASTA.40ALPI&amp;g=0I" title="Scrivere una parola"></iframe><button class="again" type="button">↺ da capo</button></div></li>
 <li><b>Togliere</b>Doppio tocco su una lettera: torna in basso. Se fa parte di una parola, la parola si accorcia lì: tornano in basso
 quella lettera e quelle dopo, le prime restano.
